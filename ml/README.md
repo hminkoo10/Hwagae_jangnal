@@ -1,8 +1,8 @@
 # TFT CPU 추론 인수 묶음
 
-기존 `best-epoch=02-val_loss=3.9847.ckpt`로 **재학습 없이 56일 → 7일 판매 수요**를 추론한다. `predict(context: dict) -> dict`는 요청 상품별 `date/p10/p50/p90`만 반환한다. 체크포인트는 다시 배포하지 않는다.
+기존 `best-epoch=02-val_loss=3.9847.ckpt`로 **재학습 없이 56일 → 7일 판매 수요**를 추론한다. `predict(context: dict) -> dict`는 요청 상품별 `date/p10/p50/p90`만 반환한다. 이미 받은 체크포인트를 설정 경로에서 읽는다.
 
-**API 담당자가 먼저 볼 파일:** [추가 입력 필드·단위·예시 JSON](examples/input-fields.json), [실행 가능한 전체 입력](examples/input.json), [API 예상 반환](examples/expected-api.json). 현 API에는 과거 날씨와 학습 ID 대응이 없어 이 입력 확장이 필요하다. 웹·FastAPI·DB·배포 설정은 변경하지 않는다.
+**API 담당자가 먼저 볼 파일:** [추가 입력 필드·단위·예시 JSON](examples/input-fields.json), [10상품 샘플 목록](examples/demo-manifest.json), [실행 가능한 매장 4 입력](examples/input.json), [API 예상 반환](examples/expected-api.json). 시연 모드를 켜면 실제 Walmart 표본 세 매장을 API·웹에서 조회할 수 있다. 일반 한국 가상 매장은 기존 API 요일 기준선을 사용한다.
 
 ## 검증 환경과 설치
 
@@ -37,6 +37,7 @@ ml/.venv/bin/python -m unittest discover -s ml/tests -v
 | 파일 | 역할 |
 | --- | --- |
 | `predict.py` | CPU 복원, 프로세스 내 캐시, 동기 predict 함수 |
+| `bridge.py`, `worker.py` | Python 3.14 API → 별도 Python 3.11 CPU 프로세스 연결 |
 | `preprocess.py` | 원본 특징, 단위 변환, 결측, ID/날짜 검사 |
 | `metadata/` | 저장된 날씨 중앙값, 200개 학습 시계열 대응, 체크섬 |
 | `examples/` | 실제 입력, 7일×5분위수 예상 출력, API 출력, 이력 부족 사례 |
@@ -45,6 +46,9 @@ ml/.venv/bin/python -m unittest discover -s ml/tests -v
 | `notebooks/startup_thon_1.ipynb` | 지정한 원본 학습 코드; 출력·실행 메타데이터만 제거 |
 | `notebooks/environment-freeze-training.txt` | Colab 환경 증거; 서버 설치 목록이 아님 |
 | `evaluation.md` | 시간 분할, 기준선 비교, 날씨 조건, 미검증 항목 |
+| `evaluate.py` | 원본 예측 CSV와 판매 ZIP에서 동일 행 평가표 재생성 |
+| `verify_runtime.py` | API 연결 및 실제 10/50시계열 시간·최대 메모리 검증 |
+| `train_ablation.py`, `ablation/` | 오프라인 날씨 제외 비교 학습; 추론 요청에서는 실행하지 않음 |
 
 체크포인트 SHA-256: `e64b570d22cc03b29bfa2fda37e11878e40ee9c37195cf35e78ae854bfa65909`. 불일치하면 오류를 낸다. 내장된 **학습된 dataset_parameters·categorical encoders·scalers·GroupNormalizer**를 재사용하므로 별도 `dataset_parameters.pkl`을 다시 전달할 필요가 없다.
 
@@ -57,6 +61,9 @@ PyTorch Forecasting 1.5의 `from_parameters()`는 학습된 내부 group encoder
 | `TFT_CHECKPOINT_PATH` | 필수, 이미 받은 체크포인트 경로 |
 | `TFT_METADATA_DIR` | 기본 ml/metadata, 해당 모델의 저장 중앙값·대응표·manifest |
 | `TFT_NUM_THREADS` | 기본 1, 허용 1~64. 최초 로드 시 프로세스 전체 PyTorch CPU 스레드 수 설정 |
+| `TFT_PYTHON` | API 연결 시 필수, Python 3.11 모델 환경 실행 파일의 절대 경로 |
+| `TFT_REQUEST_TIMEOUT_SECONDS` | bridge 요청 전송과 응답에 공통 적용, 기본 60초(최대 600초) |
+| `TFT_DEMO_ENABLED` | 기본 비활성, true일 때 실제 Walmart 표본 매장 제공 |
 
 모델은 프로세스마다 한 번 로드하고 동시 요청은 모델별 lock으로 직렬 처리한다. 요청·학습 상태를 변경하지 않는다. 같은 경로의 파일을 교체하면 프로세스를 재시작해야 한다. 신뢰하는 학습 산출물만 사용한다(체크포인트는 Python 객체 직렬화 파일).
 
@@ -94,13 +101,45 @@ PyTorch Forecasting 1.5의 `from_parameters()`는 학습된 내부 group encoder
 
 이 체크포인트는 **과거 관측 + 마지막 값을 7일 유지하는 persistence**로 학습·평가했다. 원본 WeatherCollator대로 decoder 날씨·결측·trace 지표를 encoder 마지막 값으로 덮는다. 미래 weather.days의 예보·실제 관측은 사용하지 않는다. 실제 예보 입력이나 날씨 시나리오 효과를 검증했다고 표시하면 안 된다.
 
-현재 API는 날씨 모델에 status=ok, mode=live_forecast를 요구하지만 샘플은 사실대로 historical_observations다. **현재 API에 그대로 연결하면 기존 gate에서 거절된다.** API 담당자가 과거 재현 경로와 출처 표시를 명시적으로 확장해야 한다. 과거 관측을 live_forecast로 이름만 바꾸지 않는다.
+시연 API는 고정 기준일 `2014-09-12`와 `historical_persistence_demo` 출처를 사용한다. 일반 매장의 실시간 예보 검사와 구분된 명시적인 과거 재현 경로다. 웹에서도 마지막 과거 날씨를 반복했다는 점을 표시한다. 오류나 모델 연결 실패를 요일 기준선으로 조용히 대체하지 않는다.
 
-입력·실행 환경 경계가 준비되면 지정값은 `FORECAST_PROVIDER=ml.predict:predict`다. 이 설정만으로 연결이 완료되는 것은 아니다. Python 3.14 API 프로세스는 별도 Python 3.11 환경을 직접 불러올 수 없으므로 모델 프로세스 연결 또는 대상 환경 호환 검증은 API 담당 범위다. 예측에 재고·가격·원가·납기·발주 계산은 필요하지 않다.
+시연 매장에는 `ml.bridge:predict`가 자동 선택된다. bridge는 Python 3.14 표준 라이브러리만 사용하고, 지정한 Python 3.11 worker를 한 번 시작해 재사용한다. API 시작 시 모델을 미리 로드한다. 요청은 직렬 처리하며 실패·시간 초과 시 worker를 종료하고 다음 요청에서 다시 시작한다. 정상 일반 매장을 위해 `FORECAST_PROVIDER`를 전역 TFT로 바꿀 필요가 없다. 예측에 재고·가격·원가·납기·발주 계산은 필요하지 않다.
+
+실제 예보 지원은 아직 없다. 이를 추가하려면 예보 발급 시각·대상 날짜·관측소·단위를 포함한 당시 예보 자료를 확보하고, 각 예측 기준일에 이용 가능했던 예보만 학습과 검증에 사용해야 한다. 예보 갱신·누락 처리와 특징 정의를 저장 전처리에 반영한 새 모델을 만든 뒤, 같은 시간순 분할과 API 기준선에서 다시 평가해야 한다. 미래 실제 관측을 당시 예보로 취급하거나 설정 이름만 바꾸는 것은 지원이 아니다.
+
+## 실제 10상품 웹 시연
+
+[demo-manifest.json](examples/demo-manifest.json)은 매장 4의 6상품, 매장 24의 3상품, 매장 17의 1상품을 연결한다. 서로 다른 실제 익명 상품 번호 10종이며 임의의 한국 상품 대응은 없다. 560개 판매 입력 행과 과거 날씨, 학습 ID, 7일×5분위수 CPU 예상값이 포함된다. [actuals.json](examples/actuals.json)의 미래 실제 판매 70행은 비교용이며 추론 입력과 시연 DB 초기화에 들어가지 않는다. 출처 ZIP 경로·SHA-256과 생성 명령은 [provenance.json](examples/provenance.json)에 있다.
+
+위 모델 환경 설치 후 Windows의 API 터미널에서 실행한다. 기존 시연 DB와 분리하려면 `DB_PATH`를 새 로컬 파일로 지정한다.
+
+```powershell
+uv sync --locked
+$env:TFT_PYTHON = (Resolve-Path ml/.venv/Scripts/python.exe).Path
+$env:TFT_CHECKPOINT_PATH = "C:\models\best-epoch=02-val_loss=3.9847.ckpt"
+$env:TFT_DEMO_ENABLED = "true"
+$env:APP_ENV = "development"
+$env:SEED_DEMO = "true"
+$env:DEMO_PASSWORD = "hwagae-demo"
+$env:DB_PATH = "tft-demo.sqlite3"
+$env:CORS_ORIGINS = "http://localhost:3000"
+uv run --locked uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000
+```
+
+다른 터미널에서:
+
+```powershell
+npm ci
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:8000"
+$env:NEXT_PUBLIC_DEMO_LOGIN_ENABLED = "true"
+npm run dev
+```
+
+웹에서 점주 체험으로 로그인한 뒤 `Walmart TFT 실제 표본` 매장을 선택한다. 56일 판매 기록과 7일 예측을 확인할 수 있다. 원본에 없는 실제 상품명·좌표·가격·원가는 제공하지 않고 해당 표본의 발주·재고 변경은 막는다. 기존 DB를 다시 실행해도 기존 표본 판매의 수정·누락을 복원하지 않으므로, 누락은 `insufficient_history`로 드러난다.
 
 ## 출력, 허용 오차와 실행 시간
 
-[expected-quantiles.json](examples/expected-quantiles.json)은 2상품×7일×5분위수 CPU float32 출력이다. 원본과 동일하게 **음수를 0으로 제한한 뒤 다섯 분위수를 정렬**하고 인덱스 0/2/4를 p10/p50/p90으로 선택한다. NaN/Inf는 오류다. 정렬은 원시 P50을 바꿀 수 있으며 통계적 재보정을 의미하지 않는다. 발주 단위 반올림은 하지 않는다.
+[expected-quantiles.json](examples/expected-quantiles.json)과 매장별 예상 파일은 총 10상품×7일×5분위수 CPU float32 출력이다. 기본 smoke 명령은 manifest의 세 매장 전체를 검사한다. 원본과 동일하게 **음수를 0으로 제한한 뒤 다섯 분위수를 정렬**하고 인덱스 0/2/4를 p10/p50/p90으로 선택한다. NaN/Inf는 오류다. 정렬은 원시 P50을 바꿀 수 있으며 통계적 재보정을 의미하지 않는다. 발주 단위 반올림은 하지 않는다.
 
 비교식은 `abs(actual-expected) <= max(1e-4, 1e-5*max(abs(actual),abs(expected)))`다. 이는 **같은 CPU 경로**의 재현 기준이다. 기존 GPU 테스트 CSV와 샘플 70개 값의 최대 차이는 약 0.0235169로, GPU CSV를 이 허용 오차의 golden output으로 사용하지 않는다.
 
