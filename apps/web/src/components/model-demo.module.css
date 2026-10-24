@@ -16,6 +16,10 @@
   display: flex;
   gap: 6px;
   border-bottom: 1px solid #dfe7f2;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 .sectionTabs button {
   display: flex;
@@ -30,6 +34,8 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .sectionTabs button[aria-pressed="true"] {
   border-bottom-color: #2478f5;
@@ -66,6 +72,8 @@
   border: 1px solid #e5ebf3;
   border-radius: 10px;
   background: white;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .sampleSelector label {
   width: 300px;
@@ -83,6 +91,9 @@
   font-size: 11px;
   line-height: 1.8;
   margin: 0;
+  flex: 1 1 180px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .introduction {
   display: flex;
@@ -96,6 +107,8 @@
 }
 .introCopy {
   max-width: 650px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .eyebrow {
   display: block;
@@ -178,6 +191,7 @@
   display: flex;
   gap: 9px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 .sampleGrid {
   display: grid;
@@ -221,6 +235,10 @@
 .sourceNote > svg {
   flex-shrink: 0;
   margin-top: 2px;
+}
+.sourceNote > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .sourceNote strong {
   font-size: 12px;
@@ -285,6 +303,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
+  flex-wrap: wrap;
+}
+.resultHeading > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .resultHeading h2 {
   color: #344862;
@@ -299,6 +322,7 @@
   width: 200px;
   flex-shrink: 0;
   font-size: 10px;
+  max-width: 100%;
 }
 .productPicker select {
   width: 100%;
@@ -308,6 +332,18 @@
 .chartWrap {
   max-width: 950px;
   margin: 12px auto 24px;
+  min-width: 0;
+}
+.plotScroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.plotScroll:focus-visible {
+  outline: 2px solid #74c8b2;
+  outline-offset: 3px;
 }
 .chart {
   display: block;
@@ -396,6 +432,9 @@
   position: relative;
   max-width: 100%;
   overflow-x: auto;
+  min-width: 0;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .table {
   min-width: 570px;
@@ -479,6 +518,9 @@
   .sampleSelector label {
     width: 100%;
   }
+  .sampleSelector p {
+    flex-basis: auto;
+  }
   .introduction {
     padding: 23px 20px;
   }
@@ -553,5 +595,33 @@
 @media (max-width: 1250px) {
   .sectionTabs button span {
     display: none;
+  }
+}
+@media (max-width: 600px) {
+  .plotScroll .chart {
+    min-width: 480px;
+  }
+  .chartText {
+    font-size: 16px;
+  }
+  .sectionTabs button {
+    min-height: 44px;
+    gap: 5px;
+  }
+  .nextStep > button {
+    width: 100%;
+    white-space: normal;
+  }
+}
+@media (max-width: 360px) {
+  .sectionTabs {
+    gap: 0;
+  }
+  .sectionTabs button {
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+  .runActions {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

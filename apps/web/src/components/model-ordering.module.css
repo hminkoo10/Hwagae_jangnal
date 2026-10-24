@@ -43,6 +43,7 @@
 }
 .steps article {
   min-width: 0;
+  overflow-wrap: anywhere;
   padding: 17px 19px;
   border: 1px solid #e5ebf3;
   border-radius: 9px;
@@ -86,6 +87,7 @@
 .heading,
 .detailHeader {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
@@ -93,7 +95,9 @@
 }
 .heading > div,
 .detailHeader > div {
+  flex: 1 1 220px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .heading h2,
 .detailHeader h2 {
@@ -111,6 +115,8 @@
 .heading > button,
 .detailHeader > button {
   flex-shrink: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 .meta {
   display: flex;
@@ -222,6 +228,10 @@
 .summary > div {
   min-width: 0;
 }
+.summary > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .summary strong {
   color: #426b9e;
   font-size: 17px;
@@ -257,6 +267,15 @@
 .footer p {
   margin: 0;
 }
+.footer > span,
+.footer > p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.footer > button {
+  max-width: 100%;
+  white-space: normal;
+}
 .assumptions {
   margin: 16px 0 0;
   padding: 13px 16px;
@@ -265,6 +284,7 @@
   color: #8392a6;
   font-size: 10px;
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 .assumptions p {
   margin: 3px 0;
@@ -287,6 +307,7 @@
 }
 .orderHeader {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
@@ -310,9 +331,15 @@
 }
 .orderActions {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+.orderActions > button {
+  max-width: 100%;
+  white-space: normal;
 }
 .orderCard > .orderActions {
   margin-top: 15px;
@@ -339,9 +366,13 @@
 .modalForm select {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   border-color: #dfe5ed;
   color: #48576b;
   font-size: 12px;
+}
+.modalForm input[type="date"] {
+  display: block;
 }
 .formSection {
   display: grid;
@@ -487,6 +518,10 @@
     gap: 12px;
     margin-bottom: 16px;
   }
+  .heading > div,
+  .detailHeader > div {
+    flex-basis: auto;
+  }
   .heading h2,
   .detailHeader h2 {
     font-size: 15px;
@@ -505,8 +540,11 @@
   .orderHeader {
     flex-wrap: wrap;
   }
+  .orderActions > button {
+    flex: 1 1 140px;
+  }
 }
-@media (max-width: 500px) {
+@media (max-width: 600px) {
   .notice {
     padding: 13px 14px;
     font-size: 10px;
@@ -515,24 +553,21 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 13px;
   }
+  .stockRow,
   .incomingRow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     padding: 12px;
     border: 1px solid #e8edf5;
     border-radius: 7px;
     background: #fbfcfe;
   }
+  .stockRow > button,
   .incomingRow > button {
     justify-self: end;
-  }
-  .stockRow {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
-    gap: 7px;
   }
   .stockRow input,
   .incomingRow input {
     padding: 9px 7px;
-    font-size: 11px;
   }
   .orderActions {
     gap: 7px;
