@@ -1,0 +1,19 @@
+{
+  "version": "walmart_20261024T020058Z-cpu-v1",
+  "checkpoint_filename": "best-epoch=02-val_loss=3.9847.ckpt",
+  "checkpoint_sha256": "e64b570d22cc03b29bfa2fda37e11878e40ee9c37195cf35e78ae854bfa65909",
+  "metadata_sha256": {
+    "weather_fill_defaults.json": "d77e80f6ee16b3a5f89b9820ae39e46cde15c2f5c49c0652ea9e6c33268287f6",
+    "selected_series.csv": "b90262322208499697df3bbc9294902a415f8c942ba8fd497db256a22fff0c14"
+  },
+  "quantiles": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "time_idx_origin": "2012-01-01",
+  "weather_strategy": "persistence",
+  "preprocessing_source": "../notebooks/startup_thon_1.ipynb"
+}
