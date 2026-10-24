@@ -218,3 +218,27 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Web application
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local environment files (commit templates only)
+.env.*
+!.env.example
+
+# Local datasets and trained model artifacts
+data/raw/
+data/processed/
+artifacts/
+*.ckpt
+*.pt
+*.pth
+*.joblib
+
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
