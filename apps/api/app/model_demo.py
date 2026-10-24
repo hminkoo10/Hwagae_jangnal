@@ -1,4 +1,4 @@
-"""Fixed, authenticated historical replay; never creates merchant/order records."""
+"""Fixed historical replay; merchant records stay separate from personal demo plans."""
 
 import json
 from pathlib import Path
@@ -23,7 +23,7 @@ SOURCE = "Kaggle Walmart Recruiting — Sales in Stormy Weather"
 NOTE = (
     "미국 Walmart의 과거 판매·관측 날씨로 학습한 TFT를 실행합니다. "
     "미래 날씨는 마지막 관측값을 7일간 유지하며 실제 발급 예보를 사용하지 않습니다. "
-    "한국 매장 예측이나 발주 계산에 적용되는 결과가 아닙니다."
+    "이 결과는 과거 표본의 개인 발주 시연에 사용하며, 현재 한국 매장 적용 성능은 검증하지 않았습니다."
 )
 
 

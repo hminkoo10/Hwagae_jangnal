@@ -102,6 +102,7 @@ export type ModelDemoStatus = {
   };
 };
 export type ModelDemoForecast = {
+  id: string;
   sample_id: string;
   as_of: string;
   dates: string[];
@@ -186,6 +187,43 @@ export type Order = {
     amount: number;
   })[];
 };
+export type ModelDemoPlanningItem = {
+  product_id: string;
+  name: string;
+  supplier: string;
+  price: number;
+  cost: number;
+  lead_days: number;
+  shelf_days: number;
+  review_days: number;
+  stock: Pick<Stock, "batches" | "incoming" | "incoming_confirmed"> | null;
+};
+export type ModelDemoPlanning = {
+  sample_id: string;
+  as_of: string;
+  revision: number;
+  can_confirm_export: boolean;
+  latest_forecast_id: string | null;
+  latest_forecast_created_at: string | null;
+  model: Forecast["model"] | null;
+  items: ModelDemoPlanningItem[];
+  assumptions: string;
+};
+export type ModelDemoRecommendation = Recommendation & {
+  sample_id: string;
+  forecast_id: string;
+  as_of: string;
+  revision: number;
+  model: Forecast["model"];
+};
+export type ModelDemoOrder = Omit<Order, "author"> & {
+  sample_id: string;
+  version: number;
+  confirmed_at: string | null;
+  forecast_id: string;
+  model: Forecast["model"];
+  assumptions: string;
+};
 
 const base = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
@@ -249,8 +287,14 @@ export async function api<T>(
   return (await response(path, token, init)).json();
 }
 
-export async function download(path: string, token: string, filename: string) {
-  const blob = await (await response(path, token)).blob();
+export async function download(
+  path: string,
+  token: string,
+  filename: string,
+  init: RequestInit = {},
+) {
+  const blob = await (await response(path, token, init)).blob();
+  if (init.signal?.aborted) return;
   saveBlob(blob, filename);
 }
 

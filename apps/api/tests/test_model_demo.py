@@ -109,7 +109,8 @@ def test_demo_is_authenticated_and_does_not_write_merchant_records(demo):
         for item in result["products"]
         for point in item["points"]
     )
-    assert "id" not in result  # It cannot be used as a saved forecast for ordering.
+    assert isinstance(result["id"], str) and result["id"]
+    # Only the personal TFT planner accepts this snapshot; merchant data stays unchanged.
     with database.connect() as db:
         after = [
             db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]

@@ -40,6 +40,24 @@
   font-weight: 400;
   color: #8b9bb0;
 }
+.sectionTabs button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.nextStep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 20px;
+  padding: 17px;
+  border-radius: 9px;
+  background: #f2f7ff;
+  color: #6b84a5;
+  font-size: 11px;
+  line-height: 1.8;
+}
 .sampleSelector {
   display: flex;
   align-items: center;
@@ -530,5 +548,10 @@
   .pending {
     font-size: 11px;
     justify-content: flex-start;
+  }
+}
+@media (max-width: 1250px) {
+  .sectionTabs button span {
+    display: none;
   }
 }

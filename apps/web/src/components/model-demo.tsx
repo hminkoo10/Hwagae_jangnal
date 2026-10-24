@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { Icon } from "./ui";
 import { ModelEvaluationPanel } from "./model-evaluation";
+import { ModelOrdering } from "./model-ordering";
 import styles from "./model-demo.module.css";
 
 const statusLabels: Record<ModelDemoStatus["runtime"]["status"], string> = {
@@ -180,7 +181,10 @@ export function ModelDemo({
 }) {
   const [metadata, setMetadata] = useState<ModelDemoStatus | null>(null);
   const [result, setResult] = useState<ModelDemoForecast | null>(null);
-  const [section, setSection] = useState<"predict" | "evaluation">("predict");
+  const [section, setSection] = useState<"predict" | "ordering" | "evaluation">(
+    "predict",
+  );
+  const [orderingBusy, setOrderingBusy] = useState(false);
   const [sampleId, setSampleId] = useState("walmart-demo-4");
   const [selectedId, setSelectedId] = useState("");
   const [checking, setChecking] = useState(false);
@@ -322,6 +326,7 @@ export function ModelDemo({
       <nav className={styles.sectionTabs} aria-label="TFT 체험 화면">
         <button
           aria-pressed={section === "predict"}
+          disabled={orderingBusy}
           onClick={() => setSection("predict")}
         >
           <Icon name="forecast" size={18} />
@@ -329,7 +334,17 @@ export function ModelDemo({
           <span>과거 표본으로 실행</span>
         </button>
         <button
+          aria-pressed={section === "ordering"}
+          disabled={orderingBusy || running}
+          onClick={() => setSection("ordering")}
+        >
+          <Icon name="orders" size={18} />
+          발주 준비
+          <span>재고 확인부터 파일까지</span>
+        </button>
+        <button
           aria-pressed={section === "evaluation"}
+          disabled={orderingBusy}
           onClick={() => setSection("evaluation")}
         >
           <Icon name="check" size={18} />
@@ -337,6 +352,29 @@ export function ModelDemo({
           <span>기준선과 성능 비교</span>
         </button>
       </nav>
+
+      {section !== "evaluation" && !!metadata?.samples.length && (
+        <div className={styles.sampleSelector}>
+          <label>
+            체험 매장
+            <select
+              value={sampleId}
+              disabled={orderingBusy}
+              onChange={(event) => chooseSample(event.target.value)}
+            >
+              {metadata.samples.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label} · {item.product_count}개 상품
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            {metadata.samples.length}개 매장 · 총 {metadata.total_products}개
+            상품 중 선택한 매장을 체험해요.
+          </p>
+        </div>
+      )}
 
       <div
         className={styles.evaluationSection}
@@ -348,29 +386,19 @@ export function ModelDemo({
         />
       </div>
 
-      <div className={styles.predictionSection} hidden={section !== "predict"}>
-        {!!metadata?.samples.length && (
-          <div className={styles.sampleSelector}>
-            <label>
-              체험 매장
-              <select
-                value={sampleId}
-                onChange={(event) => chooseSample(event.target.value)}
-              >
-                {metadata.samples.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label} · {item.product_count}개 상품
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p>
-              {metadata.samples.length}개 매장 · 총 {metadata.total_products}개
-              상품 중 선택한 매장을 실행해요.
-            </p>
-          </div>
-        )}
+      <div className={styles.evaluationSection} hidden={section !== "ordering"}>
+        <ModelOrdering
+          key={sampleId}
+          token={token}
+          sampleId={sampleId}
+          forecastId={result?.sample_id === sampleId ? result.id : null}
+          onPredict={() => setSection("predict")}
+          onSessionExpired={onSessionExpired}
+          onBusyChange={setOrderingBusy}
+        />
+      </div>
 
+      <div className={styles.predictionSection} hidden={section !== "predict"}>
         <section className={styles.runPanel} aria-label="TFT 실행 상태">
           <div className={styles.runtimeCopy}>
             <span
@@ -393,7 +421,7 @@ export function ModelDemo({
           <div className={styles.runActions}>
             <button
               className="button secondary"
-              disabled={checking || running}
+              disabled={checking || running || orderingBusy}
               onClick={() => void checkStatus()}
             >
               <Icon name="refresh" size={16} />
@@ -401,7 +429,7 @@ export function ModelDemo({
             </button>
             <button
               className="button primary"
-              disabled={!ready || checking || running}
+              disabled={!ready || checking || running || orderingBusy}
               onClick={() => void runForecast()}
             >
               {running ? (
@@ -593,12 +621,26 @@ export function ModelDemo({
                 })}
               </span>
             </div>
+            <div className={styles.nextStep}>
+              <span>
+                이 TFT 예측으로 재고를 확인하고 시연 발주안을 만들 수 있어요.
+              </span>
+              <button
+                className="button primary"
+                disabled={orderingBusy}
+                onClick={() => setSection("ordering")}
+              >
+                재고 확인·발주 준비
+                <Icon name="arrow" size={16} />
+              </button>
+            </div>
             <div className={styles.resultNote}>
               <p>{result.provenance}</p>
               <p>{result.note}</p>
               <p>
-                P10~P90은 모델이 예측한 범위이며 정확도를 보장하지 않아요. 이
-                과거 표본 결과는 현재 매장의 발주 계산에 사용하지 않아요.
+                P10~P90은 모델이 예측한 범위이며 정확도를 보장하지 않아요. ‘발주
+                준비’에서 이 과거 예측으로 개인 시연을 할 수 있어요. 실제 한국
+                매장의 발주 성능은 검증하지 않았어요.
               </p>
             </div>
           </section>
