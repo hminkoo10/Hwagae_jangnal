@@ -2,7 +2,39 @@
 
 웹·API 담당은 `apps/`, 모델 담당은 `ml/` 중심으로 작업합니다.
 현재 기본 예측은 `apps/api/app/forecasting.py`의 **날씨를 사용하지 않는 요일 기준선**입니다.
-실제 ML·공개 자료 검증은 아직 없으며, 팀원 결과를 다음 규약으로 교체합니다.
+운영 서비스에는 아직 학습 모델이 연결되지 않았습니다. 팀원 결과를 다음 규약으로 연결합니다.
+
+## 확정한 학습 방향과 인수 상태 — 2026-10-24
+
+- 모델은 TFT로 확정. 팀원은 Colab A100 환경에서 학습 완료했다고 전달했습니다.
+- 입력은 최근 56일, 예측은 다음 7일, Quantile Loss의 분위수는 0.10/0.25/0.50/0.75/0.90입니다.
+- 사용 자료는 Walmart Stormy Weather의 train.csv, weather.csv, key.csv입니다.
+- 전처리·학습·평가·예측·발주 계산 코드가 Colab에 있으며, 서버 추론 코드·가중치·평가 결과는 아직 인수하지 않았습니다.
+- API가 제공하는 최대 84일 기록 중 상품별 기준일까지의 56일을 추론 어댑터가 선택합니다. 날짜 누락·마감 전 데이터는 학습과 동일한 규칙으로 처리하며, 빠진 날짜를 임의로 0으로 만들지 않습니다.
+- 현재 API 응답과 화면은 P10/P50/P90만 지원합니다. 모델의 P25/P75는 보존해 전달하되 현재 Point 스키마에서는 제거됩니다. 5개 분위수 전체의 저장·표시는 후속 스키마/UI 변경이 필요합니다.
+- 팀원의 발주 코드는 비교 자료로 인수합니다. 재고·만료·입고 예정·납기·비용을 반영하는 기존 API 계산과 비교하기 전에는 운영 계산을 교체하지 않습니다.
+
+### Colab에서 준비할 인수 묶음
+
+1. 실제 사용한 노트북과 추론 코드, 검증 점수가 가장 좋은 체크포인트와 모델 정의.
+2. 학습된 상품/매장 인코더·스케일러·target normalizer 및 데이터셋 설정. 추론 때 다시 fit하지 않습니다.
+3. Python 버전과 실제 설치 패키지 버전 기록. Colab 전체 freeze는 환경 증거이며 서버에 그대로 일괄 설치하는 요구사항이 아닙니다.
+4. 입력 열·순서·단위·time_idx 기준일·매장/상품/기상 관측소 연결 규칙·결측값 처리·미등록 상품 처리.
+5. 작은 재현 입력과 동일 입력의 7일×5분위수 예상 출력, 실행 방법, 예측 소요 시간.
+6. 시간순 학습/검증/테스트 기간과 기준선 비교 결과. 미래 실제 날씨를 사용한 실험은 당시 예보를 사용한 평가와 구분합니다.
+
+PyTorch Forecasting 사용 시 max_encoder_length=56, max_prediction_length=7 및 단일 판매량 target의 output_size=5가 실제 체크포인트 설정과 일치하는지 확인합니다.
+이미 학습한 모델의 구조를 추론 단계에서 바꾸지 않습니다. 해당 라이브러리의 TimeSeriesDataSet.get_parameters()/from_parameters()는 학습된 인코더·스케일러를 재사용하는 경로입니다.
+이 객체들은 JSON만으로 충분하지 않을 수 있으므로 라이브러리 호환 직렬화와 원래 코드도 전달합니다.
+서버는 Ubuntu ARM64 CPU·Python 3.14이며, CUDA 강제 호출·Colab 경로·학습용 mixed precision 의존성을 분리한 CPU 추론을 검증해야 합니다.
+필요하면 모델 전용 실행 환경을 분리하되 기존 API 환경을 먼저 변경하지 않습니다.
+
+학습에 과거 날씨가 필요하면 현재 context에는 과거 날씨가 없으므로 입력 확장부터 협의합니다.
+미국 매장/관측소/상품 식별자를 현재 한국 가상 매장에 근거 없이 대응시키지 않습니다. 데이터에 맞는 별도 데모 또는 미등록 매장 처리 방식을 정합니다.
+
+참조: [TFT 출력 크기](https://pytorch-forecasting.readthedocs.io/en/latest/api/pytorch_forecasting.models.temporal_fusion_transformer.TemporalFusionTransformer.html),
+[데이터셋 변환 설정](https://pytorch-forecasting.readthedocs.io/en/latest/api/pytorch_forecasting.data.timeseries.TimeSeriesDataSet.html),
+[Lightning 체크포인트](https://lightning.ai/docs/pytorch/stable/common/checkpointing_basic.html).
 
 ## 연결
 

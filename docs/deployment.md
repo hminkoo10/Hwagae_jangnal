@@ -8,7 +8,8 @@ CD는 DEPLOY_ENABLED=true일 때 검사를 통과한 main 또는 명시적으로
 대상은 Ubuntu 22.04 ARM64 서버, 서비스 주소는 https://hwagae.milky.kr 입니다.
 관리 접속은 ubuntu, Actions 배포는 별도 hwagae 계정과 전용 키를 사용합니다.
 기존 navi·eom 서비스와 Minecraft는 별도이며 설정·런타임을 교체하지 않습니다.
-첫 공개 배포는 완료했으며, main 반영 전이므로 Actions 자동 배포는 아직 비활성입니다.
+PR #2의 main 병합과 GitHub Actions 자동 배포까지 완료했습니다. DEPLOY_ENABLED=true입니다.
+검증 실행: https://github.com/hminkoo10/Hwagae_jangnal/actions/runs/40062180934
 
 ## 구성
 
@@ -95,7 +96,11 @@ release·백업을 자동 삭제하지 않으므로 보관 정책은 운영 환�
 - 실시간 7일 날씨·10상품 7일 예측·재고 미입력 시 발주 보류 확인.
 - 두 systemd 서비스의 부팅 시 자동 시작과 Nginx 문법 검사 통과.
 - 기존 navi/eom HTTPS 200, Docker 컨테이너·Minecraft 리스닝 유지 확인.
-- GitHub CI 통과 및 배포 Secrets 등록 완료. main 반영·자동 배포 활성화/실행은 후속 확인 단계.
+- PR #2 main 병합 후 API 테스트·웹 타입/빌드·Deploy Ubuntu 모두 성공.
+- 운영 release가 병합 커밋 3a1b8dde31e0335d4928c80cec97433a8bb98f98과 일치함을 확인.
+- 자동 배포 전후 stores/products/sales/inventory/orders/forecasts 건수 2/20/1680/0/0/1 유지.
+- backup-20261024T042505Z.sqlite3 생성, 읽기 전용 integrity_check=ok와 동일 테이블 건수 확인.
+- 이후 main push/PR 병합은 검사 통과 후 자동 배포. 앱 시작 실패 시 이전 코드로 복귀하며 DB는 보존.
 - 운영 로그인 정보는 배포 담당 PC의 .ssh/hwagae-login.txt에 별도로 보관합니다.
 
 출처: [GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax),
