@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "./controls";
+
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type MerchantForecastSettings } from "@/lib/api";
 import styles from "./merchant-model-panel.module.css";
@@ -128,7 +130,7 @@ export function MerchantModelPanel({
         </div>
         <label className={styles.selector}>
           예측 방식
-          <select
+          <Select
             aria-label="매장 예측 모델"
             value={settings?.provider ?? "weekday"}
             disabled={!settings || !owner || busy || loading || saving}
@@ -140,7 +142,7 @@ export function MerchantModelPanel({
           >
             <option value="weekday">요일 기준선</option>
             <option value="merchant_tft">날씨 반영 AI</option>
-          </select>
+          </Select>
         </label>
       </div>
       {error && (

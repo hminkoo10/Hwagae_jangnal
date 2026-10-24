@@ -1,5 +1,7 @@
 "use client";
 
+import { Select, ResponsiveTable } from "./controls";
+
 import {
   shortDate,
   units,
@@ -196,7 +198,7 @@ export function MerchantOverview({
                 <h2>상품별 7일 판매 예측</h2>
                 <p>얼마나 준비하면 좋을까요?</p>
               </div>
-              <select
+              <Select
                 aria-label="홈 예측 상품 선택"
                 value={selectedForecast?.product_id ?? ""}
                 onChange={(event) => onSelectProduct(event.target.value)}
@@ -206,7 +208,7 @@ export function MerchantOverview({
                     {product.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             {selectedForecast ? (
               <ForecastChart forecast={selectedForecast} />
@@ -314,7 +316,7 @@ export function MerchantOverview({
           </div>
           {products.length ? (
             <div className="table-scroll">
-              <table>
+              <ResponsiveTable>
                 <thead>
                   <tr>
                     <th>상품</th>
@@ -381,7 +383,7 @@ export function MerchantOverview({
                     );
                   })}
                 </tbody>
-              </table>
+              </ResponsiveTable>
             </div>
           ) : (
             <div className="merchant-empty">

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select, ResponsiveTable } from "./controls";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
@@ -81,7 +83,12 @@ function ComparisonChart({
   return (
     <div className={styles.chartWrap}>
       <p className="chart-scroll-hint">좌우로 밀어 7일 예측을 확인하세요.</p>
-      <div className={styles.plotScroll} tabIndex={0} role="region" aria-label="TFT 7일 예측 비교 그래프">
+      <div
+        className={styles.plotScroll}
+        tabIndex={0}
+        role="region"
+        aria-label="TFT 7일 예측 비교 그래프"
+      >
         <svg
           className={styles.chart}
           viewBox="0 0 650 240"
@@ -360,7 +367,7 @@ export function ModelDemo({
         <div className={styles.sampleSelector}>
           <label>
             체험 매장
-            <select
+            <Select
               value={sampleId}
               disabled={orderingBusy}
               onChange={(event) => chooseSample(event.target.value)}
@@ -370,7 +377,7 @@ export function ModelDemo({
                   {item.label} · {item.product_count}개 상품
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <p>
             {metadata.samples.length}개 매장 · 총 {metadata.total_products}개
@@ -532,7 +539,7 @@ export function ModelDemo({
               </div>
               <label className={styles.productPicker}>
                 상품 선택
-                <select
+                <Select
                   value={selectedId}
                   onChange={(event) => setSelectedId(event.target.value)}
                 >
@@ -541,7 +548,7 @@ export function ModelDemo({
                       {product.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             </div>
 
@@ -554,7 +561,7 @@ export function ModelDemo({
                   포함하지 않아요. 이 7일 표본은 전체 평가 결과와 구분해요.
                 </div>
                 <div className={styles.tableScroll}>
-                  <table className={styles.table}>
+                  <ResponsiveTable className={styles.table}>
                     <caption>
                       {selected.name} · 날짜별 판매량 예측 (단위: 개)
                     </caption>
@@ -593,7 +600,7 @@ export function ModelDemo({
                         );
                       })}
                     </tbody>
-                  </table>
+                  </ResponsiveTable>
                 </div>
               </>
             ) : (

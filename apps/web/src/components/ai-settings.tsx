@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "./controls";
+
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Modal } from "./ui";
@@ -224,7 +226,7 @@ function ConnectionModal({
         </p>
         <label>
           API 형식
-          <select
+          <Select
             value={draft.protocol}
             disabled={busy}
             onChange={(e) =>
@@ -238,7 +240,7 @@ function ConnectionModal({
               OpenAI 호환 · Chat Completions
             </option>
             <option value="responses">OpenAI 호환 · Responses</option>
-          </select>
+          </Select>
         </label>
         <div className="split-actions">
           <button
@@ -271,7 +273,7 @@ function ConnectionModal({
               placeholder="게이트웨이의 모델 ID"
             />
           ) : (
-            <select
+            <Select
               value={draft.model}
               required
               disabled={busy}
@@ -282,12 +284,12 @@ function ConnectionModal({
                   {m}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </label>
         <label>
           추론 강도
-          <select
+          <Select
             value={draft.reasoning_effort}
             disabled={busy}
             onChange={(e) =>
@@ -299,7 +301,7 @@ function ConnectionModal({
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <p className="helper">
           지원 강도는 모델마다 달라요. 기본값은 강도를 지정하지 않아요. 지원하지

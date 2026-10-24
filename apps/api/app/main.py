@@ -28,6 +28,8 @@ from app.forecasting import run_forecast
 from app.imports import MAX_BYTES, parse_file
 from app.setup_import import mount_setup_routes
 from app.ai_gateway import mount_ai_routes
+from app.platform_admin import account_available, can_create_store, is_operator, mount_platform_routes, store_available
+from app.locations import mount_location_routes
 from app.model_demo import (
     DEFAULT_SAMPLE_ID,
     SampleId,
@@ -144,9 +146,12 @@ def create_app(db_path=None, seed=True):
                 "SELECT u.id,u.email,u.name FROM sessions s JOIN users u ON u.id=s.user_id WHERE token_hash=? AND expires_at>?",
                 (digest, now_iso()),
             ).fetchone()
+            if row and not account_available(db, row["id"]):
+                raise HTTPException(401, "계정 이용이 중지됐거나 계약 기간이 아니에요. 운영자에게 문의하세요.")
+            operator = bool(row and is_operator(db, row["id"]))
         if not row:
             raise HTTPException(401, "로그인이 만료되었습니다. 다시 로그인하세요.")
-        return {**dict(row), "token_hash": digest}
+        return {**dict(row), "token_hash": digest, "platform_role": "operator" if operator else "merchant"}
 
     def access(store_id, user, owner=False):
         with database.connect() as db:
@@ -154,6 +159,8 @@ def create_app(db_path=None, seed=True):
                 "SELECT s.*,m.role FROM stores s JOIN memberships m ON m.store_id=s.id WHERE s.id=? AND m.user_id=?",
                 (store_id, user["id"]),
             ).fetchone()
+            if row and not store_available(db, store_id):
+                raise HTTPException(403, "이 매장의 계약이 중지됐거나 만료됐어요. 점주에게 문의하세요.")
         if not row or (owner and row["role"] != "owner"):
             raise HTTPException(403, "이 매장 또는 작업에 접근할 권한이 없습니다.")
         return localized_store(dict(row))
@@ -271,6 +278,9 @@ def create_app(db_path=None, seed=True):
                 payload.password, row["salt"], row["password_hash"]
             ):
                 raise HTTPException(401, "이메일 또는 비밀번호를 확인하세요.")
+            if not account_available(db, row["id"]):
+                raise HTTPException(403, "계정 이용이 중지됐거나 계약 기간이 아니에요. 운영자에게 문의하세요.")
+            operator = is_operator(db, row["id"])
             token = secrets.token_urlsafe(32)
             db.execute("DELETE FROM sessions WHERE expires_at<=?", (now_iso(),))
             expiry = (datetime.now(timezone.utc) + timedelta(hours=12)).isoformat()
@@ -281,7 +291,7 @@ def create_app(db_path=None, seed=True):
         return {
             "token": token,
             "expires_at": expiry,
-            "user": {"id": row["id"], "name": row["name"], "email": row["email"]},
+            "user": {"id": row["id"], "name": row["name"], "email": row["email"], "platform_role": "operator" if operator else "merchant"},
         }
 
     @application.get("/model-demo", tags=["model demo"])
@@ -333,7 +343,7 @@ def create_app(db_path=None, seed=True):
 
     @application.get("/auth/me", tags=["accounts"])
     def me(user=Depends(authenticated)):
-        return {key: user[key] for key in ("id", "name", "email")}
+        return {key: user[key] for key in ("id", "name", "email", "platform_role")}
 
     @application.post("/auth/logout", tags=["accounts"])
     def logout(user=Depends(authenticated)):
@@ -351,18 +361,19 @@ def create_app(db_path=None, seed=True):
                     (user["id"],),
                 )
             ]
+        with database.connect() as db:
+            rows = [row for row in rows if store_available(db, row["id"])]
         return {"stores": [localized_store(row) for row in rows], "today": today().isoformat()}
 
     mount_setup_routes(application, database, access, authenticated)
     mount_ai_routes(application, database, access, authenticated, saved_record)
+    mount_platform_routes(application, database, authenticated)
+    mount_location_routes(application, database, authenticated)
 
     @application.post("/stores", status_code=201, tags=["stores"])
     def create_store(payload: StoreInput, user=Depends(authenticated)):
         with database.connect() as db:
-            if not db.execute(
-                "SELECT 1 FROM memberships WHERE user_id=? AND role='owner'",
-                (user["id"],),
-            ).fetchone():
+            if not can_create_store(db, user["id"]):
                 raise HTTPException(403, "점주만 매장을 추가할 수 있습니다.")
             store_id = uuid.uuid4().hex[:12]
             db.execute(

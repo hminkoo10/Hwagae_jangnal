@@ -146,3 +146,5 @@ scripts/setup-env.mjs  로컬 환경 파일 초기화
 직접 자료 업로드: [점주 시작 안내](docs/merchant-upload.md). `uv run python scripts/make-merchant-data.py --output <폴더>`로 전달용 자료를 만들 수 있습니다.
 
 점주가 매장별 AI 게이트웨이·모델·추론 강도와 자동 전환 순서를 설정할 수 있습니다. [AI 연결 설정](docs/ai-settings.md)을 참고하세요.
+
+서비스 운영자의 계약·점주 초대·계정 관리, 주소 검색과 반응형 화면은 [운영자 콘솔 안내](docs/operator-console.md)를 참고하세요.

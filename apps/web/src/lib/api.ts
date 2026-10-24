@@ -1,4 +1,9 @@
-export type User = { id: string; name: string; email: string };
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  platform_role?: "operator" | "merchant";
+};
 export type Store = {
   id: string;
   name: string;
