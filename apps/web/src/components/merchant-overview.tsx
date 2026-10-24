@@ -79,6 +79,102 @@ export function MerchantOverview({
     timeZone: "Asia/Seoul",
   }).format(new Date(`${today}T12:00:00+09:00`));
 
+  if (store.demo_kind === "walmart_tft") {
+    return (
+      <div className="merchant-overview">
+        <div className="merchant-content">
+          <div className="merchant-intro">
+            <div>
+              <h2>Walmart의 과거 판매를 재현해요</h2>
+              <p>{forecast.as_of}까지의 기록으로 {forecast.dates[0]}~{forecast.dates[6]}을 예측해요.</p>
+            </div>
+            <span className="pill neutral">공개자료 재현</span>
+          </div>
+          <div className="merchant-metrics">
+            <article className="metric-card">
+              <span className="metric-label">예측 가능한 상품</span>
+              <strong>{ready.length}<small> / {products.length}개</small></strong>
+              <p>최근 56일 판매 기록 필요</p>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">저장된 판매 관측</span>
+              <strong>{sales.summary.count}<small>건</small></strong>
+              <p>누락일을 0개로 채우지 않아요</p>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">예측 기준일</span>
+              <strong>{shortDate(forecast.as_of)}</strong>
+              <p>{forecast.as_of} 마감 기준</p>
+            </article>
+            <article className="metric-card">
+              <span className="metric-label">예측 기간</span>
+              <strong>7<small>일</small></strong>
+              <p>{shortDate(forecast.dates[0])}~{shortDate(forecast.dates[6])}</p>
+            </article>
+          </div>
+          <section className="merchant-card merchant-forecast">
+            <div className="merchant-card-heading">
+              <div>
+                <h2>상품별 7일 판매 예측</h2>
+                <p>익명 상품 번호로 원본과 연결했어요.</p>
+              </div>
+              <select
+                aria-label="홈 예측 상품 선택"
+                value={selectedForecast?.product_id ?? ""}
+                onChange={(event) => onSelectProduct(event.target.value)}
+              >
+                {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+              </select>
+            </div>
+            {selectedForecast ? <ForecastChart forecast={selectedForecast} /> : <Empty title="예측할 상품이 없어요" />}
+            <div className="merchant-card-footer">
+              <span>{forecast.model.name} · 과거 관측 날씨 반복</span>
+              <button className="text-button" onClick={() => onNavigate("forecast")}>
+                7일 수량 표 보기 <Icon name="arrow" size={14} />
+              </button>
+            </div>
+          </section>
+          <section className="merchant-card">
+            <div className="merchant-card-heading">
+              <div>
+                <h2>예측에 사용한 판매 기록</h2>
+                <p>{sales.summary.first_date ?? "—"}~{sales.summary.last_date ?? "—"} · 실제 관측 개수</p>
+              </div>
+              <button className="text-button" onClick={() => onNavigate("sales")}>
+                입력 자료 확인 <Icon name="arrow" size={14} />
+              </button>
+            </div>
+            <p className="rail-note">이 표본은 Walmart 매장 4의 익명 상품 9와 27이에요. 실제 상품명이나 한국 매장과의 대응을 뜻하지 않아요.</p>
+          </section>
+        </div>
+        <aside className="merchant-rail" aria-label="과거 재현 자료 설명">
+          <section className="rail-greeting">
+            <span className="rail-date">{forecast.as_of} 기준</span>
+            <h2>과거 관측으로 만든<br />7일 수요 예측</h2>
+            <p>{store.provenance}</p>
+          </section>
+          <section className="rail-weather">
+            <h2 className="rail-section-title">모델에 사용한 날씨 <span className="merchant-status muted">지속성 가정</span></h2>
+            <p className="rail-note">{forecast.weather.source}</p>
+            <p className="rail-note">{forecast.weather.note}</p>
+            {firstWeather && (
+              <dl className="rail-weather-details">
+                <div><dt>반복한 최고 / 최저</dt><dd>{firstWeather.temp_max === null ? "—" : `${units(firstWeather.temp_max)}°C`} / {firstWeather.temp_min === null ? "—" : `${units(firstWeather.temp_min)}°C`}</dd></div>
+                <div><dt>반복한 일 강수량</dt><dd>{firstWeather.rain_mm === null ? "—" : `${units(firstWeather.rain_mm)} mm`}</dd></div>
+              </dl>
+            )}
+            <p className="rail-note">기준일의 관측 날씨를 예측 기간에 반복했어요. 당시 발급된 예보나 다음 7일의 실제 관측 날씨는 사용하지 않았어요.</p>
+          </section>
+          <section className="rail-model">
+            <h2 className="rail-section-title">수량을 읽는 방법</h2>
+            <p className="rail-note">P50은 판매 예측 중앙값이고 음영은 P10~P90 범위예요. 범위는 정확도 보장이 아니에요.</p>
+            <p className="rail-note">가격·원가·재고·실제 위치는 제공되지 않은 자료예요. 이 표본에서는 판매 수요 예측만 확인해요.</p>
+          </section>
+        </aside>
+      </div>
+    );
+  }
+
   return (
     <div className="merchant-overview">
       <div className="merchant-content">
@@ -401,7 +497,9 @@ export function MerchantOverview({
             <span
               className={`merchant-status ${weatherCurrent ? "ready" : "warning"}`}
             >
-              {weatherCurrent ? "현재 예보" : "예보 확인 필요"}
+              {forecast.weather.mode === "live_forecast"
+                ? weatherCurrent ? "현재 예보" : "예보 확인 필요"
+                : "과거 관측 자료"}
             </span>
           </h2>
           {firstWeather ? (
@@ -460,13 +558,13 @@ export function MerchantOverview({
             <p className="merchant-empty">지금은 날씨를 불러올 수 없어요.</p>
           )}
           <p className="rail-note">
-            Open-Meteo ·{" "}
-            {new Intl.DateTimeFormat("ko-KR", {
+            {forecast.weather.source} ·{" "}
+            {forecast.weather.fetched_at ? new Intl.DateTimeFormat("ko-KR", {
               hour: "2-digit",
               minute: "2-digit",
               timeZone: "Asia/Seoul",
-            }).format(new Date(forecast.weather.fetched_at))}{" "}
-            조회{forecast.weather.cached ? " · 저장된 자료" : ""}
+            }).format(new Date(forecast.weather.fetched_at)) + " 조회" : "조회 시각 기록 없음"}
+            {forecast.weather.cached ? " · 저장된 자료" : ""}
             {forecast.weather.message ? ` · ${forecast.weather.message}` : ""}
           </p>
         </section>

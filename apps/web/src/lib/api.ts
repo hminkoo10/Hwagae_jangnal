@@ -5,14 +5,18 @@ export type Store = {
   city: string;
   role: "owner" | "staff";
   provenance: string;
+  demo_as_of?: string;
+  demo_kind?: string;
+  demo_notice?: string;
 };
 export type Product = {
   id: string;
   name: string;
   category: string;
   supplier: string;
-  price: number;
-  cost: number;
+  price: number | null;
+  cost: number | null;
+  commercial_settings_available?: boolean;
   lead_days: number;
   shelf_days: number;
   review_days: number;
@@ -50,7 +54,7 @@ export type Weather = {
   status: string;
   source: string;
   mode: string;
-  fetched_at: string;
+  fetched_at: string | null;
   cached?: boolean;
   days: WeatherDay[];
   note: string;

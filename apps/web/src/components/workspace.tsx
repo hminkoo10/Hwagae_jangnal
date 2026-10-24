@@ -244,6 +244,9 @@ export default function Workspace() {
     null,
   );
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const store = stores.find((item) => item.id === storeId);
+  const sampleDemo = store?.demo_kind === "walmart_tft";
+  const forecastDate = store?.demo_as_of ?? asOf;
 
   function acceptLogin(value: string, account: User) {
     sessionStorage.setItem("hwagae-session", value);
@@ -256,6 +259,7 @@ export default function Workspace() {
     setUser(null);
     setStores([]);
     setStoreId("");
+    setAsOf("");
     setBundle(null);
     setRecommendation(null);
   }, []);
@@ -313,7 +317,7 @@ export default function Workspace() {
   }, [token, refreshStores, clearSession]);
 
   useEffect(() => {
-    if (!token || !storeId || !asOf) return;
+    if (!token || !storeId || !forecastDate) return;
     const controller = new AbortController();
     const options = { signal: controller.signal };
     setLoading(true);
@@ -326,9 +330,13 @@ export default function Workspace() {
         token,
         options,
       ),
-      api<SalesData>(`/stores/${storeId}/sales`, token, options),
+      api<SalesData>(
+        `/stores/${storeId}/sales${sampleDemo ? "?limit=200" : ""}`,
+        token,
+        options,
+      ),
       api<{ orders: Order[] }>(`/stores/${storeId}/orders`, token, options),
-      api<Forecast>(`/stores/${storeId}/forecasts?as_of=${asOf}`, token, {
+      api<Forecast>(`/stores/${storeId}/forecasts?as_of=${forecastDate}`, token, {
         ...options,
         method: "POST",
       }),
@@ -352,7 +360,7 @@ export default function Workspace() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [token, storeId, asOf, reload, clearSession]);
+  }, [token, storeId, forecastDate, sampleDemo, reload, clearSession]);
 
   useEffect(() => {
     if (notice) {
@@ -368,7 +376,7 @@ export default function Workspace() {
   function navigate(next: Tab) {
     setTab(next);
     setSearch("");
-    if (next !== "forecast") setAsOf(today);
+    if (next !== "forecast") setAsOf(store?.demo_as_of ?? today);
   }
   async function action(task: () => Promise<void>) {
     setBusy(true);
@@ -392,12 +400,13 @@ export default function Workspace() {
     );
   if (!user) return <LoginScreen onLogin={acceptLogin} />;
 
-  const store = stores.find((item) => item.id === storeId);
   const data =
-    bundle?.storeId === storeId && bundle.forecast.as_of === asOf
+    bundle?.storeId === storeId && bundle.forecast.as_of === forecastDate
       ? bundle
       : null;
-  const replay = !!today && asOf !== today;
+  const replay = !!today && forecastDate !== today;
+  const persistenceDemo =
+    data?.forecast.weather.mode === "historical_persistence_demo";
   const owner = store?.role === "owner";
   const currentTab = tabs.find((item) => item.id === tab)!;
   const filtered =
@@ -496,7 +505,7 @@ export default function Workspace() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-            {mode === "products" && owner && (
+            {mode === "products" && owner && !sampleDemo && (
               <button
                 className="button primary small"
                 onClick={() => setProductModal("new")}
@@ -572,8 +581,14 @@ export default function Workspace() {
                       <td>
                         {mode === "products" ? (
                           <>
-                            {won(product.price)}
-                            <small>매입 {won(product.cost)}</small>
+                            {product.price === null
+                              ? "판매가 미제공"
+                              : won(product.price)}
+                            <small>
+                              {product.cost === null
+                                ? "원가 미제공"
+                                : `매입 ${won(product.cost)}`}
+                            </small>
                           </>
                         ) : inventory ? (
                           <>
@@ -587,8 +602,14 @@ export default function Workspace() {
                       <td>
                         {mode === "products" ? (
                           <>
-                            {product.lead_days}일 / {product.shelf_days}일
-                            <small>{product.review_days}일마다 발주</small>
+                            {product.commercial_settings_available === false ? (
+                              "자료 미제공"
+                            ) : (
+                              <>
+                                {product.lead_days}일 / {product.shelf_days}일
+                                <small>{product.review_days}일마다 발주</small>
+                              </>
+                            )}
                           </>
                         ) : (
                           <span
@@ -604,7 +625,7 @@ export default function Workspace() {
                       </td>
                       <td className="number">
                         {mode === "products" ? (
-                          owner ? (
+                          owner && !sampleDemo ? (
                             <button
                               className="button table-button"
                               onClick={() => setProductModal(product)}
@@ -648,7 +669,9 @@ export default function Workspace() {
         </div>
         <div className="workspace-label">매장 운영</div>
         <nav aria-label="주 메뉴">
-          {tabs.map((item) => (
+          {tabs.filter((item) =>
+            !sampleDemo || !["inventory", "orders"].includes(item.id),
+          ).map((item) => (
             <button
               key={item.id}
               aria-label={item.label}
@@ -669,14 +692,14 @@ export default function Workspace() {
             <span className="guide-icon">
               <Icon name="store" size={23} />
             </span>
-            <strong>오늘도, 필요한 만큼.</strong>
+            <strong>{sampleDemo ? "Walmart 과거 재현" : "오늘도, 필요한 만큼."}</strong>
             <p>
-              판매 기록을 입력하고
+              {sampleDemo ? "실제 판매 기록과" : "판매 기록을 입력하고"}
               <br />
-              재고를 확인하면 준비 끝.
+              {sampleDemo ? "7일 예측을 확인하세요." : "재고를 확인하면 준비 끝."}
             </p>
             <button className="text-button" onClick={() => navigate("sales")}>
-              판매 기록 입력하기 <Icon name="arrow" size={15} />
+              판매 기록 {sampleDemo ? "확인하기" : "입력하기"} <Icon name="arrow" size={15} />
             </button>
           </div>
           <span className="team-label">TEAM 화개장터</span>
@@ -715,7 +738,11 @@ export default function Workspace() {
                   ? (store?.name ?? "우리 매장")
                   : currentTab.label}
               </h1>
-              <p>{currentTab.description}</p>
+              <p>
+                {sampleDemo
+                  ? `Walmart 공개자료 · ${forecastDate} 기준 과거 판매 재현`
+                  : currentTab.description}
+              </p>
             </div>
             <div className="store-picker">
               <Icon name="store" />
@@ -723,9 +750,14 @@ export default function Workspace() {
                 aria-label="매장 선택"
                 value={storeId}
                 onChange={(event) => {
+                  const nextStore = stores.find(
+                    (item) => item.id === event.target.value,
+                  );
                   setStoreId(event.target.value);
                   setSearch("");
-                  setAsOf(today);
+                  setAsOf(nextStore?.demo_as_of ?? today);
+                  if (nextStore?.demo_as_of && (tab === "inventory" || tab === "orders"))
+                    setTab("overview");
                   setInventoryProduct(null);
                   setProductModal(null);
                 }}
@@ -736,7 +768,7 @@ export default function Workspace() {
                   </option>
                 ))}
               </select>
-              {owner && (
+              {owner && !sampleDemo && (
                 <button
                   className="icon-button"
                   aria-label="매장 추가"
@@ -777,9 +809,20 @@ export default function Workspace() {
               <span>{store.provenance}</span>
               <span className="source-model">
                 {data
-                  ? `${data.forecast.model.name} · ${data.forecast.model.uses_weather ? "날씨 반영" : "날씨 미반영"}`
+                  ? `${data.forecast.model.name} · ${persistenceDemo ? "과거 관측 날씨 반복" : data.forecast.model.uses_weather ? "날씨 반영" : "날씨 미반영"}`
                   : "자료 확인 중"}
               </span>
+            </div>
+          )}
+          {sampleDemo && (
+            <div className="info-banner">
+              <Icon name="forecast" />
+              <div>
+                <strong>{forecastDate} 기준 · Walmart 과거 재현</strong>
+                <p>
+                  {store?.demo_notice} 이 화면에서는 제공된 자료와 예측을 조회할 수 있어요.
+                </p>
+              </div>
             </div>
           )}
           {loading && (
@@ -834,7 +877,7 @@ export default function Workspace() {
                         <Icon name="inventory" />
                       </span>
                       <strong>
-                        {replay ? shortDate(asOf) : missingStock}
+                        {replay ? shortDate(forecastDate) : missingStock}
                         <em>{replay ? "" : "개"}</em>
                       </strong>
                       <small>
@@ -875,12 +918,14 @@ export default function Workspace() {
                       <div>
                         <h2>{store?.city} 날씨</h2>
                         <p>
-                          {replay
-                            ? "과거 재분석 · 당시 예보 아님"
-                            : "앞으로 7일 · 현재 예보"}
+                          {persistenceDemo
+                            ? "기준일 관측 날씨를 7일 반복 · 당시 예보 아님"
+                            : replay
+                              ? "과거 재분석 · 당시 예보 아님"
+                              : "앞으로 7일 · 현재 예보"}
                         </p>
                       </div>
-                      <span className="pill neutral">Open-Meteo</span>
+                      <span className="pill neutral">{data.forecast.weather.source}</span>
                     </div>
                     {data.forecast.weather.days.length > 0 ? (
                       <div className="weather-days">
@@ -926,10 +971,10 @@ export default function Workspace() {
                       </div>
                     )}
                     <div className="weather-caption">
-                      {data.forecast.weather.note} · 조회{" "}
-                      {new Date(
-                        data.forecast.weather.fetched_at,
-                      ).toLocaleString("ko-KR")}
+                      {data.forecast.weather.note} ·{" "}
+                      {data.forecast.weather.fetched_at
+                        ? `조회 ${new Date(data.forecast.weather.fetched_at).toLocaleString("ko-KR")}`
+                        : "원본 관측자료 · 조회 시각 기록 없음"}
                       {data.forecast.weather.cached ? " · 저장된 자료" : ""}
                       {data.forecast.weather.message &&
                       data.forecast.weather.days.length > 0
@@ -940,7 +985,11 @@ export default function Workspace() {
                   <section className="panel">
                     <div className="panel-heading forecast-heading">
                       <div>
-                        <h2>앞으로 7일, 얼마나 팔릴까요?</h2>
+                        <h2>
+                          {sampleDemo
+                            ? "기준일 다음 7일 판매 예측"
+                            : "앞으로 7일, 얼마나 팔릴까요?"}
+                        </h2>
                         <p>P50 중앙값과 P10~P90 범위를 함께 확인하세요.</p>
                       </div>
                       <div className="forecast-controls">
@@ -962,7 +1011,8 @@ export default function Workspace() {
                           <input
                             aria-label="예측 기준일"
                             type="date"
-                            value={asOf}
+                            value={forecastDate}
+                            readOnly={sampleDemo}
                             max={today}
                             required
                             onChange={(event) => {
@@ -973,7 +1023,7 @@ export default function Workspace() {
                             }}
                           />
                         </label>
-                        {replay && (
+                        {replay && !sampleDemo && (
                           <button
                             className="button secondary small"
                             onClick={() => setAsOf(today)}
@@ -1029,9 +1079,11 @@ export default function Workspace() {
                         </div>
                       )}
                     <p className="chart-footnote">
-                      {data.forecast.model.uses_weather
-                        ? "날씨를 입력으로 사용하는 연결 모델이에요."
-                        : "현재는 요일별 과거 판매량으로 계산해요. 표시된 날씨는 예측에 반영하지 않아요."}{" "}
+                      {persistenceDemo
+                        ? "기준일까지의 판매 기록과 관측 날씨로 예측하며, 미래 날씨는 기준일 값을 반복하는 가정이에요. 당시 발급된 예보는 사용하지 않았어요."
+                        : data.forecast.model.uses_weather
+                          ? "날씨를 입력으로 사용하는 연결 모델이에요."
+                          : "현재는 요일별 과거 판매량으로 계산해요. 표시된 날씨는 예측에 반영하지 않아요."}{" "}
                       예측 범위는 정확도 보장이 아니에요.
                     </p>
                   </section>
@@ -1046,6 +1098,7 @@ export default function Workspace() {
                   sales={data.sales}
                   today={today}
                   onSaved={saved}
+                  readOnly={sampleDemo}
                 />
               )}
               {tab === "inventory" && (

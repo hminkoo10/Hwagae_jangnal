@@ -27,7 +27,13 @@ export function SalesPanel({
   sales,
   today,
   onSaved,
-}: Common & { products: Product[]; sales: SalesData; today: string }) {
+  readOnly = false,
+}: Common & {
+  products: Product[];
+  sales: SalesData;
+  today: string;
+  readOnly?: boolean;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -92,7 +98,7 @@ export function SalesPanel({
           {error}
         </div>
       )}
-      <div className="two-columns">
+      {!readOnly && <div className="two-columns">
         <section className="panel">
           <div className="panel-heading">
             <div>
@@ -196,8 +202,8 @@ export function SalesPanel({
             </button>
           </form>
         </section>
-      </div>
-      {preview && (
+      </div>}
+      {!readOnly && preview && (
         <section className="panel">
           <div className="panel-heading">
             <div>
@@ -262,11 +268,13 @@ export function SalesPanel({
               {sales.summary.last_date ?? "—"}
             </p>
           </div>
-          <span className="pill">최근 50개</span>
+          <span className="pill">최근 {sales.rows.length}개</span>
         </div>
         {!sales.rows.length ? (
-          <Empty title="첫 판매 기록을 입력해보세요">
-            상품 등록 후 파일 또는 직접 입력을 이용할 수 있어요.
+          <Empty title={readOnly ? "저장된 판매 기록이 없어요" : "첫 판매 기록을 입력해보세요"}>
+            {readOnly
+              ? "판매 기록이 부족하면 예측을 제공하지 않아요."
+              : "상품 등록 후 파일 또는 직접 입력을 이용할 수 있어요."}
           </Empty>
         ) : (
           <div className="table-scroll">
@@ -291,9 +299,11 @@ export function SalesPanel({
                       <span
                         className={`pill ${row.source === "synthetic_demo" ? "neutral" : "mint"}`}
                       >
-                        {row.source === "synthetic_demo"
-                          ? "가상 샘플"
-                          : "사용자 입력"}
+                        {row.source === "walmart_observed_sample"
+                          ? "Walmart 원본 관측"
+                          : row.source === "synthetic_demo"
+                            ? "가상 샘플"
+                            : "사용자 입력"}
                       </span>
                     </td>
                     <td className="number">{units(row.units_sold)}개</td>
@@ -675,7 +685,9 @@ export function ProductModal({
                 required
                 defaultValue={
                   product
-                    ? product[key as keyof Product]
+                    ? product[
+                        key as "price" | "cost" | "lead_days" | "shelf_days" | "review_days"
+                      ] ?? undefined
                     : key.includes("days")
                       ? 1
                       : undefined
