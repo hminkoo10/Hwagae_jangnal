@@ -110,6 +110,7 @@ export function SalesPanel({
                 aria-label="판매 기록 파일"
                 type="file"
                 accept=".csv,.xlsx"
+                disabled={busy}
                 onChange={(event) => {
                   setFile(event.target.files?.[0] ?? null);
                   setPreview(null);
@@ -342,6 +343,10 @@ export function InventoryModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const nextDate = new Date(`${today}T00:00:00Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  const earliestArrival = nextDate.toISOString().slice(0, 10);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -491,7 +496,7 @@ export function InventoryModal({
               입고일
               <input
                 type="date"
-                min={today}
+                min={earliestArrival}
                 required
                 value={batch.arrives_on}
                 onChange={(event) =>

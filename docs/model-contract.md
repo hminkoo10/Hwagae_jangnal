@@ -13,6 +13,23 @@
 - 출력은 실제 TFT의 P10/P50/P90과 같은 56일 입력으로 계산한 API 요일 기준선을 함께 표시합니다. 실제 한국 매장·발주 흐름에 연결하지 않으며, 기존 live provider의 실시간 날씨 검사도 완화하지 않습니다.
 - CI는 ML 전처리를 검사합니다. 체크포인트가 있는 Ubuntu 배포에서는 실제 모델 smoke test와 전체 ML 테스트를 실행하고, 스킵·실패 시 새 버전을 활성화하지 않습니다.
 
+### 로컬 모델 시연 준비
+
+일반 매장의 `FORECAST_PROVIDER`는 비워 둡니다. 현재 TFT는 아래의 별도 실행 환경으로 연결합니다.
+Windows에서 저장소 루트 기준:
+
+```powershell
+uv venv --no-project --python 3.11 .model-venv
+uv pip install --python .model-venv/Scripts/python.exe --index-strategy unsafe-best-match -r ml/requirements-inference.txt
+```
+
+`apps/api/.env`의 `TFT_CHECKPOINT_PATH`에 전달받은 체크포인트의 절대 경로를 로컬에서 지정합니다.
+Python을 다른 위치에 설치했다면 `TFT_PYTHON`에도 실행 파일의 절대 경로를 지정합니다.
+개인 경로나 비밀값을 문서·Git에 복사하지 않습니다. 설정 후 API를 다시 시작하고,
+로그인 → **TFT 모델 체험** → **상태 다시 확인**에서 `ready`인지 확인합니다.
+모델 파일의 체크섬은 인수 manifest와 일치해야 합니다. 자세한 재현 검사는 [ML 안내](../ml/README.md),
+Ubuntu 설치·재시작은 [배포 안내](deployment.md), 발표 흐름은 [시연 안내](demo-runbook.md)를 따릅니다.
+
 ## 확정한 학습 방향과 인수 상태 — 2026-10-24
 
 - 모델은 TFT로 확정. 팀원은 Colab A100 환경에서 학습 완료했다고 전달했습니다.
@@ -37,14 +54,15 @@
 파일 SHA-256: `e64b570d22cc03b29bfa2fda37e11878e40ee9c37195cf35e78ae854bfa65909`.
 정적 메타데이터는 실행 성공·전처리 재현·예측 품질을 증명하지 않습니다.
 
-과거 입력과 미래 입력 모두 `tavg`, `tmax`, `tmin`, `preciptotal`, `avgspeed`, 각 열의 `_missing` 지표와 `precip_trace`를 요구합니다.
-현재 API에는 과거 날씨가 없고 미래 평균기온·평균풍속도 없으므로, 원래 단위·특징 생성 규칙을 확인한 뒤 입력을 확장해야 합니다. `time_idx` 기준일과 달력 특징 계산도 원래 코드를 따릅니다.
-`allow_missing_timesteps=False`이므로 연속 날짜 구성과 누락 처리 규칙이 필요합니다. `sales_observed`는 입력 특징이고 dataset `weight`는 null이므로, 이 지표만으로 누락 판매가 손실 계산에서 제외됐다고 판단하지 않습니다.
-일반 categorical encoder에는 unknown 처리가 있지만 내부 `__group_id__store_nbr`·`__group_id__item_nbr` encoder는 `add_nan=False`입니다. 팀원은 날씨 입력·식별자·평가 관련 사항을 해결했거나 인지하고 있다고 전달했습니다. 실제 대응 코드와 재현 결과를 인수한 뒤 한국 가상 매장·상품과 학습 ID의 대응 및 신규 그룹 처리를 확인합니다.
+체크포인트의 과거·미래 특징은 `tavg`, `tmax`, `tmin`, `preciptotal`, `avgspeed`, 각 열의 `_missing` 지표와 `precip_trace`입니다.
+인수한 어댑터는 과거 관측을 처리하고 마지막 날의 특징을 미래 7일에 반복합니다. 일반 매장 context에는 이 과거 날씨가 없으므로 현재는 별도 고정 시연 입력만 사용합니다. `time_idx` 기준일·달력 특징·단위 변환은 인수 코드에 정의되어 있습니다.
+`allow_missing_timesteps=False`이며 서버 어댑터는 최근 56일 판매가 모두 관측된 경우만 추론합니다. 누락을 0으로 바꾸지 않습니다.
+원본 노트북은 예측 정답 7일이 모두 관측된 창을 선택합니다. `sales_observed` 특징이 있다는 사실만으로 손실에서 자동 마스킹된다고 해석하지 않습니다.
+내부 그룹 encoder의 `add_nan=False` 정책을 유지하며 등록된 Walmart 매장·상품 조합만 허용합니다. 한국 가상 상품을 임의 ID에 매핑하지 않으며, 신규 조합은 별도 학습·검증이 필요합니다.
 
 ### 최초 인수 요청과 남은 검증
 
-아래 1~5는 PR #5로 전달받았습니다. 6의 날씨 제외 TFT·현재 API 기준선 직접 비교는 팀원 후속 작업입니다. 새 시연 자료도 현재와 같은 입력 계약으로 전달합니다.
+아래 1~5는 PR #5로 전달받았습니다. 6의 날씨 제외 TFT·현재 API 기준선과 동일 테스트 구간의 성능 평가는 팀원 후속 작업입니다. 현재 화면의 같은 입력 그래프 비교가 이 평가를 대신하지 않습니다. 새 시연 자료도 현재와 같은 입력 계약으로 전달합니다.
 
 1. 실제 사용한 노트북과 서버 추론 코드, 모델 복원 방법 및 사용자 정의 클래스가 있다면 그 정의.
 2. 내장 인코더·스케일러·normalizer·데이터셋 설정을 재사용하는 코드. 별도 직렬화 파일을 중복으로 요구하지 않으며 추론 때 다시 fit하지 않습니다.
@@ -56,8 +74,8 @@
 받은 체크포인트의 max_encoder_length=56, max_prediction_length=7 및 단일 판매량 target의 output_size=5는 합의한 설정과 일치합니다.
 이미 학습한 모델의 구조를 추론 단계에서 바꾸지 않습니다. 해당 라이브러리의 TimeSeriesDataSet.get_parameters()/from_parameters()는 학습된 인코더·스케일러를 재사용하는 경로입니다.
 내장 객체를 정적 조사용 JSON으로 대체하지 않고, 원래 체크포인트와 호환되는 코드·라이브러리로 복원합니다.
-서버는 Ubuntu ARM64 CPU·Python 3.14이며, CUDA 강제 호출·Colab 경로·학습용 mixed precision 의존성을 분리한 CPU 추론을 검증해야 합니다.
-필요하면 모델 전용 실행 환경을 분리하되 기존 API 환경을 먼저 변경하지 않습니다.
+서버 API는 Ubuntu ARM64·Python 3.14, 모델은 별도 Python 3.11 CPU 환경을 사용합니다.
+대상 환경에서의 설치·실행 확인은 배포 기록에 남깁니다. 로컬 성공이나 정적 검사만으로 다른 운영 환경의 성공을 주장하지 않습니다.
 
 학습에 과거 날씨가 필요하면 현재 context에는 과거 날씨가 없으므로 입력 확장부터 협의합니다.
 미국 매장/관측소/상품 식별자를 현재 한국 가상 매장에 근거 없이 대응시키지 않습니다. 데이터에 맞는 별도 데모 또는 미등록 매장 처리 방식을 정합니다.
@@ -66,16 +84,17 @@
 [데이터셋 변환 설정](https://pytorch-forecasting.readthedocs.io/en/latest/api/pytorch_forecasting.data.timeseries.TimeSeriesDataSet.html),
 [Lightning 체크포인트](https://lightning.ai/docs/pytorch/stable/common/checkpointing_basic.html).
 
-## 연결
+## 일반 매장 provider 계약 — 향후 모델 교체용
 
-`ml/predict.py`에 동기 함수 `predict(context: dict) -> dict`를 작성하고,
-API의 로컬 `.env`에 다음을 설정한 뒤 서버를 다시 시작합니다.
+이하 내용은 일반 매장 예측을 교체할 때의 계약입니다. 현재 Walmart TFT는 추가 `model_input`과 별도 실행 환경이 필요하므로 `FORECAST_PROVIDER=ml.predict:predict`로 직접 연결하지 않습니다.
+현재 기본 설정은 다음과 같습니다.
 
 ```dotenv
-FORECAST_PROVIDER=ml.predict:predict
+FORECAST_PROVIDER=
 ```
 
-다른 모듈도 `모듈:함수`로 지정할 수 있습니다. 함수 호출 중 학습·Colab 접속·대용량 다운로드는 하지 않습니다.
+향후 일반 매장 데이터로 검증한 동기 함수 `predict(context: dict) -> dict`를 `모듈:함수` 형식으로 지정할 수 있습니다.
+API와 같은 프로세스에서 실행되므로 입력·런타임 호환성을 먼저 검증합니다. 함수 호출 중 학습·Colab 접속·대용량 다운로드는 하지 않습니다.
 모델·전처리는 서버의 외부 파일에서 읽습니다. 파일 경로는 환경변수 등으로 전달하세요.
 입력이나 공유 전역 객체를 요청마다 변경하지 않습니다.
 실패하면 API는 503을 반환하며 기본 예측으로 조용히 대체하지 않습니다.
@@ -94,9 +113,9 @@ FORECAST_PROVIDER=ml.predict:predict
 
 없는 판매일은 0으로 채우지 않습니다. 기준일 이후 실제 판매량도 포함하지 않습니다.
 날씨 일별 열은 date·temp_max·temp_min·rain_mm·rain_probability·code이며 누락은 null입니다.
-날씨 사용 모델은 현재 `status=ok`, `mode=live_forecast`에서만 결과를 제공합니다.
+이 일반 매장 경로의 날씨 사용 모델은 현재 `status=ok`, `mode=live_forecast`에서만 결과를 제공합니다.
 과거 재분석을 당시 발급 예보로 대체하는 평가 경로는 지원하지 않습니다.
-과거 재생은 현재 기준선과 실제 판매 비교까지 가능합니다.
+일반 매장의 과거 재생은 기준선과 실제 판매 비교를 제공합니다. 위의 고정 TFT 시연 경로와 구분합니다.
 
 ## 반환값
 

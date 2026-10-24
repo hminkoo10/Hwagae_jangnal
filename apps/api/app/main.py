@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import os
+import re
 import secrets
 import sqlite3
 import uuid
@@ -503,9 +504,16 @@ def create_app(db_path=None, seed=True):
             )
         stock = database.stock(store_id)
         points = {product["product_id"]: product for product in forecast["products"]}
+        products = database.products(store_id)
+        # Use one catalog snapshot: another user may have added a product since
+        # the forecast revision check, leaving no corresponding forecast point.
+        if {product["id"] for product in products} != set(points):
+            raise HTTPException(
+                409, "상품 목록이 바뀌었습니다. 예측을 다시 생성하세요."
+            )
         rows = [
             recommend(product, points[product["id"]], stock.get(product["id"]), today())
-            for product in database.products(store_id)
+            for product in products
         ]
         result = {
             "id": uuid.uuid4().hex,
@@ -519,6 +527,16 @@ def create_app(db_path=None, seed=True):
             "assumptions": "1일 단위·만료일 당일까지 판매·먼저 만료되는 재고부터 사용. 회수액·보관비·처리비는 0, 유효 잔여재고는 원가로 이월. 고정 수요 3경로의 균등 비용 비교.",
         }
         with database.connect() as db:
+            # Keep calculation outside the write lock, then atomically reject
+            # any sales, inventory or product change made while it was running.
+            db.execute("BEGIN IMMEDIATE")
+            revision = db.execute(
+                "SELECT revision FROM stores WHERE id=?", (store_id,)
+            ).fetchone()[0]
+            if revision != store["revision"]:
+                raise HTTPException(
+                    409, "계산 기준이 바뀌었습니다. 예측과 발주량을 다시 확인하세요."
+                )
             db.execute(
                 "INSERT INTO recommendations VALUES (?,?,?,?,?)",
                 (
@@ -648,10 +666,18 @@ def create_app(db_path=None, seed=True):
             raise HTTPException(409, "점주가 확정한 발주안만 내보낼 수 있습니다.")
 
         def safe(value):
+            if not isinstance(value, str):
+                return value
+            # Stored legacy values can contain XML-invalid characters. Clean
+            # them before checking for a newly exposed spreadsheet formula.
+            value = re.sub(
+                r"[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]",
+                "",
+                value,
+            )
             return (
                 "'" + value
-                if isinstance(value, str)
-                and value.lstrip().startswith(("=", "+", "-", "@"))
+                if value.lstrip().startswith(("=", "+", "-", "@"))
                 else value
             )
 

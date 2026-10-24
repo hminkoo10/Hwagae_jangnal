@@ -1,26 +1,28 @@
 # 화개장날 · Hwagae Jangnal
 
-화개장터 팀의 날씨 기반 소상공인 발주 안내 웹앱입니다.
-현재는 **웹·API가 연결된 로컬 기능 뼈대**를 사용할 수 있습니다.
+화개장터 팀의 소상공인 판매 예측·재고 확인·발주 안내 웹앱입니다.
+웹·API와 Ubuntu 서버의 GitHub Actions 배포가 연결되어 있습니다.
 점주·직원 로그인, 여러 매장, CSV·Excel·직접 판매 입력, SQLite 저장,
 실시간 날씨, 7일 예측, 만료일별 재고 입력, 발주 계산·수정·저장·CSV/Excel 내보내기를 지원합니다.
-기본 예측은 **날씨를 사용하지 않는 요일 기준선**이며 실제 ML 모델은 팀원이 연결할 영역입니다.
-처음 생성하는 매장·판매 자료는 가상 샘플입니다. 공개 자료의 실제 예측 성능을 검증한 상태는 아닙니다.
+
+- **일반 매장:** 초기 상품·가격·판매는 가상 자료이며, 예측은 날씨를 사용하지 않는 요일 기준선입니다. 직접 확인한 재고를 입력한 뒤 발주를 계산합니다.
+- **TFT 모델 체험:** 모델 환경이 준비되면 Walmart의 고정 과거 표본으로 실제 TFT 추론을 실행합니다. 마지막 관측 날씨를 7일 유지하는 가정이며, 한국 매장 발주에 적용하지 않습니다.
+
+실제 점포의 미충족 수요·폐기 감소·이익 개선과 실시간 예보의 추가 효과는 검증하지 않았습니다.
+[현재 구현 현황](docs/implementation.md)과 [3분 시연 안내](docs/demo-runbook.md)를 먼저 확인하세요.
 
 ## 개발 환경
 
 - Node.js **24 LTS 권장**, 22 이상 필요 (`.nvmrc`: 24)
 - npm 11 계열
 - Python **3.14** (`.python-version`, `pyproject.toml`에 명시)
+- TFT 체험 선택 사항: 별도 **Python 3.11** CPU 추론 환경
 - uv **0.10.6 이상**
 
-uv는 이 프로젝트에 별도 Python 3.14 가상환경을 사용합니다.
-전역 Python 패키지를 변경할 필요가 없습니다.
-TFT를 비교할 경우 사용하는 PyTorch Forecasting의 현재 지원 범위가
-`>=3.10,<3.15`이므로 3.15 대신 3.14를 선택했습니다.
-Colab 학습 환경의 Python·GPU 패키지 버전은 별도로 기록합니다.
-
-지원 범위 출처: https://pypi.org/project/pytorch-forecasting/
+API는 `.venv`의 Python 3.14를 사용합니다. TFT는 `.model-venv`의 Python 3.11에서
+별도 프로세스로 실행하므로 API 잠금 파일에 학습 패키지를 추가하지 않습니다.
+모델 설치와 연결은 [모델 규약](docs/model-contract.md), 학습 환경과 평가 자료는
+[ML 인수 안내](ml/README.md)를 따릅니다.
 
 ## 처음 시작
 
@@ -64,10 +66,11 @@ npm run dev:api
 | API 상태 확인 | http://127.0.0.1:8000/health |
 | API 문서 | http://127.0.0.1:8000/docs |
 
-웹에서 **점주 체험** 또는 **직원 체험**으로 로그인할 수 있습니다.
-기본 계정은 `owner@hwagae.local`, `staff@hwagae.local`, 비밀번호는 `hwagae-demo`입니다.
+기본 로컬 샘플은 **점주 체험** 또는 **직원 체험** 버튼으로 로그인할 수 있습니다.
+운영 환경에서는 배포 담당자가 관리하는 계정을 사용합니다. 운영 로그인 정보는 문서·Git에 기록하지 않습니다.
 직원은 동명점에만 소속되어 있으며, 점주만 최종 확정·내보내기가 가능합니다.
-`/health`는 서버 상태를 확인합니다. 재고 입력 전에는 예측만 표시하고 발주량은 비워 둡니다.
+`/health`는 API 상태를 확인합니다. TFT 준비 상태는 로그인 후 **TFT 모델 체험**에서 별도로 확인합니다.
+재고 입력 전에는 예측만 표시하고 발주량은 비워 둡니다.
 두 서버는 로컬 PC에서만 접근하도록 `127.0.0.1`에 바인딩합니다.
 종료는 각 터미널에서 `Ctrl+C`를 누릅니다.
 
@@ -87,6 +90,9 @@ npm run test:api
 - `check`: Next.js 라우트 타입 생성 및 TypeScript 검사
 - `build`: 웹 빌드
 - `test:api`: 인증·권한·파일·DB·예측·발주·내보내기·외부 실패 경계 테스트
+
+CI에는 Python 3.11의 ML 전처리 검사도 있습니다. 체크포인트 없는 CI를 실제 TFT 추론 검증으로 간주하지 않습니다.
+모델 파일이 준비된 배포에서는 실제 체크포인트의 smoke test와 전체 ML 테스트를 통과해야 새 코드를 활성화합니다.
 
 `npm run build`는 웹 개발 서버를 종료한 뒤 실행하세요.
 새 패키지를 추가하면 해당 잠금 파일도 함께 커밋합니다.
@@ -118,16 +124,18 @@ scripts/setup-env.mjs  로컬 환경 파일 초기화
 - 웹 패키지: `npm install <패키지> --workspace @hwagae/web`
 - API 패키지: `uv add <패키지>`
 - API 개발 도구: `uv add --dev <패키지>`
-- Colab 학습 패키지: 학습 환경에서 검증 후 `ml/requirements.txt`로 별도 관리
+- 모델 추론 패키지: `ml/requirements-inference.txt`를 별도 모델 환경에 설치
+- 학습 환경 기록: `ml/metadata/training_environment.json`, `ml/notebooks/environment-freeze-training.txt`
 
 `package-lock.json`과 `uv.lock`은 커밋 대상입니다.
-`node_modules/`, `.venv/`, `.next/`, 로컬 `.env`, 큰 데이터와 모델 파일은 제외합니다.
+`node_modules/`, `.venv/`, `.model-venv/`, `.next/`, 로컬 `.env`, 큰 데이터와 모델 파일은 제외합니다.
 
 ## 기획 문서
 
-- [기능 명세서 v0.3](docs/functional-spec.md): 확정 요구, 화면별 처리·완료 조건, 설계 제안
+- [현재 구현 현황](docs/implementation.md): 지금 제공하는 기능·수정 위치·한계
+- [3분 시연 안내](docs/demo-runbook.md): 준비·시연 순서·실패 복구·리허설 기록
+- [기능 명세서 v0.3](docs/functional-spec.md): 초기 요구와 설계 제안. 완료 여부는 현재 구현 현황을 따름
 - [요구사항 인터뷰 기록](docs/requirements-interview.md): 답변 1~17과 남은 질문 18~34
 - [API 연결 규약](docs/api-contract.md): 현재 구현된 API와 향후 합의 항목
-- [모델 연결 규약](docs/model-contract.md): Colab 담당자가 제공할 입력·출력·전달물
-- [구현 현황](docs/implementation.md): 수정할 파일과 초기 정책·한계
-- [Ubuntu CI/CD](docs/deployment.md): Docker 없는 배포 구성, 실제 서버 연결은 대기
+- [모델 연결 규약](docs/model-contract.md): 실제 TFT 시연 설정·인수 상태·일반 매장 연결 계약
+- [Ubuntu CI/CD](docs/deployment.md): Docker 없는 배포 구성·운영 확인 기록·복구

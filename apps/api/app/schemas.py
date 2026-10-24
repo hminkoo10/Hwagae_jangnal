@@ -90,7 +90,8 @@ class RecommendationRequest(Payload):
 
 class OrderLine(Payload):
     product_id: str
-    quantity: Count
+    # An order can cover seven days of demand, each capped at 1,000,000 units.
+    quantity: int = Field(strict=True, ge=0, le=7_000_000)
 
 
 class OrderRequest(Payload):
