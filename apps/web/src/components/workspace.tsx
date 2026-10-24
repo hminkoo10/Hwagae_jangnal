@@ -24,10 +24,8 @@ import { Empty, ForecastChart, Icon } from "./ui";
 import { MerchantOverview } from "./merchant-overview";
 import { ModelDemo } from "./model-demo";
 import { NATIVE_BACK_EVENT } from "./native-shell";
-import {
-  MerchantModelPanel,
-  TestWeatherStoreModal,
-} from "./merchant-model-panel";
+import { MerchantModelPanel } from "./merchant-model-panel";
+import { InitialData } from "./initial-data";
 
 type Tab =
   | "overview"
@@ -223,7 +221,10 @@ function LoginScreen({
               직원 체험
             </button>
           </div>
-          <p className="helper">
+          <p
+            className="helper"
+            hidden={process.env.NEXT_PUBLIC_DEMO_LOGIN_ENABLED === "false"}
+          >
             체험 매장의 상품·가격·판매 기록은 가상 자료예요.
             <br />
             재고는 직접 입력하기 전까지 비어 있어요.
@@ -273,7 +274,6 @@ export default function Workspace() {
     null,
   );
   const [storeModal, setStoreModal] = useState(false);
-  const [testStoreModal, setTestStoreModal] = useState(false);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(
     null,
   );
@@ -306,7 +306,6 @@ export default function Workspace() {
     setBundle(null);
     setForecastResult(null);
     setBusy(false);
-    setTestStoreModal(false);
     setRecommendation(null);
   }, []);
 
@@ -481,6 +480,21 @@ export default function Workspace() {
     setNotice(text);
     setReload((value) => value + 1);
   }
+  async function imported(text: string) {
+    saved(text);
+    setTab("overview");
+    try {
+      await refreshStores(storeId);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) clearSession();
+      else
+        setError(
+          error instanceof Error
+            ? error.message
+            : "매장 정보를 다시 불러오지 못했어요.",
+        );
+    }
+  }
   function navigate(next: Tab) {
     if (busy) return;
     setTab(next);
@@ -534,12 +548,6 @@ export default function Workspace() {
   if (!user) return <LoginScreen onLogin={acceptLogin} />;
 
   const store = stores.find((item) => item.id === storeId);
-  const provenance = store?.data_note ?? store?.provenance ?? "";
-  const provenanceLabel = provenance.startsWith(
-    "직접 테스트용 가상 매장입니다.",
-  )
-    ? "테스트 매장 · 가상 판매·재고 / 실제 날씨 예보"
-    : provenance;
   const data = bundle?.storeId === storeId ? bundle : null;
   const forecast =
     forecastResult?.storeId === storeId &&
@@ -830,22 +838,24 @@ export default function Workspace() {
         </div>
         <div className="workspace-label">매장 운영</div>
         <nav aria-label="주 메뉴">
-          {tabs.map((item) => (
-            <button
-              key={item.id}
-              aria-label={item.label}
-              className={`nav-item ${tab === item.id ? "active" : ""}`}
-              aria-current={tab === item.id ? "page" : undefined}
-              disabled={busy}
-              onClick={() => navigate(item.id)}
-            >
-              <Icon name={item.id === "model-demo" ? "forecast" : item.id} />
-              <span>{item.label}</span>
-              {item.id === "inventory" && missingStock > 0 && (
-                <em>{missingStock}</em>
-              )}
-            </button>
-          ))}
+          {tabs
+            .filter((item) => item.id !== "model-demo")
+            .map((item) => (
+              <button
+                key={item.id}
+                aria-label={item.label}
+                className={`nav-item ${tab === item.id ? "active" : ""}`}
+                aria-current={tab === item.id ? "page" : undefined}
+                disabled={busy}
+                onClick={() => navigate(item.id)}
+              >
+                <Icon name={item.id === "model-demo" ? "forecast" : item.id} />
+                <span>{item.label}</span>
+                {item.id === "inventory" && missingStock > 0 && (
+                  <em>{missingStock}</em>
+                )}
+              </button>
+            ))}
         </nav>
         <div className="sidebar-bottom">
           <div className="guide-card">
@@ -904,7 +914,7 @@ export default function Workspace() {
               <p>{currentTab.description}</p>
               {!modelDemo && store?.timezone && (
                 <p>
-                  {store.city} 현지 오늘 {today} · {store.timezone}
+                  {store.city} · {today} 마감 기준
                 </p>
               )}
             </div>
@@ -947,19 +957,6 @@ export default function Workspace() {
               </div>
             )}
           </div>
-          {!modelDemo && stores.some((item) => item.role === "owner") && (
-            <div className="merchant-test-toolbar">
-              <span>판매 기록이 없어도, 오늘 날씨로 바로 체험해요.</span>
-              <button
-                className="button secondary small"
-                disabled={busy}
-                onClick={() => setTestStoreModal(true)}
-              >
-                <Icon name="forecast" size={17} />
-                실시간 TFT 테스트 매장 만들기
-              </button>
-            </div>
-          )}
           {notice && (
             <div className="toast" role="status">
               <Icon name="check" />
@@ -990,19 +987,6 @@ export default function Workspace() {
               </button>
             </div>
           )}
-          {!modelDemo && store && (
-            <div className="source-note">
-              <span className="source-dot" />
-              <span>{provenanceLabel}</span>
-              <span className="source-model">
-                {forecast
-                  ? `${forecast.model.name} · ${forecast.model.uses_weather ? "날씨 반영" : "날씨 미반영"}${forecast.model.training_data === "synthetic" ? " · 합성 학습" : ""}`
-                  : forecastLoading
-                    ? "예측 준비 중"
-                    : "예측 미완료"}
-              </span>
-            </div>
-          )}
           {!modelDemo && loading && (
             <div className="loading-banner" role="status">
               <span className="loading-spinner" />
@@ -1017,29 +1001,27 @@ export default function Workspace() {
           {modelDemo && (
             <ModelDemo token={token} onSessionExpired={clearSession} />
           )}
-          {!modelDemo &&
-            store &&
-            (tab === "forecast" || tab === "overview") && (
-              <MerchantModelPanel
-                key={`${token}:${storeId}`}
-                token={token}
-                storeId={storeId}
-                asOf={asOf}
-                today={today}
-                weatherMode={forecast?.weather.mode}
-                owner={owner}
-                busy={busy}
-                onBusyChange={setBusy}
-                onSessionExpired={clearSession}
-                onChanged={() => {
-                  setForecastResult(null);
-                  setRecommendation(null);
-                  setAsOf(today);
-                  setReload((value) => value + 1);
-                  setNotice("예측 방식을 바꿨어요. 새 모델로 다시 계산해요.");
-                }}
-              />
-            )}
+          {!modelDemo && store && tab === "forecast" && (
+            <MerchantModelPanel
+              key={`${token}:${storeId}`}
+              token={token}
+              storeId={storeId}
+              asOf={asOf}
+              today={today}
+              weatherMode={forecast?.weather.mode}
+              owner={owner}
+              busy={busy}
+              onBusyChange={setBusy}
+              onSessionExpired={clearSession}
+              onChanged={() => {
+                setForecastResult(null);
+                setRecommendation(null);
+                setAsOf(today);
+                setReload((value) => value + 1);
+                setNotice("예측 방식을 바꿨어요. 새 모델로 다시 계산해요.");
+              }}
+            />
+          )}
           {!modelDemo &&
             (tab === "overview" || tab === "forecast" || tab === "orders") &&
             forecastLoading && (
@@ -1083,7 +1065,16 @@ export default function Workspace() {
               className={loading ? "content-updating" : undefined}
               aria-busy={loading}
             >
-              {tab === "overview" && store && (
+              {!data.products.length && owner && (
+                <InitialData
+                  key={storeId}
+                  token={token}
+                  storeId={storeId}
+                  onSaved={(text) => void imported(text)}
+                  onSessionExpired={clearSession}
+                />
+              )}
+              {tab === "overview" && store && data.products.length > 0 && (
                 <MerchantOverview
                   store={store}
                   user={user}
@@ -1307,9 +1298,9 @@ export default function Workspace() {
                             <thead>
                               <tr>
                                 <th>판매일</th>
-                                <th className="number">P10</th>
-                                <th className="number">P50</th>
-                                <th className="number">P90</th>
+                                <th className="number">적게 팔릴 때</th>
+                                <th className="number">예상 판매</th>
+                                <th className="number">많이 팔릴 때</th>
                                 <th className="number">실제 판매</th>
                               </tr>
                             </thead>
@@ -1339,13 +1330,9 @@ export default function Workspace() {
                       )}
                     {forecast && (
                       <p className="chart-footnote">
-                        {forecast.model.uses_weather
-                          ? `${weatherLabel} 자료를 반영한 TFT 결과예요.`
-                          : "현재는 요일별 과거 판매량으로 계산해요. 표시된 날씨는 예측에 반영하지 않아요."}{" "}
-                        {forecast.model.training_data === "synthetic"
-                          ? "합성 자료로 학습한 실험 모델이며 실제 매장의 정확도는 검증 전이에요. "
-                          : ""}
-                        예측 범위는 정확도 보장이 아니에요.
+                        예상 판매는 중앙값, 범위는 적게 팔릴 때(P10)부터 많이
+                        팔릴 때(P90)까지예요. 실제 판매는 날씨와 매장 상황에
+                        따라 달라질 수 있어요.
                       </p>
                     )}
                   </section>
@@ -1740,29 +1727,12 @@ export default function Workspace() {
             void action(async () => {
               setAsOf(await refreshStores(id));
               setTab("products");
-              setNotice("새 매장을 추가했어요. 상품부터 등록해주세요.");
+              setNotice(
+                "매장을 등록했어요. 엑셀 자료를 가져오거나 상품을 직접 등록하세요.",
+              );
             });
           }}
           onClose={() => setStoreModal(false)}
-        />
-      )}
-      {testStoreModal && (
-        <TestWeatherStoreModal
-          token={token}
-          onSessionExpired={clearSession}
-          onClose={() => setTestStoreModal(false)}
-          onSaved={async (created) => {
-            const currentDate = await refreshStores(created.id);
-            setAsOf(currentDate);
-            setTab("forecast");
-            setSearch("");
-            setRecommendation(null);
-            setInventoryProduct(null);
-            setProductModal(null);
-            setNotice(
-              "시연 판매·재고를 준비했어요. 매장 위치의 실제 예보로 TFT 예측을 시작해요.",
-            );
-          }}
         />
       )}
     </div>

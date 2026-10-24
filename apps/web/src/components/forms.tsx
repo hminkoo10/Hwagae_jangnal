@@ -719,6 +719,45 @@ export function StoreModal({
   onSaved: (id: string) => void;
   onClose: () => void;
 }) {
+  const places = {
+    dallas: {
+      city: "댈러스, 텍사스",
+      latitude: 32.7767,
+      longitude: -96.797,
+      timezone: "America/Chicago",
+    },
+    seoul: {
+      city: "서울",
+      latitude: 37.5665,
+      longitude: 126.978,
+      timezone: "Asia/Seoul",
+    },
+    busan: {
+      city: "부산",
+      latitude: 35.1796,
+      longitude: 129.0756,
+      timezone: "Asia/Seoul",
+    },
+    gwangju: {
+      city: "광주",
+      latitude: 35.1595,
+      longitude: 126.8526,
+      timezone: "Asia/Seoul",
+    },
+    new_york: {
+      city: "뉴욕",
+      latitude: 40.7128,
+      longitude: -74.006,
+      timezone: "America/New_York",
+    },
+    seattle: {
+      city: "시애틀",
+      latitude: 47.6062,
+      longitude: -122.3321,
+      timezone: "America/Los_Angeles",
+    },
+  };
+  const [place, setPlace] = useState<keyof typeof places>("seoul");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -734,6 +773,7 @@ export function StoreModal({
           city: fields.get("city"),
           latitude: Number(fields.get("latitude")),
           longitude: Number(fields.get("longitude")),
+          timezone: fields.get("timezone"),
         }),
       });
       onSaved(result.id);
@@ -757,43 +797,69 @@ export function StoreModal({
           <input name="name" maxLength={80} required />
         </label>
         <label>
-          지역 이름
-          <input
-            name="city"
-            placeholder="예: 광주 동명동"
-            maxLength={80}
-            required
-          />
+          매장 지역
+          <select
+            value={place}
+            onChange={(e) => setPlace(e.target.value as keyof typeof places)}
+          >
+            {Object.entries(places).map(([key, value]) => (
+              <option key={key} value={key}>
+                {value.city}
+              </option>
+            ))}
+          </select>
         </label>
-        <div className="form-grid">
-          <label>
-            위도
-            <input
-              name="latitude"
-              type="number"
-              step="any"
-              min="-90"
-              max="90"
-              placeholder="35.1477"
-              required
-            />
-          </label>
-          <label>
-            경도
-            <input
-              name="longitude"
-              type="number"
-              step="any"
-              min="-180"
-              max="180"
-              placeholder="126.9256"
-              required
-            />
-          </label>
-        </div>
         <p className="helper">
-          현재 국내 매장용으로 날짜를 한국 시간에 맞춰 계산해요.
+          지역의 실제 날씨와 현지 날짜로 판매 예측·발주를 계산해요.
         </p>
+        <details className="location-details">
+          <summary>상세 위치·시간대</summary>
+          <div className="stack" key={place}>
+            <label>
+              지역 이름
+              <input
+                name="city"
+                defaultValue={places[place].city}
+                maxLength={80}
+                required
+              />
+            </label>
+            <div className="form-grid">
+              <label>
+                위도
+                <input
+                  name="latitude"
+                  type="number"
+                  step="any"
+                  min="-90"
+                  max="90"
+                  defaultValue={places[place].latitude}
+                  required
+                />
+              </label>
+              <label>
+                경도
+                <input
+                  name="longitude"
+                  type="number"
+                  step="any"
+                  min="-180"
+                  max="180"
+                  defaultValue={places[place].longitude}
+                  required
+                />
+              </label>
+            </div>
+            <label>
+              시간대
+              <input
+                name="timezone"
+                defaultValue={places[place].timezone}
+                required
+              />
+            </label>
+          </div>
+        </details>
         <button className="button primary" disabled={busy}>
           {busy ? "추가 중…" : "매장 추가"}
         </button>

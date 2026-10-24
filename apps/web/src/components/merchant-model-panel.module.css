@@ -26,7 +26,7 @@
 }
 .eyebrow {
   color: #61738c;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
 }
 .selector {
@@ -34,14 +34,14 @@
   flex-shrink: 0;
   gap: 6px;
   color: #65758b;
-  font-size: 12px;
+  font-size: 14px;
   min-width: 0;
   max-width: 100%;
 }
 .selector select {
   min-width: 210px;
   color: #243149;
-  font-size: 13px;
+  font-size: 14px;
   max-width: 100%;
 }
 .badges {
@@ -52,7 +52,7 @@
 .badges span {
   padding: 5px 8px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.4;
   font-weight: 650;
   max-width: 100%;
@@ -77,20 +77,20 @@
 .description {
   margin: 12px 0 0;
   color: #58697d;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.75;
 }
 .note {
   margin: 10px 0 0;
-  color: #738195;
-  font-size: 12px;
+  color: #526074;
+  font-size: 14px;
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
 .dataGuide {
   margin-top: 12px;
   color: #65758b;
-  font-size: 12px;
+  font-size: 14px;
 }
 .dataGuide summary {
   width: fit-content;
@@ -117,7 +117,7 @@
   background: #f7f9fc;
   border-radius: 6px;
   color: #58697d;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
   flex-wrap: wrap;
 }
@@ -157,3 +157,6 @@
     flex-direction: column;
   }
 }
+
+.panel > summary { cursor: pointer; font-size: 15px; color: #334155; }
+.panel[open] > summary { margin-bottom: 20px; }

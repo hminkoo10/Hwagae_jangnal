@@ -1850,8 +1850,8 @@ input[type="checkbox"] {
 }
 .merchant-shell .workspace-label {
   padding: 36px 13px 14px;
-  color: #8b94a2;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
 }
 .merchant-shell .sidebar nav {
   gap: 5px;
@@ -1877,7 +1877,7 @@ input[type="checkbox"] {
 }
 .merchant-shell .guide-card {
   background: #f6f9fc;
-  border-color: #e9eef5;
+  border-color: #526074;
   border-radius: 9px;
 }
 .merchant-shell .guide-icon,
@@ -1886,7 +1886,7 @@ input[type="checkbox"] {
 }
 .merchant-shell .guide-card p,
 .merchant-shell .team-label {
-  color: #818c9a;
+  color: #526074;
 }
 .merchant-shell .topbar {
   height: 67px;
@@ -1894,13 +1894,13 @@ input[type="checkbox"] {
 }
 .merchant-shell .breadcrumb,
 .merchant-shell .account-actions small {
-  color: #8b94a1;
+  color: #526074;
 }
 .merchant-shell .breadcrumb strong {
   color: #444e5c;
 }
 .merchant-shell .account-actions .text-button {
-  color: #727e8e;
+  color: #526074;
 }
 .merchant-shell .user-avatar {
   background: #eef3f9;
@@ -1914,23 +1914,23 @@ input[type="checkbox"] {
   margin-bottom: 17px;
 }
 .merchant-shell .overline {
-  color: #8893a1;
-  font-size: 9px;
+  color: #526074;
+  font-size: 13px;
 }
 .merchant-shell .page-heading h1 {
   font-size: 26px;
   color: #232b37;
 }
 .merchant-shell .page-heading p {
-  color: #7b8493;
+  color: #526074;
 }
 .merchant-shell .store-picker {
-  border-color: #e1e6ee;
+  border-color: #526074;
   color: #68788c;
 }
 .merchant-shell .source-note {
-  color: #7e8896;
-  font-size: 11px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.6;
   margin-bottom: 18px;
 }
@@ -1952,13 +1952,13 @@ input[type="checkbox"] {
 }
 .merchant-shell .secondary,
 .merchant-shell .table-button {
-  border-color: #dfe5ed;
+  border-color: #526074;
   color: #59687b;
 }
 .merchant-shell .secondary:hover:not(:disabled),
 .merchant-shell .table-button:hover:not(:disabled) {
   background: #f1f6fe;
-  border-color: #bfd5f8;
+  border-color: #526074;
 }
 .merchant-shell .icon-button:hover {
   background: #edf3fb;
@@ -1970,15 +1970,15 @@ input[type="checkbox"] {
 }
 .merchant-shell .neutral {
   background: #eff2f6;
-  color: #7a8594;
+  color: #526074;
 }
 .merchant-shell input,
 .merchant-shell select {
-  border-color: #dfe5ed;
+  border-color: #526074;
   color: #48576b;
 }
 .merchant-shell input::placeholder {
-  color: #9ca7b5;
+  color: #526074;
 }
 .merchant-shell label,
 .merchant-shell .helper,
@@ -2007,57 +2007,57 @@ input[type="checkbox"] {
 }
 .merchant-shell thead {
   background: #f7f9fc;
-  color: #788496;
+  color: #526074;
 }
 .merchant-shell td {
-  border-bottom-color: #edf0f5;
+  border-bottom-color: #526074;
 }
 .merchant-shell td small,
 .merchant-shell .panel-footer {
-  color: #8793a3;
+  color: #526074;
 }
 .merchant-shell .plan-summary,
 .merchant-shell .info-banner {
   background: #eef5ff;
-  border-color: #dfeafb;
+  border-color: #526074;
   color: #5476a4;
 }
 .merchant-shell .plan-summary strong {
   color: #2478f5;
 }
 .merchant-shell .info-banner p {
-  color: #758aa7;
+  color: #526074;
 }
 .merchant-shell .file-zone {
-  border-color: #c8d8ed;
+  border-color: #526074;
   background: #f8faff;
-  color: #718bad;
+  color: #526074;
 }
 .merchant-shell .file-zone strong {
   color: #5879a5;
 }
 .merchant-shell .empty-state,
 .merchant-shell .empty-state h3 {
-  color: #7b899d;
+  color: #526074;
 }
 .merchant-shell .empty-icon {
   background: #f0f5fc;
-  color: #9ab4d4;
+  color: #526074;
 }
 .merchant-shell .toast {
   background: #263c59;
-  color: #f2f7ff;
+  color: #526074;
 }
 .merchant-shell .loading-banner {
-  color: #6f8aab;
+  color: #526074;
 }
 .merchant-shell .loading-spinner {
-  border-color: #e5eefb;
+  border-color: #526074;
   border-top-color: #2478f5;
 }
 .merchant-shell .workspace-footer {
-  border-color: #e3e8ef;
-  color: #8f9bab;
+  border-color: #526074;
+  color: #526074;
   margin-top: 24px;
   padding-top: 18px;
 }
@@ -2076,7 +2076,7 @@ input[type="checkbox"] {
   border: 0;
 }
 .merchant-shell .chart-legend {
-  color: #7f8c9e;
+  color: #526074;
 }
 .merchant-shell .legend-line {
   background: var(--chart-line);
@@ -2115,12 +2115,12 @@ input[type="checkbox"] {
   margin-bottom: 5px;
 }
 .merchant-intro p {
-  color: #858f9e;
-  font-size: 11px;
+  color: #526074;
+  font-size: 13px;
   margin-bottom: 0;
 }
 .merchant-intro > .pill {
-  color: #75859a;
+  color: #526074;
   border: 1px solid #e2e8f0;
   background: white;
   font-weight: 500;
@@ -2132,8 +2132,8 @@ input[type="checkbox"] {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 7px;
-  color: #7a899c;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.5;
 }
 .merchant-intro-meta svg {
@@ -2167,7 +2167,7 @@ input[type="checkbox"] {
     box-shadow 0.15s;
 }
 .action-card:hover:not(:disabled) {
-  border-color: #b7d1f9;
+  border-color: #526074;
   box-shadow: 0 3px 12px #2960a808;
 }
 .action-card.featured {
@@ -2190,7 +2190,7 @@ input[type="checkbox"] {
 }
 .action-card > .merchant-status {
   max-width: calc(100% - 31px);
-  font-size: 9px;
+  font-size: 13px;
   padding: 4px 6px;
   margin-bottom: 16px;
   white-space: normal;
@@ -2209,8 +2209,8 @@ input[type="checkbox"] {
   font-weight: 700;
 }
 .action-card p {
-  color: #7b8798;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.65;
   margin: 6px 0 14px;
 }
@@ -2220,7 +2220,7 @@ input[type="checkbox"] {
   gap: 5px;
   margin-top: auto;
   color: #2478f5;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 650;
 }
 .action-link svg {
@@ -2244,15 +2244,15 @@ input[type="checkbox"] {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  color: #7d8796;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.5;
   margin-bottom: 10px;
 }
 .metric-label svg {
   width: 15px;
   height: 15px;
-  color: #a8b5c5;
+  color: #526074;
   flex-shrink: 0;
 }
 .metric-card > strong {
@@ -2267,16 +2267,16 @@ input[type="checkbox"] {
 .metric-card > strong em,
 .metric-card > strong small {
   padding-left: 4px;
-  font-size: 11px;
+  font-size: 13px;
   font-style: normal;
   font-weight: 500;
-  color: #8793a3;
+  color: #526074;
 }
 .metric-card > small,
 .metric-card > p {
   display: block;
-  color: #8c97a7;
-  font-size: 9px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.6;
   margin-top: 7px;
   margin-bottom: 0;
@@ -2307,20 +2307,20 @@ input[type="checkbox"] {
 }
 .merchant-card-heading p {
   margin: 5px 0 0;
-  font-size: 10px;
-  color: #929baa;
+  font-size: 13px;
+  color: #526074;
   line-height: 1.6;
 }
 .merchant-card-heading .text-button {
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 13px;
 }
 .merchant-forecast select {
   width: min(150px, 100%);
   min-width: 0;
   min-height: 31px;
   padding: 6px 7px;
-  font-size: 10px;
+  font-size: 13px;
   border-radius: 6px;
 }
 .merchant-forecast .forecast-chart {
@@ -2337,7 +2337,7 @@ input[type="checkbox"] {
   border: 0;
   border-radius: 6px;
   background: #f6f9fd;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.7;
 }
 .merchant-readiness {
@@ -2368,13 +2368,13 @@ input[type="checkbox"] {
 }
 .ring-caption {
   fill: #939daa;
-  font-size: 9px;
+  font-size: 13px;
 }
 .readiness-legend {
   display: grid;
   gap: 9px;
   margin-top: auto;
-  font-size: 10px;
+  font-size: 13px;
 }
 .readiness-legend > div,
 .readiness-legend > p,
@@ -2386,11 +2386,11 @@ input[type="checkbox"] {
   margin: 0;
 }
 .readiness-legend span {
-  color: #8290a1;
+  color: #526074;
 }
 .readiness-legend strong {
   color: #526174;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 650;
 }
 .merchant-readiness > .button {
@@ -2406,12 +2406,12 @@ input[type="checkbox"] {
 .merchant-products th,
 .merchant-table-products th {
   padding: 11px 12px;
-  font-size: 10px;
+  font-size: 13px;
 }
 .merchant-products td,
 .merchant-table-products td {
   padding: 14px 12px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .merchant-card-footer {
   display: flex;
@@ -2421,8 +2421,8 @@ input[type="checkbox"] {
   border-top: 1px solid #edf0f5;
   margin-top: 6px;
   padding-top: 15px;
-  color: #929ead;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.7;
 }
 .merchant-card-footer p {
@@ -2430,22 +2430,22 @@ input[type="checkbox"] {
 }
 .merchant-card-footer .text-button {
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 13px;
 }
 .merchant-cell-title {
   display: flex;
   align-items: center;
   gap: 7px;
   color: #485568;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 650;
 }
 .merchant-cell-sub {
   display: block;
   margin-top: 4px;
   margin-left: 33px;
-  color: #95a0af;
-  font-size: 9px;
+  color: #526074;
+  font-size: 13px;
   font-weight: 400;
 }
 .product-dot {
@@ -2464,7 +2464,7 @@ input[type="checkbox"] {
   align-items: center;
   padding: 4px 7px;
   border-radius: 5px;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 550;
   line-height: 1.5;
   white-space: nowrap;
@@ -2479,7 +2479,7 @@ input[type="checkbox"] {
 }
 .merchant-status.muted {
   background: #f0f3f7;
-  color: #8591a3;
+  color: #526074;
 }
 .merchant-empty {
   display: grid;
@@ -2488,8 +2488,8 @@ input[type="checkbox"] {
   padding: 20px 12px;
   background: #f8fafc;
   border-radius: 7px;
-  color: #8a97a9;
-  font-size: 11px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.8;
   text-align: center;
 }
@@ -2533,8 +2533,8 @@ input[type="checkbox"] {
 }
 .rail-date {
   display: block;
-  color: #98a1af;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   margin-bottom: 10px;
 }
 .rail-greeting h2 {
@@ -2544,8 +2544,8 @@ input[type="checkbox"] {
   letter-spacing: -0.055em;
 }
 .rail-greeting p {
-  color: #8c97a6;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   margin: 8px 0 0;
 }
 .rail-section-title {
@@ -2559,7 +2559,7 @@ input[type="checkbox"] {
   color: #465163;
 }
 .rail-section-title .text-button {
-  font-size: 10px;
+  font-size: 13px;
 }
 .rail-weather-main {
   display: flex;
@@ -2586,15 +2586,15 @@ input[type="checkbox"] {
 .rail-weather-main span,
 .rail-weather-main small {
   display: block;
-  color: #899db7;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   margin-top: 3px;
 }
 .rail-weather-main strong small {
   display: inline;
   font-size: 14px;
   font-weight: 400;
-  color: #91a5c0;
+  color: #526074;
 }
 .rail-weather-details {
   display: grid;
@@ -2609,13 +2609,13 @@ input[type="checkbox"] {
   border-radius: 6px;
 }
 .rail-weather-details dt {
-  color: #929eaf;
-  font-size: 9px;
+  color: #526074;
+  font-size: 13px;
 }
 .rail-weather-details dd {
   margin: 5px 0 0;
   color: #627793;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
 }
 .rail-weather-week {
@@ -2630,8 +2630,8 @@ input[type="checkbox"] {
   align-items: center;
   min-width: 0;
   gap: 7px;
-  font-size: 9px;
-  color: #9aa5b4;
+  font-size: 13px;
+  color: #526074;
 }
 .rail-weather-day svg {
   width: 17px;
@@ -2639,15 +2639,15 @@ input[type="checkbox"] {
   color: #d2ad69;
 }
 .rail-weather-day strong {
-  color: #7d8da2;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   font-weight: 550;
 }
 .rail-weather > small,
 .rail-weather > p {
   display: block;
-  color: #99a5b5;
-  font-size: 9px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.7;
   margin: 13px 0 0;
 }
@@ -2672,12 +2672,12 @@ input[type="checkbox"] {
 .rail-task-list button:hover,
 .rail-order-list button:hover {
   background: #f7faff;
-  border-color: #d6e5fa;
+  border-color: #526074;
 }
 .rail-task-list button > svg:last-child {
   width: 14px;
   height: 14px;
-  color: #a5b4c8;
+  color: #526074;
   flex-shrink: 0;
 }
 .task-symbol {
@@ -2698,19 +2698,19 @@ input[type="checkbox"] {
 .task-copy {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
+  font-size: 13px;
 }
 .task-copy strong {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   color: #5c6c82;
   font-weight: 600;
 }
 .task-copy small {
   display: block;
   margin-top: 4px;
-  font-size: 9px;
-  color: #97a4b5;
+  font-size: 13px;
+  color: #526074;
   line-height: 1.5;
 }
 .task-count {
@@ -2736,16 +2736,16 @@ input[type="checkbox"] {
   align-items: center;
   gap: 10px;
   width: 100%;
-  color: #9aa5b5;
-  font-size: 9px;
+  color: #526074;
+  font-size: 13px;
 }
 .rail-order-meta strong {
   color: #6e7e94;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .rail-order-meta small {
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.5;
   text-align: right;
 }
@@ -2761,16 +2761,16 @@ input[type="checkbox"] {
   font-variant-numeric: tabular-nums;
 }
 .rail-note {
-  color: #95a1b2;
-  font-size: 10px;
+  color: #526074;
+  font-size: 13px;
   line-height: 1.8;
   overflow-wrap: anywhere;
   margin-bottom: 0;
 }
 .rail-note strong {
   display: block;
-  color: #79899e;
-  font-size: 11px;
+  color: #526074;
+  font-size: 13px;
   margin-bottom: 8px;
 }
 .rail-note p {
@@ -2788,7 +2788,7 @@ input[type="checkbox"] {
   border-radius: 6px;
   background: #edf5ff;
   color: #4b86d6;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .rail-link:hover {
@@ -2937,7 +2937,7 @@ input[type="checkbox"] {
     font-size: 24px;
   }
   .merchant-shell .source-note {
-    font-size: 10px;
+    font-size: 13px;
     margin-bottom: 17px;
   }
   .merchant-content {
@@ -2952,10 +2952,10 @@ input[type="checkbox"] {
     font-size: 16px;
   }
   .merchant-intro p {
-    font-size: 10px;
+    font-size: 13px;
   }
   .merchant-intro > .pill {
-    font-size: 9px;
+    font-size: 13px;
   }
   .merchant-intro-meta {
     justify-content: flex-start;
@@ -2985,11 +2985,11 @@ input[type="checkbox"] {
   .action-card strong {
     grid-column: 2;
     align-self: end;
-    font-size: 12px;
+    font-size: 14px;
   }
   .action-card p {
     grid-column: 2;
-    font-size: 9px;
+    font-size: 13px;
     margin: 4px 0 0;
     align-self: start;
   }
@@ -2998,7 +2998,7 @@ input[type="checkbox"] {
     grid-row: 1 / 3;
     align-self: center;
     margin: 0;
-    font-size: 9px;
+    font-size: 13px;
     gap: 3px;
   }
   .merchant-metrics {
@@ -3027,7 +3027,7 @@ input[type="checkbox"] {
   .merchant-forecast select {
     width: 125px;
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 13px;
   }
   .merchant-forecast .forecast-chart {
     min-height: 170px;
@@ -3037,7 +3037,7 @@ input[type="checkbox"] {
     gap: 8px 16px;
   }
   .merchant-overview .chart-footnote {
-    font-size: 9px;
+    font-size: 13px;
     margin-top: 13px;
   }
   .merchant-readiness {
@@ -3049,10 +3049,10 @@ input[type="checkbox"] {
     height: 125px;
   }
   .readiness-legend {
-    font-size: 9px;
+    font-size: 13px;
   }
   .readiness-legend strong {
-    font-size: 10px;
+    font-size: 13px;
   }
   .merchant-products .merchant-card-heading {
     align-items: center;
@@ -3060,7 +3060,7 @@ input[type="checkbox"] {
   .merchant-card-footer {
     align-items: flex-start;
     flex-wrap: wrap;
-    font-size: 9px;
+    font-size: 13px;
   }
   .merchant-rail {
     grid-template-columns: minmax(0, 1fr);
@@ -3081,14 +3081,14 @@ input[type="checkbox"] {
     gap: 5px;
   }
   .rail-weather-day {
-    font-size: 10px;
+    font-size: 13px;
   }
   .rail-weather-day svg {
     width: 21px;
     height: 21px;
   }
   .rail-weather-day strong {
-    font-size: 11px;
+    font-size: 13px;
   }
   .rail-task-list button {
     padding: 13px 12px;
@@ -3105,7 +3105,7 @@ input[type="checkbox"] {
   border-radius: 8px;
   background: #f4f8ff;
   color: #586d89;
-  font-size: 12px;
+  font-size: 14px;
 }
 .merchant-test-toolbar .button {
   flex-shrink: 0;
@@ -3353,8 +3353,8 @@ input[type="checkbox"] {
   .merchant-shell .chart-scroll-hint {
     display: block;
     margin: 4px 0 9px;
-    color: #738b81;
-    font-size: 11px;
+    color: #526074;
+    font-size: 13px;
     line-height: 1.6;
   }
   .merchant-shell .chart-scroll .forecast-chart {
@@ -3438,3 +3438,26 @@ input[type="checkbox"] {
     flex-direction: column;
   }
 }
+
+/* Comfortable reading sizes and a normal merchant onboarding flow. */
+.merchant-shell { font-size: 15px; line-height: 1.6; --muted: #526074; }
+.merchant-shell .page-heading h1 { font-size: 28px; }
+.merchant-shell :is(th, .helper, .chart-footnote, .rail-note, .metric-label) { font-size: 14px; color: #526074; }
+.merchant-shell td { font-size: 15px; padding-top: 16px; padding-bottom: 16px; }
+.merchant-shell :is(input, select), .modal :is(input, select) { font-size: 16px; min-height: 44px; color: #243149; }
+.merchant-shell :is(.button, .text-button, .nav-item) { min-height: 44px; }
+.merchant-shell :is(.panel-heading h2, .merchant-intro h2) { font-size: 20px; }
+.merchant-shell :is(.action-card strong, .metric-label, .nav-item) { font-size: 15px; }
+.merchant-shell :is(.action-card p, .action-link, .rail-meta, .metric-note) { font-size: 14px; }
+.onboarding-panel { max-width: 1000px; margin-bottom: 24px; }
+.onboarding-panel .file-zone { margin-bottom: 18px; }
+.onboarding-steps { display: flex; flex-wrap: wrap; gap: 12px 32px; padding: 16px 24px; background: #f1f6fd; border-radius: 8px; margin: 16px 0 24px; list-style-position: inside; }
+.onboarding-steps [aria-current] { color: #1556b0; font-weight: 700; }
+.import-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 20px; }
+.import-summary > div { background: #f4f7fb; padding: 16px; border-radius: 10px; }
+.import-summary span, .import-summary strong { display: block; }
+.import-summary strong { font-size: 22px; color: #243149; }
+.location-details { margin: 0 0 12px; }
+.location-details summary, .rail-model summary { cursor: pointer; font-weight: 650; }
+.location-details > div { margin-top: 16px; }
+@media(max-width:600px) { .import-summary { grid-template-columns: 1fr; } .merchant-shell .page-heading h1 { font-size: 26px; } }

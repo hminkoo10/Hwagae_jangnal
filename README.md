@@ -6,7 +6,7 @@
 실시간 날씨, 7일 예측, 만료일별 재고 입력, 발주 계산·수정·저장·CSV/Excel 내보내기를 지원합니다.
 
 - **일반 매장:** 기본값은 요일 기준선이며 점주가 **실시간 예보 TFT**로 전환할 수 있습니다. 새 TFT는 합성 자료로 학습한 실험 모델이고, 실제 7일 기온·강수 예보를 입력받습니다.
-- **바로 테스트:** **실시간 TFT 테스트 매장 만들기**에서 Walmart 공개 판매·미국 날씨를 고르면 112일 날짜 이동 자료와 시연 재고가 생깁니다. 댈러스 등의 NOAA 예보 → Walmart TFT → 미래 발주일 선택 → 수정·저장·파일까지 연결합니다. 기존 합성 자료 체험도 선택할 수 있습니다. [직접 테스트 안내](docs/live-weather-test.md)를 따르세요.
+- **자료 가져오기:** 일반 매장을 만든 뒤 상품·판매·재고 XLSX를 직접 확인·저장합니다. 제공 자료는 기존 Walmart TFT와 실제 미국 날씨에 연결됩니다. [점주 시작 안내](docs/merchant-upload.md)를 따르세요.
 - **TFT 모델 체험:** 모델 환경이 준비되면 Walmart의 고정 과거 표본으로 실제 TFT 추론을 실행합니다. 마지막 관측 날씨를 7일 유지하는 가정이며, 한국 매장 발주에 적용하지 않습니다.
 
 실제 점포의 미충족 수요·폐기 감소·이익 개선과 실시간 예보의 추가 효과는 검증하지 않았습니다.
@@ -142,3 +142,5 @@ scripts/setup-env.mjs  로컬 환경 파일 초기화
 - [모델 연결 규약](docs/model-contract.md): 실제 TFT 시연 설정·인수 상태·일반 매장 연결 계약
 - [Ubuntu CI/CD](docs/deployment.md): Docker 없는 배포 구성·운영 확인 기록·복구
 - [Android · iPhone 앱](docs/mobile-app.md): APK 설치·iOS 빌드·모바일 기능 확인
+
+직접 자료 업로드: [점주 시작 안내](docs/merchant-upload.md). `uv run python scripts/make-merchant-data.py --output <폴더>`로 전달용 자료를 만들 수 있습니다.
