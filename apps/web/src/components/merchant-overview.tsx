@@ -155,7 +155,7 @@ export function MerchantOverview({
               {ready.length ? units(nextDemand) : "—"}
               <small>개</small>
             </strong>
-            <p>예측 가능 상품의 P50 합계</p>
+            <p>예측 가능한 상품의 예상 판매 합계</p>
           </article>
           <article className="metric-card">
             <span className="metric-label">
@@ -319,7 +319,7 @@ export function MerchantOverview({
                   <tr>
                     <th>상품</th>
                     <th className="number">
-                      {nextDay ? shortDate(nextDay) : "내일"} 예측 P50
+                      {nextDay ? shortDate(nextDay) : "내일"} 예상 판매
                     </th>
                     <th className="number">내일 판매 가능한 재고</th>
                     <th>확인 상태</th>

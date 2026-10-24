@@ -1232,7 +1232,7 @@ export default function Workspace() {
                     <div className="panel-heading forecast-heading">
                       <div>
                         <h2>앞으로 7일, 얼마나 팔릴까요?</h2>
-                        <p>P50 중앙값과 P10~P90 범위를 함께 확인하세요.</p>
+                        <p>예상 판매량과 적게·많이 팔릴 때의 범위를 확인하세요.</p>
                       </div>
                       <div className="forecast-controls">
                         <select
@@ -1383,7 +1383,7 @@ export default function Workspace() {
                         <h2>새 발주 계획</h2>
                         <p>
                           판매·재고 기준일 {asOf}
-                          {store?.timezone ? ` (${store.timezone})` : ""}. 발주
+                           · 매장 현지 날짜. 발주
                           예정일과 입고까지 걸리는 기간을 함께 반영해요.
                         </p>
                       </div>

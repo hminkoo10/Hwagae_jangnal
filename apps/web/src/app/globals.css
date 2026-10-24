@@ -3461,3 +3461,7 @@ input[type="checkbox"] {
 .location-details summary, .rail-model summary { cursor: pointer; font-weight: 650; }
 .location-details > div { margin-top: 16px; }
 @media(max-width:600px) { .import-summary { grid-template-columns: 1fr; } .merchant-shell .page-heading h1 { font-size: 26px; } }
+
+.merchant-shell { --green: #1761c7; }
+.merchant-shell .primary { background: #1965d2; }
+.merchant-shell .nav-item.active, .merchant-shell .text-button { color: #1556b0; }
