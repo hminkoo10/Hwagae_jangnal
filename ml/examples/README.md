@@ -5,6 +5,10 @@
 | 파일 | 용도 |
 | --- | --- |
 | `input.json` | 실제 판매 56일 × 상품 2개와 과거 날씨 57일을 포함한 정상 입력 |
+| `expected-quantiles.json` | 같은 입력의 CPU 7일 × 5분위수 기준 출력 |
+| `expected-api.json` | 같은 입력의 API용 3분위수 출력 |
+| `expected-insufficient-history.json` | 부족 이력 및 신규 상품 입력의 예상 결과 |
+| `cpu-verification.json` | 별도 빈 환경의 설치 후 CPU 실행 측정 |
 | `input-fields.json` | 현재 API에 추가할 필드의 이름·단위·예시·검증 규칙과 SI 입력 예시 |
 | `insufficient-history.json` | 한 상품의 판매일을 하나 제거하고 미등록 상품을 추가한 실패/성공 혼합 입력 |
 

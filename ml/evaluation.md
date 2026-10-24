@@ -5,10 +5,10 @@
 ## 근거와 평가 범위
 
 - 원본 위치: 전달받은 `weather_order_tft/runs/walmart_20261024T020058Z/`.
-- 실행 설정: `run_config.json`.
-- 평가 수치: `test_metrics.csv`, `metrics_by_horizon.csv`.
+- 실행 설정: [run_config.json](evaluation/run_config.json).
+- 평가 수치: [test_metrics.csv](evaluation/test_metrics.csv), [metrics_by_horizon.csv](evaluation/metrics_by_horizon.csv).
 - 개별 예측 검산: `validation_predictions.csv`, `test_predictions.csv`.
-- 기준선 보정값: `baseline_validation_residual_quantiles.csv`.
+- 기준선 보정값: [baseline_validation_residual_quantiles.csv](evaluation/baseline_validation_residual_quantiles.csv).
 - 학습 환경 기록: `environment_freeze.txt`.
 - 모델 구조와 학습 기록: `tft_weather/logs/version_0/hparams.yaml`, `metrics.csv`.
 - 원본 학습/전처리 코드: 사용자가 지정한 `startup_thon_1.ipynb`를 `ml/notebooks/startup_thon_1.ipynb`로 전달했다. cell 7, 8, 10, 13, 17, 21(0부터 세는 cell 번호)을 근거로 확인했다. 실행 출력이 남은 `Colab Notebooks/startup_thon.ipynb`와 학습 관련 코드가 같으며, 전달본은 source를 유지하고 출력과 실행 메타데이터만 제거했다.
