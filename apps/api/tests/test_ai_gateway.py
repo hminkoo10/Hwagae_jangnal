@@ -102,6 +102,100 @@ def test_models_draft_and_existing_keys_do_not_cross_gateways_or_stores(service)
     assert client.get("/stores/busan/ai/settings", headers=auth["owner"]).json()["connections"] == []
 
 
+def test_official_claude_root_uses_v1_models_and_native_protocol_without_saving(service):
+    app, client, auth = service
+    calls = []
+    def provider(gateway, key, endpoint, **kwargs):
+        calls.append((gateway, endpoint, kwargs.get("protocol")))
+        if gateway != "https://api.anthropic.com/v1" or kwargs.get("protocol") != "anthropic":
+            raise GatewayFailure("request")
+        return {"data": [{"id": "claude-fixture-model"}]}
+    app.state.ai_request = provider
+    response = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://api.anthropic.com", "api_key": KEY1})
+    assert response.status_code == 200, response.text
+    assert response.json() == {"models": ["claude-fixture-model"]}
+    assert calls == [("https://api.anthropic.com/v1", "/models", "anthropic")]
+    assert client.get("/stores/gwangju/ai/settings", headers=auth["owner"]).json()["connections"] == []
+    assert KEY1 not in response.text
+
+
+def test_claude_native_message_and_incomplete_fallback(service):
+    app, client, auth = service
+    response = save(client, auth["owner"], [config(gateway="https://api.anthropic.com", protocol="anthropic", reasoning_effort="medium"), config("예비", KEY2)])
+    assert response.status_code == 200, response.text
+    assert response.json()["connections"][0]["gateway"] == "https://api.anthropic.com/v1"
+    calls = []
+    state = {"stop": "end_turn"}
+    def provider(gateway, key, endpoint, **kwargs):
+        calls.append((endpoint, kwargs))
+        if key == KEY2:
+            return ok("예비 연결 성공")
+        return {"type": "message", "role": "assistant", "stop_reason": state["stop"], "content": [{"type": "thinking", "thinking": "숨은 추론"}, {"type": "text", "text": "Claude 연결 성공"}]}
+    app.state.ai_request = provider
+    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    assert result.status_code == 200, result.text
+    assert result.json()["text"] == "Claude 연결 성공"
+    endpoint, options = calls[0]
+    assert endpoint == "/messages" and options["protocol"] == "anthropic"
+    body = options["payload"]
+    assert body["system"] and body["messages"][0]["role"] == "user"
+    assert body["max_tokens"] == 8192 and body["output_config"] == {"effort": "medium"}
+    assert not {"store", "reasoning_effort", "max_completion_tokens"} & body.keys()
+    state["stop"] = "max_tokens"
+    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    assert result.status_code == 200 and result.json()["fallback_used"]
+    assert [item["status"] for item in result.json()["attempts"]] == ["invalid_response", "ok"]
+
+
+def test_official_claude_old_client_is_detected_and_custom_provider_uses_its_saved_protocol(service):
+    app, client, auth = service
+    saved = save(client, auth["owner"], [config(gateway="https://api.anthropic.com", reasoning_effort="default")])
+    assert saved.status_code == 200
+    assert saved.json()["connections"][0]["protocol"] == "anthropic"
+    provider = Mock(return_value={"type": "message", "role": "assistant", "stop_reason": "end_turn", "content": [{"type": "text", "text": "정상"}]})
+    app.state.ai_request = provider
+    assert client.post("/stores/gwangju/ai/test", headers=auth["owner"]).status_code == 200
+    assert "output_config" not in provider.call_args.kwargs["payload"]
+    assert provider.call_args.args[2] == "/messages"
+    saved = save(client, auth["owner"], [config(protocol="anthropic", reasoning_effort="default")], revision=1).json()["connections"][0]
+    provider.return_value = {"data": [{"id": "claude-test"}]}
+    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": saved["gateway"], "connection_id": saved["id"]})
+    assert result.status_code == 200
+    assert provider.call_args.kwargs["protocol"] == "anthropic"
+    assert "api_key" not in result.text and KEY1 not in result.text
+
+
+@pytest.mark.parametrize("stop,content", [("max_tokens", [{"type":"text","text":"부분 응답"}]), ("end_turn", [{"type":"thinking","thinking":"숨은 추론"}]), ("end_turn", [{"type":"text","text":KEY1}]), ("tool_use", [{"type":"text","text":"도구 요청"}])])
+def test_claude_rejects_incomplete_thinking_only_or_secret_echo(service, stop, content):
+    app, client, auth = service
+    assert save(client, auth["owner"], [config(protocol="anthropic", reasoning_effort="default")]).status_code == 200
+    app.state.ai_request = Mock(return_value={"type": "message", "role": "assistant", "stop_reason": stop, "content": content})
+    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    assert result.status_code == 503 and KEY1 not in result.text
+    assert result.json()["detail"]["attempts"][0]["status"] == "invalid_response"
+
+
+def test_claude_unsupported_effort_does_not_silently_change_the_requested_value(service):
+    app, client, auth = service
+    assert save(client, auth["owner"], [config(protocol="anthropic", reasoning_effort="minimal"), config("예비", KEY2)]).status_code == 200
+    app.state.ai_request = Mock(return_value=ok())
+    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    assert result.status_code == 200 and result.json()["fallback_used"]
+    assert app.state.ai_request.call_count == 1
+    assert app.state.ai_request.call_args.args[1] == KEY2
+    assert result.json()["attempts"][0]["status"] == "request"
+
+
+@pytest.mark.parametrize("kind, wording", [("authentication", "연결 키"), ("request", "서비스 주소"), ("timeout", "응답이 늦어"), ("rate_limit", "한도"), ("provider", "AI 서비스"), ("network", "연결하지 못"), ("invalid_response", "목록")])
+def test_model_lookup_failure_explains_the_safe_cause(service, kind, wording):
+    app, client, auth = service
+    app.state.ai_request = Mock(side_effect=GatewayFailure(kind))
+    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
+    assert result.status_code == 502
+    assert wording in result.json()["detail"]
+    assert KEY1 not in result.text
+
+
 @pytest.mark.parametrize("failure", ["authentication", "rate_limit", "timeout", "network", "provider", "request", "invalid_response", "blocked_address"])
 def test_ordered_fallback_skips_disabled_connections(service, failure):
     app, client, auth = service
@@ -261,11 +355,12 @@ def test_https_transport_keeps_host_tls_and_handles_connection_close(tmp_path, m
     cert_path, key_path = tmp_path / "fixture-cert.pem", tmp_path / "fixture-key.pem"
     cert_path.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
     key_path.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
-    received, response = [], {"status": 200, "body": {"data": [{"id": "model-a"}]}}
+    received, versions, response = [], [], {"status": 200, "body": {"data": [{"id": "model-a"}]}}
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
         def do_GET(self):
             received.append((self.path, self.headers["Host"], self.headers["Authorization"]))
+            versions.append(self.headers.get("anthropic-version"))
             raw = json.dumps(response["body"]).encode()
             self.send_response(response["status"])
             self.send_header("Content-Type", "application/json")
@@ -309,6 +404,11 @@ def test_https_transport_keeps_host_tls_and_handles_connection_close(tmp_path, m
         with pytest.raises(GatewayFailure, match="request"):
             request_json(gateway, KEY1, "/models")
         assert len(received) == 2  # no redirect followed
+        response["status"] = 200
+        request_json(gateway, KEY1, "/models", protocol="anthropic")
+        assert received[-1][0] == "/v1/models"
+        assert received[-1][2] == "Bearer " + KEY1
+        assert versions[-1] == "2026-10-21" and versions[0] is None
         response.update(status=200, body={"oversized": "x" * 1000})
         monkeypatch.setattr("app.ai_gateway.MAX_RESPONSE", 64)
         with pytest.raises(GatewayFailure, match="invalid_response"):

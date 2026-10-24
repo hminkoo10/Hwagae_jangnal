@@ -3,7 +3,7 @@
 매장 선택 후 **AI 도우미**에서 점주가 관리합니다. 연결은 발주 이유 설명을 위한 선택사항이며, 연결 없이도 판매 예측·발주 기능은 사용할 수 있습니다. 직원은 설정·키 조회·모델 조회·연결 테스트·발주 AI 설명을 호출할 수 없습니다. 설정은 매장별로 분리되며 다른 매장의 연결이나 키를 자동 공유하지 않습니다.
 
 1. **도우미 연결하기** → **받은 연결 정보를 입력해요**에서 이름·서비스 주소·연결 키(API 키)를 입력합니다. 기본 주소 예: `https://gateway.example/v1`.
-2. 필요한 경우 **고급 설정**의 API 형식을 **Chat Completions** 또는 **Responses**로 선택합니다. 공개 HTTPS의 OpenAI 호환 API가 대상입니다. Anthropic/Gemini 등의 자체 형식은 OpenAI 호환 형식으로 변환하는 게이트웨이가 필요합니다.
+2. **연결할 서비스**에서 **OpenAI 호환 서비스**, **OpenAI Responses 서비스**, **Claude (Anthropic)** 중 하나를 선택합니다. Claude 공식 주소 `https://api.anthropic.com`은 자동 인식하고 `/v1`을 붙입니다. `/v1/messages` 같은 개별 요청 경로는 입력하지 않습니다. Gemini 등의 다른 자체 형식은 OpenAI 호환 형식으로 변환하는 게이트웨이가 필요합니다.
 3. **사용할 AI 찾기**로 `/models`에서 받은 ID를 선택합니다. 목록 미지원 공급사는 **AI 이름 직접 입력**을 선택합니다. 목록 조회만으로 설정을 저장하지 않습니다.
 4. 추론 강도를 선택합니다. **모델 기본값**은 강도 파라미터를 생략합니다. `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`의 지원 여부는 모델마다 다릅니다. 지원하지 않는 값을 공급사가 거부하면 설정을 임의로 바꾸지 않고 다음 연결로 전환합니다.
 5. 연결을 저장하고 **사용**을 켭니다. **위로·아래로**로 순서를 바꿉니다. 사용을 끈 연결은 건너뜁니다. 최대 8개를 저장합니다.
@@ -26,6 +26,10 @@
 
 ## 검증 범위
 
-실제 API 키 없이 로컬 HTTPS 공급사와 응답 모형으로 키 보관·권한·모델 목록·두 API 형식·우선순위·자동 전환을 검증합니다. 실제 게이트웨이의 모델 지원·요금·가용성은 점주가 키를 등록한 뒤 연결 테스트로 확인합니다.
+실제 API 키 없이 로컬 HTTPS 공급사와 응답 모형으로 키 보관·권한·모델 목록·세 API 형식·우선순위·자동 전환을 검증합니다. 실제 게이트웨이의 모델 지원·요금·가용성은 점주가 키를 등록한 뒤 연결 테스트로 확인합니다.
+
+Claude는 `/v1/models`와 `/v1/messages`, 별도 `system`과 `max_tokens`를 사용합니다. API 버전 `2026-10-21`, `Authorization: Bearer` 인증을 사용하며 `output_config.effort`로 지원되는 추론 강도를 전달합니다. 기본값은 강도를 생략하고 `none`·`minimal`은 자동 변환하지 않습니다. 답변의 텍스트만 표시하며 추론 블록·도구 요청·토큰 제한으로 잘린 응답은 성공으로 처리하지 않습니다. 실패하면 기존 순서대로 예비 연결을 사용합니다. [공식 Messages API](https://platform.claude.com/docs/en/api/messages/create), [모델 목록](https://platform.claude.com/docs/en/api/models/list), [추론 강도](https://platform.claude.com/docs/en/build-with-claude/effort).
+
+모델 목록 조회 오류는 키·권한, 주소·연결 방식, 한도, 응답 지연, 공급사·통신 문제를 구분해 안내합니다. 공급사의 원문 오류나 키를 화면에 돌려주지 않습니다. JSON이 없는 중간 서버 502 응답도 AI 연결을 다시 확인하도록 안내합니다.
 
 형식 참고: [OpenAI 모델 목록](https://developers.openai.com/api/reference/resources/models/methods/list), [추론 강도](https://developers.openai.com/api/docs/guides/reasoning), [Fernet 키 보관](https://cryptography.io/en/latest/fernet/).

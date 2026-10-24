@@ -330,7 +330,9 @@ async function response<T>(
                 .join(" / ")
             : typeof detail?.message === "string"
               ? detail.message
-              : `요청에 실패했어요. (${result.status})`;
+              : path.includes("/ai/") && [502, 503, 504].includes(result.status)
+                ? "AI 연결 요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요. 계속되면 서비스 주소와 연결 방식을 확인해주세요."
+                : `요청에 실패했어요. (${result.status})`;
       throw new ApiError(message, result.status);
     }
     return await read(result);
