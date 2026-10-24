@@ -1,0 +1,41 @@
+{
+  "run_id": "walmart_20261024T020058Z",
+  "training_runtime": {
+    "python": "3.13.16",
+    "device": "NVIDIA A100-SXM4-80GB",
+    "precision": "bf16-mixed",
+    "packages": {
+      "torch": "2.11.0+cu130",
+      "pytorch-forecasting": "1.5.0",
+      "lightning": "2.5.5",
+      "pytorch-lightning": "2.5.5",
+      "torchmetrics": "1.7.4",
+      "pandas": "2.2.3",
+      "numpy": "2.1.3",
+      "scikit-learn": "1.6.1"
+    }
+  },
+  "runtime_evidence": {
+    "source": "Colab Notebooks/startup_thon.ipynb",
+    "source_sha256": "7d877a8f8dbba3354ad1d05a7003db69ea5f07951906d1ea12c4a211cb7c98f4",
+    "cell_index_zero_based": 3,
+    "stdout": "Python 3.13.16 | torch 2.11.0+cu130 | NVIDIA A100-SXM4-80GB | bf16-mixed",
+    "matching_output_directory": "/content/drive/MyDrive/weather_order_tft/runs/walmart_20261024T020058Z",
+    "note": "The executed notebook metadata says Python 3.12, but the actual runtime stdout reports Python 3.13.16; runtime stdout takes precedence."
+  },
+  "delivered_notebook": {
+    "path": "ml/notebooks/startup_thon_1.ipynb",
+    "original_source": "startup_thon_1.ipynb (user-specified Google Drive source)",
+    "original_sha256": "62c18e604627d65f630c99eeaebae002956134a3e8a7c27571eba61cd1caaaf3",
+    "delivered_sha256": "050734ebf70d048327cbd06416dbb1b46967ec9a6380b882519cb623e726eeb5",
+    "changes": "Outputs, execution counts and notebook execution metadata removed. Cell source text retained unchanged.",
+    "comparison_to_executed_notebook": "Training, preprocessing and evaluation source cells are identical. Executed notebook only changes DOWNLOAD_RESULTS from False to True and adds one trailing empty code cell."
+  },
+  "training_freeze": {
+    "path": "ml/notebooks/environment-freeze-training.txt",
+    "source_sha256": "91393d009c42ecc0a11cf45d3b25250e05b34da90c6e61c9df14fbdf904522a7",
+    "line_count": 726,
+    "purpose": "Environment evidence only. Do not install this Colab freeze for server inference; use ml/requirements-inference.txt.",
+    "sensitive_data_review": "No embedded URL credentials, query tokens or personal paths found. Public GitHub references and the generic Colab path file:///colabtools/dist/google_colab-1.0.0.tar.gz are retained unchanged. SecretStorage is a package name, not a secret."
+  }
+}
