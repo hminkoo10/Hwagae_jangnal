@@ -3,10 +3,12 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
-from ml.train_ablation import assert_matched_rows, install_functions, prepare_output_dir
+from ml import train_ablation
+from ml.train_ablation import assert_matched_rows, create_model, install_functions, prepare_output_dir
 
 
 class AblationProtocolTests(unittest.TestCase):
@@ -55,6 +57,18 @@ class AblationProtocolTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "existing run artifacts are preserved"):
                 prepare_output_dir(path)
             self.assertEqual(evidence.read_text(encoding="utf-8"), "original evidence")
+
+    def test_training_seed_override_keeps_reference_configuration_unchanged(self):
+        config = {"SEED": 42, "HIDDEN_SIZE": 64, "QUANTILES": [.1, .25, .5, .75, .9]}
+        with patch.object(train_ablation.pl, "seed_everything") as seed:
+            with patch.object(train_ablation.TemporalFusionTransformer, "from_dataset") as factory:
+                create_model(object(), config, training_seed=43)
+                seed.assert_called_once_with(43, workers=True)
+                self.assertEqual(config["SEED"], 42)
+                self.assertEqual(factory.call_args.kwargs["hidden_size"], 64)
+                seed.reset_mock()
+                create_model(object(), config)
+                seed.assert_called_once_with(42, workers=True)
 
 
 if __name__ == "__main__":
