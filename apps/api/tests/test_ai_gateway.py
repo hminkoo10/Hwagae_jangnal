@@ -281,6 +281,19 @@ def test_https_transport_keeps_host_tls_and_handles_connection_close(tmp_path, m
     thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
     trusted = ssl.create_default_context(cafile=str(cert_path))
     assert trusted.check_hostname and trusted.verify_mode == ssl.CERT_REQUIRED
+    # Connection setup time must be subtracted before the TLS handshake.
+    clock, tls_timeouts = {"now": 0}, []
+    connect, wrap = socket.create_connection, trusted.wrap_socket
+    def delayed_connect(*args, **kwargs):
+        raw = connect(*args, **kwargs)
+        clock["now"] += 3
+        return raw
+    def timed_wrap(raw, *args, **kwargs):
+        tls_timeouts.append(raw.gettimeout())
+        return wrap(raw, *args, **kwargs)
+    monkeypatch.setattr("app.ai_gateway.monotonic", lambda: clock["now"])
+    monkeypatch.setattr(socket, "create_connection", delayed_connect)
+    monkeypatch.setattr(trusted, "wrap_socket", timed_wrap)
     monkeypatch.setattr("app.ai_gateway.ssl.create_default_context", lambda: trusted)
     monkeypatch.setattr("app.ai_gateway.public_address", lambda host, port: "127.0.0.1")
     gateway = f"https://gateway.example:{server.server_port}/v1"
@@ -290,6 +303,7 @@ def test_https_transport_keeps_host_tls_and_handles_connection_close(tmp_path, m
         except GatewayFailure as exc:
             pytest.fail(f"Local TLS fixture: {type(exc.__context__).__name__}: {exc.__context__}")
         assert reply["data"][0]["id"] == "model-a"
+        assert tls_timeouts[0] == pytest.approx(5)
         assert received[0] == ("/v1/models", f"gateway.example:{server.server_port}", "Bearer " + KEY1)
         response["status"] = 302
         with pytest.raises(GatewayFailure, match="request"):

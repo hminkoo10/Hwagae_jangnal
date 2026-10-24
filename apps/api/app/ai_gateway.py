@@ -152,6 +152,10 @@ def request_json(gateway, api_key, endpoint, payload=None, timeout=8):
         if remaining <= 0:
             raise GatewayFailure("timeout")
         raw = socket.create_connection((address, port), timeout=remaining)
+        remaining = timeout - (monotonic() - started)
+        if remaining <= 0:
+            raise GatewayFailure("timeout")
+        raw.settimeout(remaining)
         tls_socket = ssl.create_default_context().wrap_socket(raw, server_hostname=parsed.hostname)
         connection.sock = tls_socket
         raw = None
