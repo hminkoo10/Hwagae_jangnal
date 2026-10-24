@@ -543,7 +543,10 @@ summary:focus-visible,
   }
   .modal,
   .native-app .modal {
-    width: calc(100% - 24px);
+    width: calc(
+      100vw - 24px - env(safe-area-inset-left, 0px) -
+        env(safe-area-inset-right, 0px)
+    );
     padding: 20px 16px;
     max-width: 590px;
   }
