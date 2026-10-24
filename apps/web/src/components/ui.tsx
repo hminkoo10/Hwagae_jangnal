@@ -156,8 +156,15 @@ export function Empty({
 }
 
 export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
-  if (!forecast.points.length)
-    return <Empty title="예측을 제공할 수 없어요">{forecast.reason}</Empty>;
+  if (!forecast.points.length) {
+    let reason = forecast.reason;
+    const observed = reason?.match(/^requires 56 consecutive observed sales days through as_of; received (\d+)\/56$/);
+    if (observed) reason = `기준일까지 연속 56일의 판매 기록이 필요해요. 현재 ${observed[1]}일이 확인되어 예측을 만들지 않았어요.`;
+    else if (reason?.startsWith("missing_model_item_nbr:")) reason = "이 상품과 학습 자료의 연결이 아직 등록되지 않았어요.";
+    else if (reason?.startsWith("unseen_series:")) reason = "이 매장과 상품은 아직 모델이 학습하지 않았어요. 학습과 검증 후 예측할 수 있어요.";
+    else if (reason?.startsWith("history starts before")) reason = "판매 기록이 이 모델에서 지원하는 기간보다 앞서 있어요.";
+    return <Empty title="예측을 제공할 수 없어요">{reason}</Empty>;
+  }
   const points = forecast.points;
   const max =
     Math.max(

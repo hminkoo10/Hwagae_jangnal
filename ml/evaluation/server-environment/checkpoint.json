@@ -1,0 +1,15 @@
+{
+  "status": "missing_checkpoint",
+  "requested_path": "/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt",
+  "discovery_root": "/srv/hwagae/shared/models",
+  "expected_sha256": "e64b570d22cc03b29bfa2fda37e11878e40ee9c37195cf35e78ae854bfa65909",
+  "selected_path": null,
+  "selected_sha256": null,
+  "checks": [
+    {
+      "path": "/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt",
+      "status": "missing_or_not_file"
+    }
+  ],
+  "model_files_written": false
+}

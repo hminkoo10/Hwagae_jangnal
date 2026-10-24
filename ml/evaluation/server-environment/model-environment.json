@@ -1,0 +1,10 @@
+{
+  "python": "3.11.14",
+  "platform": "Linux-6.8.0-1049-oracle-aarch64-with-glibc2.35",
+  "machine": "aarch64",
+  "torch": "2.11.0+cpu",
+  "pytorch_forecasting": "1.5.0",
+  "device": "cpu",
+  "cuda_available": false,
+  "checkpoint_loaded": false
+}

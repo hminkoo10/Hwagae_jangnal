@@ -1,0 +1,15 @@
+{
+  "system": "Linux",
+  "machine": "aarch64",
+  "kernel": "6.8.0-1049-oracle",
+  "os": {
+    "ID": "ubuntu",
+    "VERSION_ID": "22.04",
+    "PRETTY_NAME": "Ubuntu 22.04.5 LTS"
+  },
+  "logical_cpus": 2,
+  "memory_kib": 12219232,
+  "disk_free_bytes": 54870704128,
+  "checkpoint_exists": false,
+  "system_python": "3.10.12"
+}

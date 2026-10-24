@@ -20,7 +20,7 @@ ml/.venv/Scripts/python.exe -m ml.smoke_test
 ml/.venv/Scripts/python.exe -m unittest discover -s ml/tests -v
 ```
 
-POSIX 명령은 다음과 같다. **Ubuntu ARM64 및 Python 3.14 조합은 미검증**이며 아래 명령이 해당 서버의 설치 성공을 뜻하지 않는다. 고정된 기존 NumPy/pandas/scikit-learn과 CPU wheel 조합은 대상 서버에서 별도 검증이 필요하다.
+POSIX 명령은 다음과 같다. 실제 Ubuntu 22.04.5 ARM64 서버에서 Python 3.11.14 환경에 고정 패키지 설치, PyTorch 2.11.0+cpu·PyTorch Forecasting 1.5.0 import와 CPU 연산을 확인했다([실행 증거](evaluation/server-environment/model-environment.json)). 서버의 체크포인트를 찾지 못해 **ARM64 smoke·전체 unittest·10/50상품 추론은 아직 미검증**이다. Python 3.14 API → Python 3.11 모델 연결은 Windows에서 검증했다.
 
 ```sh
 uv venv --no-project --python 3.11 ml/.venv
@@ -109,7 +109,7 @@ PyTorch Forecasting 1.5의 `from_parameters()`는 학습된 내부 group encoder
 
 ## 실제 10상품 웹 시연
 
-[demo-manifest.json](examples/demo-manifest.json)은 매장 4의 6상품, 매장 24의 3상품, 매장 17의 1상품을 연결한다. 서로 다른 실제 익명 상품 번호 10종이며 임의의 한국 상품 대응은 없다. 560개 판매 입력 행과 과거 날씨, 학습 ID, 7일×5분위수 CPU 예상값이 포함된다. [actuals.json](examples/actuals.json)의 미래 실제 판매 70행은 비교용이며 추론 입력과 시연 DB 초기화에 들어가지 않는다. 출처 ZIP 경로·SHA-256과 생성 명령은 [provenance.json](examples/provenance.json)에 있다.
+[demo-manifest.json](examples/demo-manifest.json)은 매장 4의 6상품, 매장 24의 3상품, 매장 17의 1상품을 연결한다. 서로 다른 실제 익명 상품 번호 10종이며 임의의 한국 상품 대응은 없다. 560개 판매 입력 행과 과거 날씨, 학습 ID, 7일×5분위수 CPU 예상값이 포함된다. [actuals.json](examples/actuals.json)의 미래 실제 판매 70행은 비교용이며 추론 입력과 시연 DB 초기화에 들어가지 않는다. 출처 ZIP 경로·SHA-256은 [provenance.json](examples/provenance.json)에 있다. 샘플을 다시 만들려면 모델 환경에서 `python -m ml.build_samples --data-dir /data/weather_order_tft --output-dir /data/rebuilt-examples --write-expected`를 실행한다. 입력 ZIP과 저장 전처리의 일치를 검사하며 체크포인트 경로는 기존 환경변수로 받는다.
 
 위 모델 환경 설치 후 Windows의 API 터미널에서 실행한다. 기존 시연 DB와 분리하려면 `DB_PATH`를 새 로컬 파일로 지정한다.
 
@@ -135,7 +135,7 @@ $env:NEXT_PUBLIC_DEMO_LOGIN_ENABLED = "true"
 npm run dev
 ```
 
-웹에서 점주 체험으로 로그인한 뒤 `Walmart TFT 실제 표본` 매장을 선택한다. 56일 판매 기록과 7일 예측을 확인할 수 있다. 원본에 없는 실제 상품명·좌표·가격·원가는 제공하지 않고 해당 표본의 발주·재고 변경은 막는다. 기존 DB를 다시 실행해도 기존 표본 판매의 수정·누락을 복원하지 않으므로, 누락은 `insufficient_history`로 드러난다.
+웹에서 점주 체험으로 로그인한 뒤 `Walmart TFT 매장` 중 하나를 선택한다. 56일 판매 기록과 7일 예측을 확인할 수 있다. 원본에 없는 실제 상품명·좌표·가격·원가는 제공하지 않고 해당 표본의 발주·재고 변경은 막는다. 기존 DB를 다시 실행해도 기존 표본 판매의 수정·누락을 복원하지 않으므로, 누락은 `insufficient_history`로 드러난다.
 
 ## 출력, 허용 오차와 실행 시간
 
@@ -144,6 +144,12 @@ npm run dev
 비교식은 `abs(actual-expected) <= max(1e-4, 1e-5*max(abs(actual),abs(expected)))`다. 이는 **같은 CPU 경로**의 재현 기준이다. 기존 GPU 테스트 CSV와 샘플 70개 값의 최대 차이는 약 0.0235169로, GPU CSV를 이 허용 오차의 golden output으로 사용하지 않는다.
 
 빈 환경에 고정 requirements를 설치하고 smoke test를 통과했다. [측정 기록](examples/cpu-verification.json): Ryzen 7 260, CPU 스레드 1, 2상품, import **24.63초**, 첫 모델 로드+추론 **0.72초**, 로드 후 요청 **0.12초**. 기존 환경에서는 각각 약 7.03/0.35/0.06초였다. 디스크 캐시와 초기 로딩 영향이 있으며 목표 서버의 응답시간 보장은 아니다.
+
+확장된 [10상품 측정](evaluation/benchmarks/windows-10.json)은 import 포함 첫 실행 8.34초, 반복 중앙값 0.21초, 최대 RSS 약 396MiB다. [50시계열 측정](evaluation/benchmarks/windows-50.json)은 10.24초, 0.96초, 약 393MiB다. Windows CPU 스레드 1에서 각각 3매장·10매장 요청을 순차 처리한 합계이며, 50시계열은 서로 다른 매장·상품쌍 50개와 상품 번호 29종이다. 메모리는 import·모델을 포함한 프로세스 최대 RSS다. 서버 수치로 해석하지 않는다. 같은 측정은 Python 3.11 모델 환경에서 아래 명령의 10을 50으로 바꿔 각각 새 프로세스로 실행한다.
+
+```sh
+python -m ml.verify_runtime --benchmark-input ml/examples/benchmark-10.json --benchmark-expected ml/examples/benchmark-10-expected.json --report /tmp/tft-benchmark-10.json
+```
 
 [이력 부족 입력](examples/insufficient-history.json)과 [예상 결과](examples/expected-insufficient-history.json): walmart-9는 55/56일로 부족, walmart-27은 정상, new-product는 미등록이다. 정상 상품은 계속 예측한다.
 
