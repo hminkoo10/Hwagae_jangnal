@@ -150,7 +150,7 @@ def prepare_context(
         raise ValueError("dates must contain each of D+1 through D+7 exactly once")
     spec = context.get("model_input")
     if not isinstance(spec, dict):
-        raise ValueError("model_input is required; see ml/examples/input-extension.json")
+        raise ValueError("model_input is required; see ml/examples/input-fields.json")
     if spec.get("dataset") != "walmart-stormy-weather":
         raise ValueError("model_input.dataset must be 'walmart-stormy-weather'")
     store = _identifier(spec.get("store_nbr"), "model_input.store_nbr")

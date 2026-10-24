@@ -27,9 +27,10 @@
     "path": "ml/notebooks/startup_thon_1.ipynb",
     "original_source": "startup_thon_1.ipynb (user-specified Google Drive source)",
     "original_sha256": "62c18e604627d65f630c99eeaebae002956134a3e8a7c27571eba61cd1caaaf3",
-    "delivered_sha256": "050734ebf70d048327cbd06416dbb1b46967ec9a6380b882519cb623e726eeb5",
     "changes": "Outputs, execution counts and notebook execution metadata removed. Cell source text retained unchanged.",
-    "comparison_to_executed_notebook": "Training, preprocessing and evaluation source cells are identical. Executed notebook only changes DOWNLOAD_RESULTS from False to True and adds one trailing empty code cell."
+    "comparison_to_executed_notebook": "Training, preprocessing and evaluation source cells are identical. Executed notebook only changes DOWNLOAD_RESULTS from False to True and adds one trailing empty code cell.",
+    "delivered_git_blob_sha256": "2787fff5ae9dc8e3d5f01a042e391ffb6989c847e5a4faaa2124180a2ef8519e",
+    "hash_note": "The delivered hash covers the LF-normalized committed Git blob; Windows checkout line endings may differ."
   },
   "training_freeze": {
     "path": "ml/notebooks/environment-freeze-training.txt",
