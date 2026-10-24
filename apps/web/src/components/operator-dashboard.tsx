@@ -3,39 +3,21 @@ import { useEffect, useState } from "react";
 import { api, ApiError, addCalendarDays, type User } from "@/lib/api";
 import { Modal } from "./ui";
 import { DateField, Select } from "./controls";
+import {
+  MerchantManagementTable,
+  selectMerchantRows,
+  merchantStatuses,
+  type Contract,
+  type ExistingMerchant,
+} from "./operator-merchant-table";
 
-type Contract = {
-  id: string;
-  email: string;
-  merchant_name: string;
-  starts_on: string;
-  ends_on: string;
-  status: "active" | "suspended";
-  enabled: boolean;
-  user_id: string | null;
-  access_status: string;
-  stores: {
-    id: string;
-    name: string;
-    city: string;
-    last_sales_date: string | null;
-    product_count: number;
-  }[];
-};
 type Overview = {
   contracts: Contract[];
-  existing_merchants: { id: string; name: string; email: string }[];
+  existing_merchants: ExistingMerchant[];
   counts: { stores: number; products: number; sales: number; orders: number };
   today: string;
 };
 type Invite = { token: string; expires_at: string };
-const statuses: Record<string, string> = {
-  active: "이용 중",
-  invited: "가입 대기",
-  scheduled: "계약 시작 전",
-  expired: "계약 만료",
-  suspended: "이용 중지",
-};
 const message = (e: unknown) =>
   e instanceof Error ? e.message : "요청을 완료하지 못했어요.";
 
@@ -56,6 +38,7 @@ export function OperatorDashboard({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("name");
   const [creating, setCreating] = useState<{
     email: string;
     name: string;
@@ -95,14 +78,15 @@ export function OperatorDashboard({
       setBusy(false);
     }
   }
-  const contracts =
-    data?.contracts.filter(
-      (c) =>
-        (filter === "all" || c.access_status === filter) &&
-        `${c.email} ${c.merchant_name} ${c.stores.map((s) => s.name).join(" ")}`
-          .toLocaleLowerCase()
-          .includes(query.toLocaleLowerCase()),
-    ) ?? [];
+  const rows = data
+    ? selectMerchantRows(
+        data.contracts,
+        data.existing_merchants,
+        query,
+        filter,
+        sort,
+      )
+    : [];
   const inviteUrl = invite
     ? `https://hwagae.milky.kr/#invite=${encodeURIComponent(invite.token)}`
     : "";
@@ -164,7 +148,7 @@ export function OperatorDashboard({
                 [
                   "이용 중 점주",
                   data.contracts.filter((c) => c.access_status === "active")
-                    .length,
+                    .length + data.existing_merchants.length,
                 ],
                 [
                   "가입 대기",
@@ -182,7 +166,15 @@ export function OperatorDashboard({
             </div>
             <section className="panel">
               <div className="operator-toolbar">
-                <h2>계약 · 계정</h2>
+                <div>
+                  <h2>
+                    점주 관리{" "}
+                    <span className="count-label">{rows.length}명</span>
+                  </h2>
+                  <p className="helper">
+                    점주 이름이나 매장 수를 누르면 상세가 펼쳐져요.
+                  </p>
+                </div>
                 <div className="table-tools">
                   <input
                     aria-label="점주·이메일·매장 검색"
@@ -196,127 +188,55 @@ export function OperatorDashboard({
                     onChange={(e) => setFilter(e.target.value)}
                   >
                     <option value="all">모든 상태</option>
-                    {Object.entries(statuses).map(([value, label]) => (
+                    {Object.entries(merchantStatuses).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
                     ))}
                   </Select>
+                  <Select
+                    aria-label="점주 정렬"
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="name">점주 이름순</option>
+                    <option value="expiry">계약 만료 가까운순</option>
+                    <option value="sales">판매 기록 최신순</option>
+                  </Select>
+                  {(query || filter !== "all" || sort !== "name") && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => {
+                        setQuery("");
+                        setFilter("all");
+                        setSort("name");
+                      }}
+                    >
+                      초기화
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="operator-grid">
-                {contracts.map((c) => (
-                  <article key={c.id} className="panel operator-contract">
-                    <div className="panel-heading">
-                      <h2>{c.merchant_name}</h2>
-                      <span
-                        className={`pill ${c.access_status === "active" ? "mint" : "neutral"}`}
-                      >
-                        {statuses[c.access_status]}
-                      </span>
-                    </div>
-                    <p>{c.email}</p>
-                    <dl>
-                      <dt>계약 기간</dt>
-                      <dd>
-                        {c.starts_on} ~ {c.ends_on}
-                      </dd>
-                      <dt>등록 매장</dt>
-                      <dd>{c.stores.length}개</dd>
-                      <dt>계정 상태</dt>
-                      <dd>
-                        {!c.user_id
-                          ? "초대 후 가입 대기"
-                          : c.enabled
-                            ? "사용 허용"
-                            : "사용 중지"}
-                      </dd>
-                    </dl>
-                    <ul className="operator-stores">
-                      {c.stores.map((s) => (
-                        <li key={s.id}>
-                          <strong>{s.name}</strong>
-                          <p className="helper">
-                            {s.city}
-                            <br />
-                            상품 {s.product_count}개 · 마지막 판매 기록{" "}
-                            {s.last_sales_date ?? "없음"}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="split-actions">
-                      <button
-                        className="button secondary"
-                        disabled={busy}
-                        onClick={() => setEditing(c)}
-                      >
-                        계약·계정 관리
-                      </button>
-                      {!c.user_id && (
-                        <button
-                          className="button secondary"
-                          disabled={
-                            busy ||
-                            c.status !== "active" ||
-                            c.ends_on < data.today
-                          }
-                          onClick={() =>
-                            void action(async () => {
-                              setInvite(
-                                await api<Invite>(
-                                  `/admin/contracts/${c.id}/invite`,
-                                  token,
-                                  { method: "POST" },
-                                ),
-                              );
-                            }).catch(() => {})
-                          }
-                        >
-                          초대 링크 재발급
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-              {!contracts.length && (
-                <p className="empty-description">
-                  조건에 맞는 계약이 없어요. 계약을 등록하면 점주를 초대할 수
-                  있어요.
-                </p>
-              )}
+              <MerchantManagementTable
+                rows={rows}
+                busy={busy}
+                today={data.today}
+                onManage={setEditing}
+                onConnect={(m) => setCreating({ email: m.email, name: m.name })}
+                onInvite={(c) => {
+                  void action(async () => {
+                    setInvite(
+                      await api<Invite>(
+                        `/admin/contracts/${c.id}/invite`,
+                        token,
+                        { method: "POST" },
+                      ),
+                    );
+                  }).catch(() => {});
+                }}
+              />
             </section>
-            {!!data.existing_merchants.length && (
-              <section className="panel">
-                <div className="panel-heading">
-                  <div>
-                    <h2>기존 점주 계정</h2>
-                    <p>
-                      기존 계정과 자료는 유지돼요. 계약을 연결하면 기간·상태에
-                      따라 이용을 관리해요.
-                    </p>
-                  </div>
-                </div>
-                <div className="operator-grid">
-                  {data.existing_merchants.map((m) => (
-                    <div className="panel" key={m.id}>
-                      <strong>{m.name}</strong>
-                      <p>{m.email}</p>
-                      <button
-                        className="button secondary"
-                        disabled={busy}
-                        onClick={() =>
-                          setCreating({ email: m.email, name: m.name })
-                        }
-                      >
-                        계약 연결
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </>
         )}
       </main>

@@ -41,6 +41,18 @@ def test_operator_separation_and_no_public_role_escalation(service):
     assert client.get('/stores/gwangju/ai/settings',headers=operator).status_code==403
     assert create(client,operator,email='operator@example.com').status_code==400
 
+def test_unlinked_merchant_store_summary_matches_after_contract_connection(service):
+    _,client,merchant,operator,_=service
+    overview=client.get('/admin/overview',headers=operator).json()
+    existing=next(row for row in overview['existing_merchants'] if row['email']=='owner@hwagae.local')
+    assert {store['id'] for store in existing['stores']}=={'gwangju','busan'}
+    assert all(store['product_count']==10 and store['last_sales_date'] for store in existing['stores'])
+    assert client.get('/admin/overview',headers=merchant).status_code==403
+    assert create(client,operator,email='owner@hwagae.local').status_code==201
+    after=client.get('/admin/overview',headers=operator).json()
+    assert not after['existing_merchants']
+    assert after['contracts'][0]['stores']==existing['stores']
+
 def test_contract_invite_accept_first_store_and_tenant_isolation(service):
     app,client,merchant,operator,login=service
     response=create(client,operator); assert response.status_code==201,response.text
