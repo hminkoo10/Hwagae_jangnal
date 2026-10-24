@@ -13,8 +13,14 @@ verification_root=/srv/hwagae/shared/tft-verification
 workdir="$verification_root/$revision"
 [[ "$(realpath -m "$workdir")" == "$workdir" ]] || { echo 'Verification path must not traverse symlinks.' >&2; exit 2; }
 [[ "$(realpath -m "$checkpoint")" == /srv/hwagae/shared/* ]] || { echo 'Checkpoint must remain under shared.' >&2; exit 2; }
-mkdir -p "$workdir/reports" "$workdir/source"
+mkdir -p "$workdir/source"
+exec 9>"$verification_root/verification.lock"
+flock -n 9 || { echo 'Another TFT verification is running.' >&2; exit 2; }
 reports="$workdir/reports"
+if [[ -e "$reports" ]]; then
+  mv -T "$reports" "$workdir/reports-$(date -u +%Y%m%dT%H%M%S)-$$"
+fi
+mkdir -p "$reports"
 command -v python3 >/dev/null
 stage=environment
 status=failed
@@ -33,8 +39,6 @@ PY
   exit "$result"
 }
 trap finish EXIT
-exec 9>"$verification_root/verification.lock"
-flock -n 9 || { stage=already_running; exit 2; }
 python3 - "$reports/environment.json" "$checkpoint" <<'PY'
 import json, os, pathlib, platform, shutil, sys
 release = {}
@@ -82,7 +86,7 @@ export FORECAST_PROVIDER=ml.bridge:predict
 stage=model_environment
 command -v uv >/dev/null
 uv --version > "$reports/uv-version.txt"
-uv venv --no-project --python 3.11 "$workdir/model-env" 2>&1 | tee "$reports/model-install.log"
+uv venv --no-project --allow-existing --python 3.11 "$workdir/model-env" 2>&1 | tee "$reports/model-install.log"
 uv pip install --python "$workdir/model-env/bin/python" -r ml/requirements-inference.txt 2>&1 | tee -a "$reports/model-install.log"
 uv pip freeze --python "$workdir/model-env/bin/python" > "$reports/model-packages.txt"
 stage=model_smoke
