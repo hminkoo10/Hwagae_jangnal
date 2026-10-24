@@ -73,6 +73,38 @@ function Result({ result }: { result: Run }) {
   );
 }
 
+export function AiSetupGuide() {
+  return (
+    <aside className="ai-beginner-guide" aria-label="AI 도우미 사용 안내">
+      <strong>연결은 선택사항이에요</strong>
+      <p>연결하지 않아도 판매 예측과 발주는 그대로 쓸 수 있어요.</p>
+      <ol>
+        <li>
+          <strong>연결 정보 받기</strong>
+          <span>AI 서비스에서 주소와 연결 키를 받아요.</span>
+        </li>
+        <li>
+          <strong>사용할 AI 고르기</strong>
+          <span>‘도우미 연결하기’에서 정보를 붙여넣고 AI를 골라요.</span>
+        </li>
+        <li>
+          <strong>응답 확인하기</strong>
+          <span>
+            저장 후 ‘AI 응답 확인’을 눌러요. 연결된 순서대로 사용해요.
+          </span>
+        </li>
+      </ol>
+      <details>
+        <summary>설정이 어렵다면</summary>
+        <p>
+          서비스 담당자에게 연결을 도와달라고 요청해주세요. 필요한 정보는 서비스
+          주소, API 키, 사용할 AI 이름이에요.
+        </p>
+      </details>
+    </aside>
+  );
+}
+
 function ConnectionModal({
   connection,
   token,
@@ -110,7 +142,7 @@ function ConnectionModal({
   );
   const [key, setKey] = useState("");
   const [models, setModels] = useState<string[]>([]);
-  const [manual, setManual] = useState(true);
+  const [manual, setManual] = useState(!!connection);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
@@ -137,6 +169,13 @@ function ConnectionModal({
       );
       if (request.signal.aborted) return;
       setModels(result.models);
+      if (!result.models.length) {
+        setManual(true);
+        setError(
+          "AI 목록이 비어 있어요. 서비스에서 안내받은 AI 이름을 직접 입력해주세요.",
+        );
+        return;
+      }
       setManual(false);
       if (!result.models.includes(draft.model))
         setDraft((d) => ({ ...d, model: result.models[0] }));
@@ -150,7 +189,7 @@ function ConnectionModal({
   }
   return (
     <Modal
-      title={connection ? "AI 연결 수정" : "AI 연결 추가"}
+      title={connection ? "도우미 연결 수정" : "AI 도우미 연결하기"}
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -176,149 +215,173 @@ function ConnectionModal({
             {error}
           </div>
         )}
-        <label>
-          연결 이름
-          <input
-            value={draft.name}
-            maxLength={60}
-            required
-            disabled={busy}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            placeholder="예: 기본 AI / 예비 AI"
-          />
-        </label>
-        <label>
-          게이트웨이 기본 주소
-          <input
-            type="url"
-            value={draft.gateway}
-            maxLength={500}
-            required
-            disabled={busy}
-            onChange={(e) => {
-              setDraft({ ...draft, gateway: e.target.value });
-              setModels([]);
-              setManual(true);
-            }}
-            placeholder="https://gateway.example/v1"
-          />
-        </label>
-        <label>
-          API 키
-          <input
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            value={key}
-            disabled={busy}
-            required={!connection || draft.gateway !== connection.gateway}
-            onChange={(e) => {
-              setKey(e.target.value);
-              setModels([]);
-              setManual(true);
-            }}
-            placeholder={connection ? "변경할 때만 입력" : "API 키 입력"}
-          />
-        </label>
-        <p className="helper">
-          키는 서버에 암호화해 보관해요. 게이트웨이 주소를 바꾸면 키를 다시
-          입력하세요.
-        </p>
-        <label>
-          API 형식
-          <Select
-            value={draft.protocol}
-            disabled={busy}
-            onChange={(e) =>
-              setDraft({
-                ...draft,
-                protocol: e.target.value as Connection["protocol"],
-              })
-            }
-          >
-            <option value="chat_completions">
-              OpenAI 호환 · Chat Completions
-            </option>
-            <option value="responses">OpenAI 호환 · Responses</option>
-          </Select>
-        </label>
-        <div className="split-actions">
-          <button
-            type="button"
-            className="button secondary"
-            disabled={busy || !draft.gateway || (!key && !connection)}
-            onClick={() => void fetchModels()}
-          >
-            {busy ? "처리 중…" : "모델 목록 불러오기"}
-          </button>
-          <label className="checkbox">
+        <fieldset className="ai-setup-step">
+          <legend>1. 받은 연결 정보를 입력해요</legend>
+          <p className="helper">
+            AI 서비스에서 받은 주소와 연결 키를 붙여넣어주세요.
+          </p>
+          <label>
+            알아보기 쉬운 이름
             <input
-              type="checkbox"
-              checked={manual}
-              disabled={busy || !models.length}
-              onChange={(e) => setManual(e.target.checked)}
+              value={draft.name}
+              maxLength={60}
+              required
+              disabled={busy}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="예: 기본 AI / 예비 AI"
             />
-            모델 ID 직접 입력
           </label>
-        </div>
-        <label>
-          사용 모델
-          {manual ? (
+          <label>
+            서비스 주소
             <input
-              value={draft.model}
-              maxLength={200}
+              type="url"
+              value={draft.gateway}
+              maxLength={500}
               required
               disabled={busy}
-              onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-              placeholder="게이트웨이의 모델 ID"
+              onChange={(e) => {
+                setDraft({ ...draft, gateway: e.target.value });
+                setModels([]);
+                setManual(true);
+              }}
+              placeholder="https://gateway.example/v1"
             />
-          ) : (
-            <Select
-              value={draft.model}
-              required
+          </label>
+          <label>
+            연결 키 (API 키)
+            <input
+              type="password"
+              autoComplete="new-password"
+              spellCheck={false}
+              value={key}
               disabled={busy}
-              onChange={(e) => setDraft({ ...draft, model: e.target.value })}
+              required={!connection || draft.gateway !== connection.gateway}
+              onChange={(e) => {
+                setKey(e.target.value);
+                setModels([]);
+                setManual(true);
+              }}
+              placeholder={connection ? "변경할 때만 입력" : "API 키 입력"}
+            />
+          </label>
+          <p className="helper">
+            키는 암호화해 보관해요. 주소를 바꾸면 키를 다시 입력해주세요.
+          </p>
+        </fieldset>
+        <fieldset className="ai-setup-step">
+          <legend>2. 사용할 AI를 골라요</legend>
+          <p className="helper">
+            아래 버튼으로 목록을 가져온 뒤, 안내받은 AI를 골라주세요.
+          </p>
+          <div className="split-actions">
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy || !draft.gateway || (!key && !connection)}
+              onClick={() => void fetchModels()}
             >
-              {models.map((m) => (
-                <option key={m} value={m}>
-                  {m}
+              {busy ? "목록 가져오는 중…" : "사용할 AI 찾기"}
+            </button>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={manual}
+                disabled={busy}
+                onChange={(e) => setManual(e.target.checked)}
+              />
+              AI 이름 직접 입력
+            </label>
+          </div>
+          <label>
+            사용할 AI
+            {manual ? (
+              <input
+                value={draft.model}
+                maxLength={200}
+                required
+                disabled={busy}
+                onChange={(e) => setDraft({ ...draft, model: e.target.value })}
+                placeholder="서비스에서 안내받은 AI 이름"
+              />
+            ) : (
+              <Select
+                value={draft.model}
+                required
+                disabled={busy || !models.length}
+                onChange={(e) => setDraft({ ...draft, model: e.target.value })}
+              >
+                <option value="" disabled>
+                  먼저 AI 목록을 가져와주세요
+                </option>
+                {models.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </label>
+        </fieldset>
+        <details className="ai-advanced">
+          <summary>고급 설정 · 필요한 경우에만 변경</summary>
+          <p className="helper">서비스에서 별도 안내를 받았다면 바꿔주세요.</p>
+          <label>
+            API 형식
+            <Select
+              value={draft.protocol}
+              disabled={busy}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  protocol: e.target.value as Connection["protocol"],
+                })
+              }
+            >
+              <option value="chat_completions">
+                OpenAI 호환 · Chat Completions
+              </option>
+              <option value="responses">OpenAI 호환 · Responses</option>
+            </Select>
+          </label>
+          <label>
+            답변 고민 정도 (추론 강도)
+            <Select
+              value={draft.reasoning_effort}
+              disabled={busy}
+              onChange={(e) =>
+                setDraft({ ...draft, reasoning_effort: e.target.value })
+              }
+            >
+              {efforts.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </Select>
-          )}
-        </label>
-        <label>
-          추론 강도
-          <Select
-            value={draft.reasoning_effort}
-            disabled={busy}
-            onChange={(e) =>
-              setDraft({ ...draft, reasoning_effort: e.target.value })
-            }
+          </label>
+          <p className="helper">잘 모르겠다면 ‘모델 기본값’을 그대로 두세요.</p>
+        </details>
+        <fieldset className="ai-setup-step">
+          <legend>3. 저장하고 연결을 확인해요</legend>
+          <p className="helper">저장한 뒤 ‘AI 응답 확인’을 눌러보세요.</p>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={draft.enabled}
+              disabled={busy}
+              onChange={(e) =>
+                setDraft({ ...draft, enabled: e.target.checked })
+              }
+            />
+            이 연결 사용
+          </label>
+          <button
+            className="button primary"
+            disabled={busy || !draft.model.trim()}
           >
-            {efforts.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <p className="helper">
-          지원 강도는 모델마다 달라요. 기본값은 강도를 지정하지 않아요. 지원하지
-          않는 강도는 연결 테스트에서 확인할 수 있어요.
-        </p>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={draft.enabled}
-            disabled={busy}
-            onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
-          />
-          이 연결 사용
-        </label>
-        <button className="button primary" disabled={busy}>
-          {busy ? "저장 중…" : "연결 저장"}
-        </button>
+            {busy ? "저장 중…" : "저장하기"}
+          </button>
+        </fieldset>
       </form>
     </Modal>
   );
@@ -427,20 +490,18 @@ export function AiSettings({
       <section className="panel ai-settings">
         <div className="panel-heading">
           <div>
-            <h2>우리 매장 AI 연결</h2>
-            <p>
-              사용 중인 연결을 위에서부터 순서대로 호출해요. 실패하면 다음
-              연결로 전환해요.
-            </p>
+            <h2>AI 도우미</h2>
+            <p>발주 이유를 쉬운 말로 설명해줘요.</p>
           </div>
           <button
             className="button primary"
             disabled={busy || !settings || settings.connections.length >= 8}
             onClick={() => setEditing("new")}
           >
-            + AI 연결 추가
+            + 도우미 연결하기
           </button>
         </div>
+        <AiSetupGuide />
         {error && (
           <div className="error-banner" role="alert">
             {error}
@@ -458,21 +519,21 @@ export function AiSettings({
           <p>
             {active.length
               ? active.map((c) => c.name).join(" → ")
-              : "사용할 AI 연결을 선택하세요."}
+              : "아직 연결된 도우미가 없어요."}
           </p>
           <button
             className="button secondary"
             disabled={busy || !active.length}
             onClick={() => void test()}
           >
-            {busy ? "처리 중…" : "사용 순서대로 연결 테스트"}
+            {busy ? "응답 기다리는 중…" : "AI 응답 확인"}
           </button>
         </div>
         {result && <Result result={result} />}
         {!settings && !error && <p role="status">AI 설정을 불러오고 있어요…</p>}
         {settings?.connections.length === 0 && (
           <p className="empty-description">
-            게이트웨이 주소와 API 키를 등록해 첫 AI를 연결하세요.
+            위의 ‘도우미 연결하기’부터 시작해주세요.
           </p>
         )}
         <ol className="ai-connections">

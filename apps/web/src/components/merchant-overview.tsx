@@ -17,6 +17,8 @@ import {
 } from "@/lib/api";
 import { Empty, ForecastChart, Icon } from "./ui";
 import { forecastName } from "@/lib/merchant-language";
+import { MerchantMetrics } from "./merchant-metrics";
+import { WeatherSource } from "./weather-source";
 
 type Destination = "forecast" | "sales" | "inventory" | "products" | "orders";
 
@@ -33,6 +35,8 @@ type Props = {
   onSelectProduct: (id: string) => void;
   onNavigate: (destination: Destination) => void;
   onInventory: (product: Product) => void;
+  onOrder: (order: Order) => void;
+  disabled?: boolean;
 };
 
 function weatherIcon(code: number | null) {
@@ -57,20 +61,15 @@ export function MerchantOverview({
   onSelectProduct,
   onNavigate,
   onInventory,
+  onOrder,
+  disabled,
 }: Props) {
-  const ready =
-    forecast?.products.filter((item) => item.status === "ready") ?? [];
   const checked = products.filter(
     (product) => inventory[product.id]?.measured_on === today,
   ).length;
   const missing = products.length - checked;
   const drafts = orders.filter((order) => order.status === "draft");
   const nextDay = forecast?.dates[0];
-  const nextDemand = ready.reduce(
-    (sum, item) =>
-      sum + (item.points.find((point) => point.date === nextDay)?.p50 ?? 0),
-    0,
-  );
   const coverage = products.length
     ? Math.round((checked / products.length) * 100)
     : 0;
@@ -113,7 +112,7 @@ export function MerchantOverview({
               {missing > 0 ? `${missing}개 상품 확인 필요` : "오늘의 재고 확인"}
             </span>
             <strong>남은 재고 확인</strong>
-            <p>남은 만큼 빼고 주문해요.</p>
+            <p>남은 만큼 빼고 발주해요.</p>
             <span className="action-link">
               재고 확인하기 <Icon name="arrow" size={15} />
             </span>
@@ -148,49 +147,22 @@ export function MerchantOverview({
           </button>
         </div>
 
-        <div className="merchant-metrics">
-          <article className="metric-card">
-            <span className="metric-label">
-              {nextDay ? shortDate(nextDay) : "내일"} 예상 판매량{" "}
-              <Icon name="forecast" size={17} />
-            </span>
-            <strong>
-              {ready.length ? units(nextDemand) : "—"}
-              <small>개</small>
-            </strong>
-            <p>예측 가능한 상품의 예상 판매 합계</p>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">
-              예측 준비 상품 <Icon name="products" size={17} />
-            </span>
-            <strong>
-              {ready.length}
-              <small> / {products.length}개</small>
-            </strong>
-            <p>앞으로 7일 예측 제공</p>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">
-              재고 확인 필요 <Icon name="inventory" size={17} />
-            </span>
-            <strong>
-              {missing}
-              <small>개</small>
-            </strong>
-            <p>미입력 또는 오늘 확인 전</p>
-          </article>
-          <article className="metric-card">
-            <span className="metric-label">
-              저장된 발주 초안 <Icon name="orders" size={17} />
-            </span>
-            <strong>
-              {drafts.length}
-              <small>건</small>
-            </strong>
-            <p>확정 전 수량을 확인하세요</p>
-          </article>
-        </div>
+        <MerchantMetrics
+          products={products}
+          inventory={inventory}
+          forecast={forecast}
+          orders={orders}
+          today={today}
+          disabled={disabled}
+          onForecast={(id) => {
+            onSelectProduct(id);
+            onNavigate("forecast");
+          }}
+          onHistory={() => onNavigate("sales")}
+          onInventory={onInventory}
+          onOrder={onOrder}
+          onOrders={() => onNavigate("orders")}
+        />
 
         <div className="merchant-chart-row">
           <section className="merchant-card merchant-forecast">
@@ -465,12 +437,27 @@ export function MerchantOverview({
               <div className="rail-weather-week">
                 {forecast?.weather.days.map((day) => (
                   <div className="rail-weather-day" key={day.date}>
-                    <span>{shortDate(day.date)}</span>
+                    <time dateTime={day.date}>
+                      {shortDate(day.date)}
+                      <span className="weather-weekday">
+                        {new Date(`${day.date}T12:00:00Z`).toLocaleDateString(
+                          "ko-KR",
+                          { weekday: "short", timeZone: "UTC" },
+                        )}
+                      </span>
+                    </time>
                     <Icon name={weatherIcon(day.code)} size={18} />
                     <strong>
                       {day.temp_max === null
                         ? "—"
                         : `${Math.round(day.temp_max)}°`}
+                      <small>
+                        {" "}
+                        /{" "}
+                        {day.temp_min === null
+                          ? "—"
+                          : `${Math.round(day.temp_min)}°`}
+                      </small>
                     </strong>
                   </div>
                 ))}
@@ -479,23 +466,7 @@ export function MerchantOverview({
           ) : (
             <p className="merchant-empty">지금은 날씨를 불러올 수 없어요.</p>
           )}
-          {forecast && (
-            <p className="rail-note">
-              {forecast.weather.source} ·{" "}
-              {new Intl.DateTimeFormat("ko-KR", {
-                month: "numeric",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone: "Asia/Seoul",
-              }).format(new Date(forecast.weather.fetched_at))}{" "}
-              한국 시간 조회{forecast.weather.cached ? " · 저장된 자료" : ""}
-              {forecast.weather.message ? ` · ${forecast.weather.message}` : ""}
-              {forecast.model.uses_weather
-                ? " · 판매 예측에 사용"
-                : " · 참고용 날씨"}
-            </p>
-          )}
+          {forecast && <WeatherSource weather={forecast.weather} />}
         </section>
         <section className="rail-tasks">
           <h2 className="rail-section-title">
@@ -554,9 +525,15 @@ export function MerchantOverview({
           {orders.length ? (
             <div className="rail-order-list">
               {orders.slice(0, 3).map((order) => (
-                <button key={order.id} onClick={() => onNavigate("orders")}>
+                <button
+                  key={order.id}
+                  onClick={() => onOrder(order)}
+                  disabled={disabled}
+                >
                   <span className="rail-order-meta">
-                    <strong>{shortDate(order.as_of)} 발주 계획</strong>
+                    <strong>
+                      {shortDate(order.order_date ?? order.as_of)} 발주 계획
+                    </strong>
                     <small>
                       {order.status === "confirmed" ? "확정" : "초안"}
                       {order.stale ? " · 이전 자료 기준" : ""} ·{" "}

@@ -687,22 +687,22 @@ export function ProductModal({
           {[
             {
               key: "lead_days",
-              label: "주문하면 며칠 뒤에 오나요?",
+              label: "발주하면 며칠 뒤에 오나요?",
               hint: "예: 다음 날 도착하면 1일",
               min: 1,
               max: 30,
             },
             {
               key: "shelf_days",
-              label: "받은 뒤 며칠 동안 팔 수 있나요?",
-              hint: "예: 받은 날과 다음 날까지 팔면 2일",
+              label: "유통기한 (받은 날부터)",
+              hint: "예: 받은 날과 다음 날까지 판매하면 2일",
               min: 1,
               max: 365,
             },
             {
               key: "review_days",
-              label: "며칠마다 주문하나요?",
-              hint: "예: 매일 주문하면 1일",
+              label: "며칠마다 발주하나요?",
+              hint: "예: 매일 발주하면 1일",
               min: 1,
               max: 7,
             },
