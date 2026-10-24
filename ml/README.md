@@ -4,6 +4,8 @@
 
 **API 담당자가 먼저 볼 파일:** [추가 입력 필드·단위·예시 JSON](examples/input-fields.json), [10상품 샘플 목록](examples/demo-manifest.json), [실행 가능한 매장 4의 6상품 입력](examples/input-store-4.json), [해당 API 예상 반환](examples/expected-api-store-4.json). 이번 전달은 `ml/`의 실제 자료·모델 비교·재현 코드다. API·웹·배포와 서버 검증은 팀원 담당 범위이며, 서버 연결·Ubuntu CPU 검증은 완료됐다고 전달받아 재실행하지 않는다.
 
+**발표 준비:** [발표 자료 안내](presentation/README.md)에 모델 설명 대본, 대표 상품 3개, 실패 사례와 심사 질문 답변을 모았다. 사례는 `python -m ml.analyze_cases --no-plots`로 재현한다. 기존 발표 수치와 구분한 [동일 환경 3개 seed 비교](ablation/multiseed/README.md)의 계획·실행 상태도 함께 확인한다.
+
 ## 검증 환경과 설치
 
 검증일 2026-10-24. **CPython 3.11.0, Windows x86_64, PyTorch 2.11.0+cpu**, CUDA 사용 불가 환경에서 설치와 추론을 확인했다. 전이 의존성까지 [requirements-inference.txt](requirements-inference.txt)에 고정했다. 원래 학습은 Python 3.13.16 / A100 / BF16이며 [실행 환경 증거](metadata/training_environment.json)를 보존했다.
