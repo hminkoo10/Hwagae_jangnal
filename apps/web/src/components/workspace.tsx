@@ -19,13 +19,14 @@ import {
 } from "@/lib/api";
 import { InventoryModal, ProductModal, SalesPanel, StoreModal } from "./forms";
 import { Empty, ForecastChart, Icon } from "./ui";
+import { MerchantOverview } from "./merchant-overview";
 
 type Tab =
   "overview" | "forecast" | "sales" | "inventory" | "products" | "orders";
 const tabs: { id: Tab; label: string; description: string }[] = [
   {
     id: "overview",
-    label: "우리 매장 한눈에",
+    label: "홈",
     description: "판매 예측부터 발주 준비까지, 오늘 필요한 정보를 확인하세요.",
   },
   {
@@ -367,7 +368,7 @@ export default function Workspace() {
   function navigate(next: Tab) {
     setTab(next);
     setSearch("");
-    if (next !== "overview" && next !== "forecast") setAsOf(today);
+    if (next !== "forecast") setAsOf(today);
   }
   async function action(task: () => Promise<void>) {
     setBusy(true);
@@ -635,7 +636,7 @@ export default function Workspace() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell merchant-shell">
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-icon">
@@ -645,7 +646,7 @@ export default function Workspace() {
             화개장날<span>.</span>
           </strong>
         </div>
-        <div className="workspace-label">사장님 작업 공간</div>
+        <div className="workspace-label">매장 운영</div>
         <nav aria-label="주 메뉴">
           {tabs.map((item) => (
             <button
@@ -708,8 +709,12 @@ export default function Workspace() {
         <main className="workspace-main">
           <div className="page-heading">
             <div>
-              <div className="overline">HWAGAE JANGNAL</div>
-              <h1>{currentTab.label}</h1>
+              <div className="overline">화개장날 사장님 서비스</div>
+              <h1>
+                {tab === "overview"
+                  ? (store?.name ?? "우리 매장")
+                  : currentTab.label}
+              </h1>
               <p>{currentTab.description}</p>
             </div>
             <div className="store-picker">
@@ -793,44 +798,24 @@ export default function Workspace() {
               className={loading ? "content-updating" : undefined}
               aria-busy={loading}
             >
-              {(tab === "overview" || tab === "forecast") && (
+              {tab === "overview" && store && (
+                <MerchantOverview
+                  store={store}
+                  user={user}
+                  today={today}
+                  products={data.products}
+                  inventory={data.inventory}
+                  sales={data.sales}
+                  forecast={data.forecast}
+                  orders={data.orders}
+                  selectedForecast={selectedForecast}
+                  onSelectProduct={setSelectedProduct}
+                  onNavigate={navigate}
+                  onInventory={setInventoryProduct}
+                />
+              )}
+              {tab === "forecast" && (
                 <>
-                  {tab === "overview" && (
-                    <section className="welcome-banner">
-                      <div>
-                        <span className="pill welcome-pill">
-                          {replay ? "과거 날짜 재생" : "오늘의 장사 준비"}
-                        </span>
-                        <h2>
-                          {replay
-                            ? "그날의 예측, 실제와 비교해요."
-                            : "내일을 준비하는 가장 좋은 시작."}
-                        </h2>
-                        <p>
-                          {replay
-                            ? "이후 판매량은 비교에만 사용하고 예측 입력에서 제외했어요."
-                            : "판매의 흐름을 보고, 재고를 확인해 필요한 만큼 발주하세요."}
-                        </p>
-                        <button
-                          className="button dark"
-                          onClick={() =>
-                            navigate(replay ? "forecast" : "inventory")
-                          }
-                        >
-                          {replay ? "예측 비교하기" : "재고 확인하고 준비하기"}
-                          <Icon name="arrow" size={17} />
-                        </button>
-                      </div>
-                      <div className="welcome-art" aria-hidden="true">
-                        <span className="art-sun" />
-                        <Icon name="store" size={112} />
-                        <div className="art-badge">
-                          <Icon name="check" size={16} />
-                          차근차근, 준비 완료
-                        </div>
-                      </div>
-                    </section>
-                  )}
                   <div className="stat-grid">
                     <article className="stat-card">
                       <span>
@@ -1050,7 +1035,6 @@ export default function Workspace() {
                       예측 범위는 정확도 보장이 아니에요.
                     </p>
                   </section>
-                  {tab === "overview" && !replay && productRows("overview")}
                 </>
               )}
               {tab === "sales" && (
