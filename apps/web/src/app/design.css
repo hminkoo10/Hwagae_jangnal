@@ -916,6 +916,27 @@ summary:focus-visible,
   color: #6b7684;
   font-size: 12px;
 }
+.order-contents table {
+  min-width: 0;
+  table-layout: fixed;
+}
+.order-contents :is(th, td) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 12px 8px;
+}
+.order-contents th:first-child {
+  width: 30%;
+}
+.order-contents th:nth-child(2) {
+  width: 25%;
+}
+.order-contents th:nth-child(3) {
+  width: 20%;
+}
+.order-contents th:nth-child(4) {
+  width: 25%;
+}
 .order-contents .helper {
   margin-bottom: 16px;
 }
