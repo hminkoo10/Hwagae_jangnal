@@ -1,0 +1,246 @@
+.panel {
+  min-width: 0;
+  padding: 26px;
+  background: #fff;
+  border: 1px solid #e5ebf3;
+  border-radius: 11px;
+}
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.eyebrow {
+  display: block;
+  margin-bottom: 9px;
+  color: #477ec4;
+  font-size: 11px;
+  font-weight: 650;
+}
+.heading h2 {
+  color: #344862;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.heading p {
+  margin: 8px 0 0;
+  color: #788aa2;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.badge {
+  flex-shrink: 0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #796b51;
+  background: #fbf5e9;
+  font-size: 10px;
+}
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 180px;
+  color: #7c93af;
+  font-size: 12px;
+}
+.subsetBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 18px;
+  border-radius: 9px;
+  background: #f6f8fc;
+}
+.subsetBar label {
+  width: min(100%, 340px);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.subsetBar select {
+  min-width: 0;
+  width: 100%;
+  background: white;
+  font-size: 12px;
+}
+.counts {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: #8392a7;
+  font-size: 10px;
+}
+.counts strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #455e7e;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.subsetDescription {
+  margin: 11px 0 19px;
+  color: #7c8da3;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 25px;
+}
+.summary article {
+  min-width: 0;
+  padding: 20px 17px;
+  border: 1px solid #e3eaf3;
+  border-radius: 9px;
+}
+.summary span,
+.summary small {
+  display: block;
+  color: #7d8ea5;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.summary strong {
+  display: block;
+  margin: 12px 0 9px;
+  color: #405978;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.summary .primaryMetric {
+  border-color: #d5e5fd;
+  background: #f2f7ff;
+}
+.primaryMetric strong {
+  color: #2478f5;
+}
+.tableScroll {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.table {
+  min-width: 800px;
+  font-variant-numeric: tabular-nums;
+}
+.table caption {
+  text-align: left;
+  color: #637994;
+  font-size: 12px;
+  font-weight: 600;
+  padding-bottom: 12px;
+}
+.table th,
+.table td {
+  padding: 14px 12px;
+  font-size: 12px;
+}
+.table thead th {
+  color: #71839b;
+  background: #f7f9fc;
+  font-size: 11px;
+}
+.table thead small {
+  display: block;
+  margin-top: 5px;
+  color: #8a9aae;
+  font-size: 9px;
+  font-weight: 400;
+}
+.table tbody th {
+  color: #536c8a;
+  font-weight: 550;
+  white-space: normal;
+  width: 190px;
+}
+.table .tftRow {
+  background: #f4f8ff;
+}
+.table .tftRow th,
+.table .tftRow td {
+  color: #2676e8;
+}
+.metricNote {
+  margin: 13px 0 22px;
+  color: #7d8da3;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.notes {
+  padding-top: 16px;
+  border-top: 1px solid #e8edf5;
+  color: #8494a9;
+  font-size: 10px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.notes p {
+  margin: 0 0 9px;
+}
+.notes p:last-child {
+  margin-bottom: 0;
+}
+.notes strong {
+  color: #687e9b;
+  font-weight: 600;
+  margin-right: 6px;
+}
+@media (max-width: 1100px) {
+  .subsetBar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .counts {
+    gap: 18px 30px;
+  }
+  .summary strong {
+    font-size: 21px;
+  }
+}
+@media (max-width: 700px) {
+  .panel {
+    padding: 21px 15px;
+  }
+  .heading {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .heading h2 {
+    font-size: 18px;
+  }
+  .heading p {
+    font-size: 11px;
+  }
+  .subsetBar {
+    padding: 15px;
+  }
+  .subsetBar label {
+    width: 100%;
+  }
+  .counts {
+    gap: 13px;
+  }
+  .counts strong {
+    font-size: 17px;
+  }
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+  }
+  .summary article {
+    padding: 16px;
+  }
+  .summary strong {
+    font-size: 24px;
+    margin: 6px 0;
+  }
+}

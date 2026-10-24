@@ -80,6 +80,9 @@ export type Forecast = {
   products: ProductForecast[];
 };
 export type ModelDemoStatus = {
+  sample_id: string;
+  samples: { id: string; label: string; product_count: number }[];
+  total_products: number;
   runtime: {
     status: "disabled" | "starting" | "ready" | "unavailable";
     message: string;
@@ -99,6 +102,7 @@ export type ModelDemoStatus = {
   };
 };
 export type ModelDemoForecast = {
+  sample_id: string;
   as_of: string;
   dates: string[];
   created_at: string;
@@ -112,6 +116,40 @@ export type ModelDemoForecast = {
   provenance: string;
   weather_strategy: "persistence";
   note: string;
+};
+export type ModelEvaluation = {
+  report_id: string;
+  title: string;
+  dataset: string;
+  source: string;
+  evaluation_period: { start: string; end: string };
+  method: {
+    history_days: 56;
+    baseline_lookback_days: 84;
+    forecast_days: 7;
+    quantiles: number[];
+    seed: 42;
+    weather_strategy: "persistence";
+    sampling: string;
+  };
+  subsets: {
+    id: string;
+    label: string;
+    description: string;
+    n: number;
+    windows: number;
+    series: number;
+    metrics: {
+      model: string;
+      label: string;
+      mae: number;
+      wape: number | null;
+      mean_pinball: number;
+      coverage: number;
+      interval_width: number;
+    }[];
+  }[];
+  limitations: string[];
 };
 export type RecommendationRow = {
   product_id: string;
