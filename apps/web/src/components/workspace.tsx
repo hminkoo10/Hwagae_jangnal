@@ -45,32 +45,32 @@ const tabs: { id: Tab; label: string; description: string }[] = [
   {
     id: "overview",
     label: "홈",
-    description: "판매 예측부터 발주 준비까지, 오늘 필요한 정보를 확인하세요.",
+    description: "오늘 필요한 수량을 확인해요.",
   },
   {
     id: "forecast",
     label: "7일 판매 예측",
-    description: "상품별 예측 범위와 과거 실제 판매를 확인하세요.",
+    description: "앞으로 7일, 얼마나 팔릴지 확인해요.",
   },
   {
     id: "sales",
     label: "판매 기록",
-    description: "판매 기록이 쌓일수록 우리 매장의 패턴을 살펴볼 수 있어요.",
+    description: "날짜별로 팔린 개수를 모아요.",
   },
   {
     id: "inventory",
     label: "재고 확인",
-    description: "재고와 입고 예정을 직접 확인한 상품부터 발주량을 계산해요.",
+    description: "남은 수량과 도착할 상품을 확인해요.",
   },
   {
     id: "products",
     label: "상품 · 공급사",
-    description: "매입 원가와 입고·판매 기간을 상품별로 설정하세요.",
+    description: "상품 가격과 주문 주기를 관리해요.",
   },
   {
     id: "orders",
     label: "발주 계획",
-    description: "필요한 수량을 확인하고 수정한 뒤 발주서로 저장하세요.",
+    description: "주문할 수량을 정하고 발주서를 만들어요.",
   },
   {
     id: "ai-settings",
@@ -169,8 +169,8 @@ function LoginScreen({
       <section className="login-form-wrap">
         <div className="login-form">
           <span className="pill mint">화개장날 사장님</span>
-          <h2>우리 매장으로 들어가기</h2>
-          <p className="muted">오늘의 준비를 시작해볼까요?</p>
+          <h2>로그인</h2>
+          <p className="muted">이메일과 비밀번호를 입력해주세요.</p>
           <form
             className="stack"
             onSubmit={(event) => {

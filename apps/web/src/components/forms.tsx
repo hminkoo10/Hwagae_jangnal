@@ -730,9 +730,8 @@ export function ProductModal({
           ))}
         </div>
         <p className="helper">
-          도착한 날 아침부터 마지막 판매일 저녁까지 팔 수 있다고 계산해요.
-          확인해야 할 기간이 7일 예측 범위를 넘으면 추천 수량을 보여드리지
-          않아요.
+          도착한 날부터 마지막 판매일 저녁까지 팔 수 있어요. 계산할 기간이 7일을
+          넘으면 추천 수량을 보여드릴 수 없어요.
         </p>
         <button className="button primary" disabled={busy}>
           {busy ? "저장 중…" : "상품 저장"}

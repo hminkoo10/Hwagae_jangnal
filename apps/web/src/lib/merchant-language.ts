@@ -63,7 +63,7 @@ export function forecastHelp(reason: string | null) {
         missing === 1
           ? "판매 기록 하루만 더 확인해주세요"
           : `판매 기록 ${missing}일이 비어 있어요`,
-      description: `선택한 날짜까지 최근 56일의 기록이 필요해요. 지금은 ${observed}일이 있어요. 비어 있는 날짜의 판매량을 입력해주세요. 실제로 안 팔린 날만 0개로 적어주세요.`,
+      description: `고른 날짜까지 56일 중 ${observed}일의 기록이 있어요. 빠진 날짜를 채워주세요. 실제로 안 팔린 날만 0개로 적어주세요.`,
       action: "판매 기록 채우기",
     };
   }
