@@ -139,6 +139,7 @@ def create_plan(args):
         }
         validate_reuse(reuse, plan)
         plan["limitations"].append("The reused seed-42 result was already known before this extension.")
+        plan["limitations"].append("The historical reused run logged six package versions; pytorch-lightning and torchmetrics were not separately logged in that run protocol. The current unchanged environment is probed for all eight.")
     write_json(output / "experiment-plan.json", plan)
     print(json.dumps({"plan": str(output / "experiment-plan.json"), "sha256": digest(output / "experiment-plan.json")}, indent=2))
 
@@ -186,7 +187,7 @@ def run_jobs(plan_path):
     if any(observed[key] != plan[key] for key in ["python", "device", "precision", "packages"]):
         raise ValueError("Current runtime differs from the frozen paired-experiment environment")
     state = {"experiment_plan_sha256": digest(plan_path), "orchestrator_sha256": digest(Path(__file__)),
-             "started_at_utc": now(), "status": "running", "completed": []}
+             "started_at_utc": now(), "runtime_verified": observed, "status": "running", "completed": []}
     status_path = plan_path.parent / "status.json"
     for run in plan["runs"]:
         verify_plan(plan)
@@ -198,6 +199,11 @@ def run_jobs(plan_path):
             continue
         if directory.exists():
             raise ValueError(f"Incomplete run must be investigated, never overwritten: {directory}")
+        observed = runtime(Path(plan["python_executable"]))
+        if any(observed[key] != plan[key] for key in ["python", "device", "precision", "packages"]):
+            raise ValueError("Runtime changed between sequential training jobs")
+        write_json(plan_path.parent / f"seed-{run['seed']}-{run['variant']}-runtime.json",
+                   {"checked_at_utc": now(), "seed": run["seed"], "variant": run["variant"], **observed})
         command = [plan["python_executable"], "-u", "-m", "ml.train_ablation",
                    "--data-dir", plan["data_dir"], "--reference-run", plan["reference_run"],
                    "--output-dir", str(directory), "--mode", "train", "--device", "cuda",
@@ -293,9 +299,11 @@ def summarize(plan_path, output):
                 raise ValueError("A seed uses different reference test keys or actuals")
             paths[variant] = path
             completion = read_json(directory / "completion.json")
+            protocol = read_json(directory / "protocol.json")
             artifacts.append({"seed": seed, "variant": variant, "test_csv_sha256": digest(path),
                               "checkpoint_sha256": digest(Path(completion["checkpoint"])),
                               "protocol_sha256": digest(directory / "protocol.json"),
+                              "packages_recorded_in_run_protocol": protocol["packages"],
                               "completion": completion})
         table, manifest = evaluate(paths["weather"], Path(plan["input_files"]["train.csv"]["path"]), paths["no-weather"])
         manifests.append(manifest)
@@ -327,7 +335,8 @@ def summarize(plan_path, output):
         "api_baseline": manifests[0]["inputs"]["api_baseline"], "artifacts": artifacts,
         "difference_convention": "weather minus no-weather; negative error differences favor weather; coverage differences alone are not improvements",
         "standard_deviation": "Sample standard deviation across three training seeds (ddof=1), not over daily prediction rows",
-        "limitations": plan["limitations"],
+        "limitations": plan["limitations"] + [
+            "Historical reused seed-42 protocol directly logs six package versions; pytorch-lightning/torchmetrics are verified only in the current unchanged eight-package environment probe, not a separate historical runtime record."],
     })
     print(json.dumps({"status": "summarized", "seed_pairs": 3, "output": str(output)}, indent=2))
 
