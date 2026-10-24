@@ -115,3 +115,58 @@ test("structured AI failure exposes the safe server message", async (t) => {
   t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: { message: "선택한 AI 연결을 확인하세요.", attempts: [] } }), { status: 503 }));
   await assert.rejects(api("/stores/gwangju/ai/test"), e => e instanceof ApiError && e.status === 503 && e.message === "선택한 AI 연결을 확인하세요.");
 });
+
+test("HTML gateway errors in AI lookup show a useful message without exposing upstream content", async (t) => {
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () =>
+      new Response("<html>private upstream diagnostic</html>", {
+        status: 502,
+        headers: { "Content-Type": "text/html" },
+      }),
+  );
+  await assert.rejects(
+    api("/stores/gwangju/ai/models"),
+    (e) =>
+      e instanceof ApiError &&
+      e.status === 502 &&
+      e.message.includes("AI 연결 요청") &&
+      !e.message.includes("private upstream"),
+  );
+  assert.equal(hasPendingRequests(), false);
+});
+
+test("official Claude address is detected without guessing from names or unrelated hosts", async () => {
+  const source = await readFile(
+    new URL("../src/lib/ai-provider.ts", import.meta.url),
+    "utf8",
+  );
+  const code = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext },
+  }).outputText;
+  const { protocolForAddress } = await import(
+    `data:text/javascript;base64,${Buffer.from(code).toString("base64")}`
+  );
+  assert.equal(
+    protocolForAddress("https://api.anthropic.com", "chat_completions"),
+    "anthropic",
+  );
+  assert.equal(
+    protocolForAddress("https://api.anthropic.com/v1", "responses"),
+    "anthropic",
+  );
+  assert.equal(
+    protocolForAddress("https://api.anthropic.com.example/v1", "responses"),
+    "responses",
+  );
+  assert.equal(
+    protocolForAddress("https://gateway.example/v1", "chat_completions"),
+    "chat_completions",
+  );
+  assert.equal(
+    protocolForAddress("https://claude-gateway.example/v1", "anthropic"),
+    "anthropic",
+  );
+  assert.equal(protocolForAddress("not a URL", "responses"), "responses");
+});

@@ -5,13 +5,14 @@ import { Select } from "./controls";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Modal } from "./ui";
+import { protocolForAddress, type AiProtocol } from "@/lib/ai-provider";
 
 type Connection = {
   id: string;
   name: string;
   gateway: string;
   model: string;
-  protocol: "chat_completions" | "responses";
+  protocol: AiProtocol;
   reasoning_effort: string;
   enabled: boolean;
   key_set: boolean;
@@ -127,7 +128,7 @@ function ConnectionModal({
           name: connection.name,
           gateway: connection.gateway,
           model: connection.model,
-          protocol: connection.protocol,
+          protocol: protocolForAddress(connection.gateway, connection.protocol),
           reasoning_effort: connection.reasoning_effort,
           enabled: connection.enabled,
         }
@@ -162,6 +163,7 @@ function ConnectionModal({
           signal: request.signal,
           body: JSON.stringify({
             gateway: draft.gateway,
+            protocol: protocolForAddress(draft.gateway, draft.protocol),
             ...(key ? { api_key: key } : {}),
             connection_id: connection?.id ?? null,
           }),
@@ -232,6 +234,29 @@ function ConnectionModal({
             />
           </label>
           <label>
+            연결할 서비스
+            <Select
+              aria-label="연결할 AI 서비스"
+              value={draft.protocol}
+              disabled={busy}
+              onChange={(e) => {
+                const protocol = e.target.value as AiProtocol;
+                setDraft({
+                  ...draft,
+                  protocol,
+                  model: "",
+                  reasoning_effort: "default",
+                });
+                setModels([]);
+                setManual(false);
+              }}
+            >
+              <option value="chat_completions">OpenAI 호환 서비스</option>
+              <option value="responses">OpenAI Responses 서비스</option>
+              <option value="anthropic">Claude (Anthropic)</option>
+            </Select>
+          </label>
+          <label>
             서비스 주소
             <input
               type="url"
@@ -240,13 +265,33 @@ function ConnectionModal({
               required
               disabled={busy}
               onChange={(e) => {
-                setDraft({ ...draft, gateway: e.target.value });
+                const gateway = e.target.value;
+                const protocol = protocolForAddress(gateway, draft.protocol);
+                setDraft({
+                  ...draft,
+                  gateway,
+                  protocol,
+                  model: "",
+                  reasoning_effort:
+                    protocol !== draft.protocol
+                      ? "default"
+                      : draft.reasoning_effort,
+                });
                 setModels([]);
-                setManual(true);
+                setManual(false);
               }}
-              placeholder="https://gateway.example/v1"
+              placeholder={
+                draft.protocol === "anthropic"
+                  ? "https://api.anthropic.com"
+                  : "https://gateway.example/v1"
+              }
             />
           </label>
+          <p className="helper">
+            {draft.protocol === "anthropic"
+              ? "Claude 공식 API에 바로 연결해요. 서비스 주소는 https://api.anthropic.com 을 입력해주세요."
+              : "이용 중인 서비스에서 안내받은 기본 주소를 입력해주세요."}
+          </p>
           <label>
             연결 키 (API 키)
             <input
@@ -326,24 +371,6 @@ function ConnectionModal({
           <summary>고급 설정 · 필요한 경우에만 변경</summary>
           <p className="helper">서비스에서 별도 안내를 받았다면 바꿔주세요.</p>
           <label>
-            API 형식
-            <Select
-              value={draft.protocol}
-              disabled={busy}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  protocol: e.target.value as Connection["protocol"],
-                })
-              }
-            >
-              <option value="chat_completions">
-                OpenAI 호환 · Chat Completions
-              </option>
-              <option value="responses">OpenAI 호환 · Responses</option>
-            </Select>
-          </label>
-          <label>
             답변 고민 정도 (추론 강도)
             <Select
               value={draft.reasoning_effort}
@@ -352,11 +379,17 @@ function ConnectionModal({
                 setDraft({ ...draft, reasoning_effort: e.target.value })
               }
             >
-              {efforts.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {efforts
+                .filter(
+                  ([value]) =>
+                    draft.protocol !== "anthropic" ||
+                    !["none", "minimal"].includes(value),
+                )
+                .map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
             </Select>
           </label>
           <p className="helper">잘 모르겠다면 ‘모델 기본값’을 그대로 두세요.</p>
@@ -572,7 +605,11 @@ export function AiSettings({
               </p>
               <p className="helper ai-gateway-url">
                 {c.gateway} ·{" "}
-                {c.protocol === "responses" ? "Responses" : "Chat Completions"}{" "}
+                {c.protocol === "anthropic"
+                  ? "Claude"
+                  : c.protocol === "responses"
+                    ? "Responses"
+                    : "Chat Completions"}{" "}
                 · 키 암호화 보관
               </p>
               <div className="ai-card-actions">

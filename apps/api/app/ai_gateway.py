@@ -23,7 +23,7 @@ from app.database import encode, now_iso
 from app.schemas import Payload
 
 EFFORT = Literal["default", "none", "minimal", "low", "medium", "high", "xhigh", "max"]
-PROTOCOL = Literal["chat_completions", "responses"]
+PROTOCOL = Literal["chat_completions", "responses", "anthropic"]
 MAX_RESPONSE = 2 * 1024 * 1024
 
 
@@ -44,9 +44,16 @@ def gateway_url(value):
         authority += f":{port}"
     path = parsed.path.rstrip("/")
     # A base URL such as https://gateway.example/v1, not a completion URL.
-    if path.endswith(("/responses", "/chat/completions", "/models")):
+    if path.endswith(("/responses", "/chat/completions", "/models", "/messages")):
         raise ValueError("게이트웨이 기본 주소를 입력하세요. 예: https://gateway.example/v1")
+    if host == "api.anthropic.com" and not path:
+        path = "/v1"
     return urlunsplit(("https", authority, path, "", ""))
+
+
+def effective_protocol(gateway, protocol="chat_completions"):
+    # Older clients omitted a provider selector; official Claude URLs are unambiguous.
+    return "anthropic" if urlsplit(gateway).hostname == "api.anthropic.com" else protocol
 
 
 class ConnectionInput(Payload):
@@ -81,6 +88,7 @@ class ModelsInput(Payload):
     gateway: str = Field(max_length=500)
     api_key: SecretStr | None = None
     connection_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{12}$")
+    protocol: PROTOCOL | None = None
 
 
 class SecretStore:
@@ -139,7 +147,7 @@ def public_address(host, port):
     return next((answer[4][0] for answer in addresses if answer[0] == socket.AF_INET), addresses[0][4][0])
 
 
-def request_json(gateway, api_key, endpoint, payload=None, timeout=8):
+def request_json(gateway, api_key, endpoint, payload=None, timeout=8, protocol="chat_completions"):
     """No proxy, redirects, DNS re-resolution or unbounded response bodies."""
     parsed = urlsplit(gateway_url(gateway))
     port = parsed.port or 443
@@ -165,10 +173,11 @@ def request_json(gateway, api_key, endpoint, payload=None, timeout=8):
         if remaining <= 0:
             raise GatewayFailure("timeout")
         tls_socket.settimeout(remaining)
-        connection.request("GET" if payload is None else "POST", path,
-                           body=body, headers={"Authorization": "Bearer " + api_key,
-                                               "Accept": "application/json", "Accept-Encoding": "identity",
-                                               "Content-Type": "application/json"})
+        headers = {"Authorization": "Bearer " + api_key, "Accept": "application/json",
+                   "Accept-Encoding": "identity", "Content-Type": "application/json"}
+        if effective_protocol(gateway, protocol) == "anthropic":
+            headers["anthropic-version"] = "2026-10-21"
+        connection.request("GET" if payload is None else "POST", path, body=body, headers=headers)
         remaining = timeout - (monotonic() - started)
         if remaining <= 0:
             raise GatewayFailure("timeout")
@@ -229,7 +238,12 @@ def public_settings(settings):
 
 
 def output_text(data, protocol):
-    if protocol == "responses":
+    if protocol == "anthropic":
+        if data.get("type") != "message" or data.get("role") != "assistant" or data.get("stop_reason") not in ("end_turn", "stop_sequence"):
+            raise GatewayFailure("invalid_response")
+        # Do not expose thinking/tool blocks or accept truncated replies.
+        text = "\n".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text")
+    elif protocol == "responses":
         if data.get("status") not in (None, "completed") or data.get("error"):
             raise GatewayFailure("invalid_response")
         texts = [part.get("text", "") for item in data.get("output", []) if item.get("type") == "message"
@@ -260,18 +274,27 @@ def run_chain(application, database, store_id, instruction, prompt):
         key = None
         try:
             key = secrets_store.decrypt(connection["encrypted_key"])
-            protocol = connection["protocol"]
-            body = {"model": connection["model"], "store": False}
-            if protocol == "responses":
+            protocol = effective_protocol(connection["gateway"], connection["protocol"])
+            body = {"model": connection["model"]}
+            if protocol == "anthropic":
+                body.update(system=instruction, messages=[{"role": "user", "content": prompt}], max_tokens=8192)
+                if connection["reasoning_effort"] in ("none", "minimal"):
+                    raise GatewayFailure("request")
+                if connection["reasoning_effort"] != "default":
+                    body["output_config"] = {"effort": connection["reasoning_effort"]}
+            elif protocol == "responses":
+                body["store"] = False
                 body.update(instructions=instruction, input=prompt, max_output_tokens=8192)
                 if connection["reasoning_effort"] != "default":
                     body["reasoning"] = {"effort": connection["reasoning_effort"]}
             else:
+                body["store"] = False
                 body.update(messages=[{"role": "system", "content": instruction}, {"role": "user", "content": prompt}], max_completion_tokens=8192)
                 if connection["reasoning_effort"] != "default":
                     body["reasoning_effort"] = connection["reasoning_effort"]
-            data = application.state.ai_request(connection["gateway"], key,
-                "/responses" if protocol == "responses" else "/chat/completions", payload=body, timeout=timeout)
+            data = application.state.ai_request(gateway_url(connection["gateway"]), key,
+                {"anthropic": "/messages", "responses": "/responses", "chat_completions": "/chat/completions"}[protocol],
+                payload=body, timeout=timeout, protocol=protocol)
             text = output_text(data, protocol)
             # A broken or malicious upstream must not echo an API key to the UI.
             if key in text:
@@ -331,7 +354,7 @@ def mount_ai_routes(application, database, access, authenticated, saved_record):
                 encrypted = old["encrypted_key"]
             else:
                 raise HTTPException(400, "새 연결 또는 변경한 게이트웨이의 API 키를 입력하세요.")
-            result.append({**item.model_dump(exclude={"api_key"}), "id": item.id or uuid.uuid4().hex[:12], "encrypted_key": encrypted})
+            result.append({**item.model_dump(exclude={"api_key"}), "protocol": effective_protocol(item.gateway, item.protocol), "id": item.id or uuid.uuid4().hex[:12], "encrypted_key": encrypted})
         with database.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             existing = db.execute("SELECT revision FROM ai_settings WHERE store_id=?", (store_id,)).fetchone()
@@ -348,10 +371,11 @@ def mount_ai_routes(application, database, access, authenticated, saved_record):
             gateway = gateway_url(payload.gateway)
         except ValueError:
             raise HTTPException(400, "게이트웨이 기본 주소를 확인하세요.") from None
+        previous = None
         if payload.api_key is not None:
             key = key_value(payload.api_key)
         else:
-            previous = next((c for c in load_settings(database, store_id)["connections"] if c["id"] == payload.connection_id and c["gateway"] == gateway), None)
+            previous = next((c for c in load_settings(database, store_id)["connections"] if c["id"] == payload.connection_id and gateway_url(c["gateway"]) == gateway), None)
             if not previous:
                 raise HTTPException(400, "API 키를 입력하세요. 게이트웨이 변경 시 키도 다시 입력해야 해요.")
             try:
@@ -359,15 +383,27 @@ def mount_ai_routes(application, database, access, authenticated, saved_record):
             except InvalidToken, OSError, ValueError:
                 raise HTTPException(503, "저장한 API 키를 읽지 못했어요. 키 보관 설정을 확인하세요.") from None
         try:
-            response = application.state.ai_request(gateway, key, "/models", timeout=8)
+            protocol = effective_protocol(gateway, payload.protocol or (previous["protocol"] if previous else "chat_completions"))
+            response = application.state.ai_request(gateway, key, "/models", timeout=8, protocol=protocol)
             ids = response.get("data", [])
             choices = sorted({c["id"] for c in ids if isinstance(c, dict) and isinstance(c.get("id"), str)
                               and 0 < len(c["id"]) <= 200 and key not in c["id"]})[:500]
             if not choices:
                 raise GatewayFailure("invalid_response")
             return {"models": choices}
-        except GatewayFailure, KeyError, TypeError, AttributeError:
-            raise HTTPException(502, "모델 목록을 가져오지 못했어요. 주소·키를 확인하거나 모델 ID를 직접 입력하세요.") from None
+        except GatewayFailure as exc:
+            messages = {
+                "authentication": "연결 키가 거부됐어요. API 키와 사용 권한을 확인해주세요.",
+                "request": "서비스 주소나 연결 방식을 확인해주세요. Claude 공식 주소는 자동으로 인식해요.",
+                "timeout": "AI 서비스 응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요.",
+                "rate_limit": "AI 서비스의 사용 한도에 도달했어요. 한도와 잔액을 확인해주세요.",
+                "provider": "AI 서비스에 일시적인 문제가 있어요. 잠시 후 다시 시도해주세요.",
+                "network": "AI 서비스에 연결하지 못했어요. 서비스 주소를 확인하고 다시 시도해주세요.",
+                "blocked_address": "외부에서 접속할 수 있는 HTTPS 서비스 주소를 입력해주세요.",
+            }
+            raise HTTPException(502, messages.get(exc.kind, "AI 목록을 읽지 못했어요. 다시 가져오거나 안내받은 AI 이름을 직접 입력해주세요.")) from None
+        except KeyError, TypeError, AttributeError:
+            raise HTTPException(502, "AI 목록을 읽지 못했어요. 다시 가져오거나 안내받은 AI 이름을 직접 입력해주세요.") from None
 
     @router.post("/test")
     def test(store_id: str, user=Depends(authenticated)):
