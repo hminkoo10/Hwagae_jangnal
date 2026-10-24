@@ -88,8 +88,8 @@ export function MerchantOverview({
       <div className="merchant-content">
         <div className="merchant-intro">
           <div>
-            <h2>오늘의 장사, 차근차근 준비해요</h2>
-            <p>판매 흐름을 살피고 필요한 만큼 발주하세요.</p>
+            <h2>오늘은 얼마나 준비할까요?</h2>
+            <p>판매 예측과 남은 재고를 확인해요.</p>
           </div>
           <span className="merchant-intro-meta">
             {firstWeather && weatherCurrent && (
@@ -112,8 +112,8 @@ export function MerchantOverview({
             <span className="merchant-status warning">
               {missing > 0 ? `${missing}개 상품 확인 필요` : "오늘의 재고 확인"}
             </span>
-            <strong>남은 재고부터 확인해요</strong>
-            <p>입력한 재고를 반영해 추가 발주량을 계산해요.</p>
+            <strong>남은 재고 확인</strong>
+            <p>남은 만큼 빼고 주문해요.</p>
             <span className="action-link">
               재고 확인하기 <Icon name="arrow" size={15} />
             </span>
@@ -125,8 +125,8 @@ export function MerchantOverview({
             <span className="merchant-status muted">
               CSV · 엑셀 · 직접 입력
             </span>
-            <strong>판매 기록을 모아보세요</strong>
-            <p>날짜별 판매 개수가 예측의 시작이 돼요.</p>
+            <strong>판매 기록 입력</strong>
+            <p>파일로 올리거나 직접 적어요.</p>
             <span className="action-link">
               판매 기록 입력 <Icon name="arrow" size={15} />
             </span>
@@ -140,8 +140,8 @@ export function MerchantOverview({
                 ? `저장한 초안 ${drafts.length}건`
                 : "수정부터 내보내기까지"}
             </span>
-            <strong>발주 준비를 한곳에서</strong>
-            <p>수량을 조정하고 발주서 파일로 정리해요.</p>
+            <strong>발주 계획 만들기</strong>
+            <p>수량을 정하고 파일로 저장해요.</p>
             <span className="action-link">
               발주 계획 보기 <Icon name="arrow" size={15} />
             </span>

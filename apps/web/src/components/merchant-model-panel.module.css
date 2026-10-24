@@ -1,8 +1,8 @@
 .panel {
   margin-bottom: 20px;
   padding: 22px 24px;
-  border: 1px solid #dce5f0;
-  border-radius: 10px;
+  border: 0;
+  border-radius: 20px;
   background: #fff;
   min-width: 0;
 }
@@ -19,7 +19,7 @@
 }
 .heading h2 {
   margin: 5px 0 0;
-  color: #243149;
+  color: var(--ink);
   font-size: 18px;
   line-height: 1.45;
   letter-spacing: -0.5px;
@@ -51,7 +51,7 @@
 }
 .badges span {
   padding: 5px 8px;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 1.4;
   font-weight: 650;
@@ -158,5 +158,11 @@
   }
 }
 
-.panel > summary { cursor: pointer; font-size: 15px; color: #334155; }
-.panel[open] > summary { margin-bottom: 20px; }
+.panel > summary {
+  cursor: pointer;
+  font-size: 15px;
+  color: #334155;
+}
+.panel[open] > summary {
+  margin-bottom: 20px;
+}

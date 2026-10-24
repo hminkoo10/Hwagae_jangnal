@@ -111,16 +111,15 @@ export function OperatorDashboard({
       <main className="operator-main">
         <div className="operator-toolbar">
           <div>
-            <p className="overline">MERCHANT OPERATIONS</p>
-            <h1>점주와 매장 관리</h1>
-            <p>계약부터 가입, 매장 이용 현황까지 한곳에서 관리하세요.</p>
+            <h1>점주 관리</h1>
+            <p>계약과 매장을 한곳에서 관리해요.</p>
           </div>
           <button
             className="button primary"
             disabled={!data || busy}
             onClick={() => setCreating({ email: "", name: "" })}
           >
-            + 계약 등록 · 점주 초대
+            + 점주 초대
           </button>
         </div>
         {error && (
@@ -151,12 +150,12 @@ export function OperatorDashboard({
                     .length + data.existing_merchants.length,
                 ],
                 [
-                  "가입 대기",
+                  "초대 대기",
                   data.contracts.filter((c) => c.access_status === "invited")
                     .length,
                 ],
                 ["전체 매장", data.counts.stores],
-                ["저장된 발주 계획", data.counts.orders],
+                ["발주 계획", data.counts.orders],
               ].map(([label, count]) => (
                 <article className="stat-card" key={label}>
                   <span>{label}</span>
@@ -165,17 +164,19 @@ export function OperatorDashboard({
               ))}
             </div>
             <section className="panel">
-              <div className="operator-toolbar">
+              <div className="operator-list-toolbar">
                 <div>
                   <h2>
-                    점주 관리{" "}
+                    점주 목록{" "}
                     <span className="count-label">{rows.length}명</span>
                   </h2>
-                  <p className="helper">
-                    점주 이름이나 매장 수를 누르면 상세가 펼쳐져요.
-                  </p>
+                  <p className="helper">이름을 누르면 매장을 볼 수 있어요.</p>
                 </div>
-                <div className="table-tools">
+                <div
+                  className="merchant-filters"
+                  role="search"
+                  aria-label="점주 찾기"
+                >
                   <input
                     aria-label="점주·이메일·매장 검색"
                     placeholder="점주·이메일·매장 검색"
@@ -199,9 +200,9 @@ export function OperatorDashboard({
                     value={sort}
                     onChange={(e) => setSort(e.target.value)}
                   >
-                    <option value="name">점주 이름순</option>
-                    <option value="expiry">계약 만료 가까운순</option>
-                    <option value="sales">판매 기록 최신순</option>
+                    <option value="name">이름순</option>
+                    <option value="expiry">종료일순</option>
+                    <option value="sales">최근 판매순</option>
                   </Select>
                   {(query || filter !== "all" || sort !== "name") && (
                     <button
