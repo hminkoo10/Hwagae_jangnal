@@ -1,0 +1,212 @@
+:root {
+  font-family:
+    var(--font-suit),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Malgun Gothic",
+    sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+h1,
+h2,
+h3,
+strong {
+  letter-spacing: -0.025em;
+}
+h1,
+h2,
+h3 {
+  font-weight: 750;
+}
+strong {
+  font-weight: 700;
+}
+.merchant-shell,
+.operator-shell,
+.modal,
+.login-page,
+.invite-page {
+  font-weight: 500;
+}
+.merchant-shell :is(.product-cell strong, td > strong) {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.merchant-shell :is(.product-cell small, td small) {
+  font-size: 13px;
+  font-weight: 550;
+  color: #59677a;
+}
+.merchant-shell
+  :is(
+    .helper,
+    .chart-footnote,
+    .rail-note,
+    .metric-note,
+    .panel-heading p,
+    .page-heading p,
+    .empty-state p
+  ),
+.modal :is(.helper, .modal-description) {
+  font-size: 14px;
+  font-weight: 500;
+  color: #526074;
+  line-height: 1.75;
+}
+.merchant-shell :is(.panel-heading h2, .merchant-card-heading h2) {
+  font-size: 20px;
+  font-weight: 750;
+}
+.modal label,
+.modal .price-field > label {
+  font-size: 14px;
+  font-weight: 650;
+  color: #344154;
+}
+.modal h2 {
+  font-size: 21px;
+  font-weight: 750;
+}
+.merchant-shell .button,
+.modal .button,
+.operator-shell .button {
+  font-size: 14px;
+  font-weight: 650;
+}
+.merchant-shell :is(th, .pill, .nav-item, .metric-label),
+.operator-table th {
+  font-weight: 650;
+}
+.merchant-shell .empty-icon {
+  margin-bottom: 16px;
+}
+.merchant-shell .empty-state h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #344154;
+}
+.merchant-shell .empty-state > div {
+  max-width: 600px;
+  margin-inline: auto;
+  font-size: 15px;
+  font-weight: 500;
+  color: #526074;
+  line-height: 1.8;
+}
+.merchant-shell .chart-text {
+  font-weight: 550;
+}
+.modal .form-grid {
+  gap: 20px 16px;
+}
+.price-field {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.price-control {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  border: 1px solid #d5ded9;
+  border-radius: 10px;
+  background: white;
+}
+.price-control > button {
+  border: 0;
+  background: #f4f7f5;
+  color: #344154;
+  font-size: 22px;
+  border-radius: 9px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0;
+}
+.price-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-right: 8px;
+}
+.price-value input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: right;
+  padding-inline: 8px;
+  font-weight: 650;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.price-value input::-webkit-inner-spin-button,
+.price-value input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.price-value > span {
+  color: #526074;
+  font-size: 14px;
+}
+.price-field small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #526074;
+  line-height: 1.5;
+}
+.field-description {
+  display: block;
+  margin: 0;
+  color: #526074;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.product-filter {
+  width: min(200px, 100%);
+}
+.table-tools .product-filter .control-trigger {
+  min-height: 44px;
+}
+.forecast-next-step {
+  margin: 16px auto 0;
+}
+.category-fresh {
+  color: #288454;
+  background: #e9f6ed;
+}
+.category-bakery {
+  color: #a16d26;
+  background: #fbf1df;
+}
+.category-frozen {
+  color: #397baa;
+  background: #e9f4fc;
+}
+@media (max-width: 600px) {
+  .modal label,
+  .modal .price-field > label {
+    font-size: 14px;
+  }
+  .product-filter {
+    width: 100%;
+  }
+  .merchant-shell .table-tools {
+    width: 100%;
+  }
+}

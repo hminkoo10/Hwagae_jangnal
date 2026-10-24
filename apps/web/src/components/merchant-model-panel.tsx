@@ -104,11 +104,11 @@ export function MerchantModelPanel({
   const historical = !!asOf && asOf < today;
   const weatherLabel =
     weatherMode === "live_forecast"
-      ? "실제 7일 예보 입력"
+      ? "앞으로 7일 날씨 사용"
       : weatherMode === "historical_reanalysis"
-        ? "과거 재분석 날씨"
+        ? "과거 날씨 자료 사용"
         : weatherMode === "recent_weather"
-          ? "최근 날씨 시나리오"
+          ? "최근 날씨를 대입한 예측"
           : "날씨 자료 확인 중";
   return (
     <details
@@ -116,10 +116,10 @@ export function MerchantModelPanel({
       aria-label="매장 예측 모델"
       aria-busy={loading || saving}
     >
-      <summary className={styles.eyebrow}>예측 설정 · 모델·데이터 안내</summary>
+      <summary className={styles.eyebrow}>판매량을 예상하는 방법</summary>
       <div className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>우리 매장 예측 모델</span>
+          <span className={styles.eyebrow}>우리 매장 판매 예측</span>
           <h2>
             {tft
               ? historical
@@ -140,7 +140,7 @@ export function MerchantModelPanel({
               )
             }
           >
-            <option value="weekday">요일 기준선</option>
+            <option value="weekday">요일별 판매 흐름</option>
             <option value="merchant_tft">날씨 반영 AI</option>
           </Select>
         </label>
@@ -166,8 +166,8 @@ export function MerchantModelPanel({
             {tft && (
               <span className={styles.amber}>
                 {settings.model_kind === "walmart"
-                  ? "Walmart 학습 TFT · 예보 입력 실험"
-                  : "합성 자료 학습 TFT · 정확도 검증 전"}
+                  ? "Walmart 판매 자료로 배운 AI · 시험 적용 중"
+                  : "가상 판매 자료로 배운 AI · 정확도 확인 중"}
               </span>
             )}
             <span
@@ -178,8 +178,8 @@ export function MerchantModelPanel({
               }
             >
               {settings.runtime.status === "ready"
-                ? "모델 준비됨"
-                : "모델 준비 확인 필요"}
+                ? "예측 준비 완료"
+                : "연결 상태 확인 필요"}
             </span>
           </div>
           <p className={styles.description}>
@@ -191,9 +191,10 @@ export function MerchantModelPanel({
           </p>
           {settings.history_available_from && settings.history_available_to && (
             <p className={styles.note}>
-              선택 가능한 판매 기준일: {settings.history_available_from} ~{" "}
-              {settings.history_available_to} · 예측 기준일을 바꾸면 해당
-              날짜까지의 기록을 사용해요.
+              이 기간의 날짜를 골라 예측할 수 있어요:{" "}
+              {settings.history_available_from} ~{" "}
+              {settings.history_available_to}. 고른 날짜까지의 판매 기록을
+              사용해요.
             </p>
           )}
           {settings.runtime.status !== "ready" && (
@@ -210,7 +211,7 @@ export function MerchantModelPanel({
           )}
           {settings.data_note && (
             <details className={styles.dataGuide}>
-              <summary>데이터 안내</summary>
+              <summary>사용한 자료 자세히 보기</summary>
               <p className={styles.note}>{settings.data_note}</p>
             </details>
           )}

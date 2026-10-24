@@ -48,7 +48,7 @@ from app.schemas import (
     Login,
     OrderRequest,
     ProductInput,
-    ProductSettings,
+    ProductUpdate,
     RecommendationRequest,
     SalesBatch,
     StoreInput,
@@ -490,20 +490,21 @@ def create_app(db_path=None, seed=True):
     def update_product(
         store_id: str,
         product_id: str,
-        payload: ProductSettings,
+        payload: ProductUpdate,
         user=Depends(authenticated),
     ):
         access(store_id, user, owner=True)
         find_product(store_id, product_id)
         with database.connect() as db:
             db.execute(
-                "UPDATE products SET price=?,cost=?,lead_days=?,shelf_days=?,review_days=? WHERE store_id=? AND id=?",
+                "UPDATE products SET price=?,cost=?,lead_days=?,shelf_days=?,review_days=?,category=COALESCE(?,category) WHERE store_id=? AND id=?",
                 (
                     payload.price,
                     payload.cost,
                     payload.lead_days,
                     payload.shelf_days,
                     payload.review_days,
+                    payload.category,
                     store_id,
                     product_id,
                 ),

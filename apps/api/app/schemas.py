@@ -40,6 +40,17 @@ class ForecastSettings(Payload):
     provider: Literal["weekday", "merchant_tft"]
 
 
+class ProductUpdate(ProductSettings):
+    category: str | None = Field(default=None, min_length=1, max_length=40)
+
+    @field_validator("category")
+    @classmethod
+    def valid_category(cls, value):
+        if value is not None and not value.strip():
+            raise ValueError("상품 종류를 선택해주세요.")
+        return value.strip() if value is not None else None
+
+
 class StoreInput(Payload):
     name: str = Field(min_length=1, max_length=80)
     city: str = Field(min_length=1, max_length=80)

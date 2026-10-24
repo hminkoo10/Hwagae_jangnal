@@ -1,7 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import { NativeShell } from "@/components/native-shell";
 import "./globals.css";
 import "./responsive.css";
+import "./typography.css";
+
+const suit = localFont({
+  src: "./fonts/SUIT-Variable.woff2",
+  variable: "--font-suit",
+  weight: "100 900",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "화개장날 | 내일 장사, 오늘부터 가볍게",
@@ -19,7 +28,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={suit.variable}>
       <body>
         <NativeShell>{children}</NativeShell>
       </body>

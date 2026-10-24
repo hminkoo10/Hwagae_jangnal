@@ -16,6 +16,7 @@ import {
   type User,
 } from "@/lib/api";
 import { Empty, ForecastChart, Icon } from "./ui";
+import { forecastName } from "@/lib/merchant-language";
 
 type Destination = "forecast" | "sales" | "inventory" | "products" | "orders";
 
@@ -211,7 +212,10 @@ export function MerchantOverview({
               </Select>
             </div>
             {selectedForecast ? (
-              <ForecastChart forecast={selectedForecast} />
+              <ForecastChart
+                forecast={selectedForecast}
+                onHistory={() => onNavigate("sales")}
+              />
             ) : (
               <Empty
                 title={
@@ -582,7 +586,7 @@ export function MerchantOverview({
           </summary>
           <p className="rail-note">
             {forecast
-              ? `현재 ${forecast.model.name} 모델로 예측해요. `
+              ? `${forecastName(forecast.model)}을 사용하고 있어요. `
               : "판매 예측이 아직 완료되지 않았어요. "}
             {forecast?.model.uses_weather
               ? "판매 기록과 날씨를 함께 사용해요."
