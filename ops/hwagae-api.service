@@ -1,0 +1,22 @@
+[Unit]
+Description=Hwagae Jangnal FastAPI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hwagae
+Group=hwagae
+WorkingDirectory=/srv/hwagae/current
+EnvironmentFile=/etc/hwagae/hwagae.env
+Environment=APP_ENV=production
+Environment=DB_PATH=/srv/hwagae/shared/hwagae.sqlite3
+Environment=PYTHONPATH=/srv/hwagae/current:/srv/hwagae/current/apps/api
+ExecStart=/srv/hwagae/current/.venv/bin/uvicorn app.main:app --app-dir /srv/hwagae/current/apps/api --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1 --root-path /api
+Restart=on-failure
+RestartSec=3
+UMask=0027
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

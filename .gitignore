@@ -220,6 +220,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Web application
+!apps/web/src/lib/
+!apps/web/src/lib/**
 node_modules/
 .next/
 out/
@@ -233,6 +235,7 @@ next-env.d.ts
 # Local datasets and trained model artifacts
 data/raw/
 data/processed/
+data/runtime/
 artifacts/
 *.ckpt
 *.pt

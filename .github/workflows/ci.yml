@@ -1,0 +1,99 @@
+name: Verify and deploy
+
+on:
+  push:
+    branches: [main, "feat/**", "chore/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.10.6"
+          python-version: "3.14"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run --locked pytest --tb=short
+      - name: Check deployment script syntax
+        run: bash -n ops/deploy.sh
+
+  web:
+    name: Web types and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_API_BASE_URL: /api
+      NEXT_PUBLIC_DEMO_LOGIN_ENABLED: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+
+  deploy:
+    name: Deploy Ubuntu
+    needs: [api, web]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: hwagae-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Transfer and deploy verified revision
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${DEPLOY_HOST:?Missing DEPLOY_HOST}"
+          : "${DEPLOY_USER:?Missing DEPLOY_USER}"
+          : "${DEPLOY_KEY:?Missing DEPLOY_KEY}"
+          : "${DEPLOY_KNOWN_HOSTS:?Missing DEPLOY_KNOWN_HOSTS}"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.:-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          port="${DEPLOY_PORT:-22}"
+          [[ "$port" =~ ^[0-9]+$ ]] && (( port >= 1 && port <= 65535 ))
+          key_file="$RUNNER_TEMP/hwagae-key"
+          hosts_file="$RUNNER_TEMP/hwagae-known-hosts"
+          trap 'rm -f "$key_file" "$hosts_file"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$key_file"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$hosts_file"
+          options=(-i "$key_file" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$hosts_file" -o ConnectTimeout=15)
+          git archive --format=tar.gz --output="$RUNNER_TEMP/release.tar.gz" "$RELEASE_SHA"
+          ssh "${options[@]}" -p "$port" "$DEPLOY_USER@$DEPLOY_HOST" 'mkdir -p /srv/hwagae/incoming'
+          scp "${options[@]}" -P "$port" "$RUNNER_TEMP/release.tar.gz" "$DEPLOY_USER@$DEPLOY_HOST:/srv/hwagae/incoming/$RELEASE_SHA.tar.gz"
+          ssh "${options[@]}" -p "$port" "$DEPLOY_USER@$DEPLOY_HOST" "bash -s -- $RELEASE_SHA" < ops/deploy.sh
