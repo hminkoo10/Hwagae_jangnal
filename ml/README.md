@@ -115,7 +115,7 @@ python -m ml.build_samples --data-dir /data/weather_order_tft --output-dir /data
 
 이 명령은 원본 ZIP·저장 전처리·호환 표본의 SHA-256을 검사한다. 원본에 없는 실제 상품명·좌표·가격·원가를 만들어 제공하지 않는다. 판매량은 일별 판매 개수이며 예측값은 소수일 수 있다. 정수 반올림이나 재고·납기·안전재고를 포함한 발주 계산은 이 함수의 범위 밖이다.
 
-평가표와 원본 CSV의 전달 경로, 해시, 한 명령 재현 방법은 [evaluation.md](evaluation.md), 실제 발급 예보용 입력·학습·평가 계획과 분위수 해석은 [forecast-support.md](forecast-support.md)에 있다.
+평가 원본 CSV는 저장소의 [tft-evaluation-data.zip](evaluation/tft-evaluation-data.zip)에서 받을 수 있다. 평가표·해시·압축 해제 및 재현 명령은 [evaluation.md](evaluation.md), 실제 발급 예보용 입력·학습·평가 계획과 분위수 해석은 [forecast-support.md](forecast-support.md)에 있다.
 
 ## 출력, 허용 오차와 실행 시간
 
