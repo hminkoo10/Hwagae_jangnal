@@ -5,14 +5,31 @@
   "torch": "2.11.0+cpu",
   "cuda_available": false,
   "cpu_threads": 1,
-  "products": 2,
+  "products": 10,
+  "sample_requests": 3,
   "days": 7,
   "quantiles": 5,
+  "samples": [
+    {
+      "store_id": "walmart-demo-4",
+      "as_of": "2014-09-12",
+      "products": 6
+    },
+    {
+      "store_id": "walmart-demo-24",
+      "as_of": "2014-09-12",
+      "products": 3
+    },
+    {
+      "store_id": "walmart-demo-17",
+      "as_of": "2014-09-12",
+      "products": 1
+    }
+  ],
+  "insufficient_history_case": "passed",
   "atol": 0.0001,
   "rtol": 1e-05,
-  "import_seconds": 24.6324,
-  "cold_load_and_predict_seconds": 0.7174,
-  "warm_predict_seconds": 0.1173,
-  "cpu_model": "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
-  "installation": "fresh isolated CPython 3.11 environment; exact requirements-inference.txt"
+  "import_seconds": 11.5927,
+  "cold_load_and_predict_seconds": 3.9448,
+  "warm_predict_seconds": 0.3353
 }

@@ -1,0 +1,362 @@
+{
+  "schema_version": "1",
+  "description": "Future observed sales for comparison ONLY. Never merge into predict context.",
+  "stores": {
+    "walmart-demo-4": [
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-13",
+        "units_sold": 118
+      },
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-14",
+        "units_sold": 139
+      },
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-15",
+        "units_sold": 69
+      },
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-16",
+        "units_sold": 74
+      },
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-17",
+        "units_sold": 23
+      },
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-18",
+        "units_sold": 57
+      },
+      {
+        "product_id": "walmart-9",
+        "date": "2014-09-19",
+        "units_sold": 54
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-13",
+        "units_sold": 16
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-14",
+        "units_sold": 19
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-15",
+        "units_sold": 22
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-16",
+        "units_sold": 13
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-17",
+        "units_sold": 7
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-18",
+        "units_sold": 23
+      },
+      {
+        "product_id": "walmart-27",
+        "date": "2014-09-19",
+        "units_sold": 21
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-13",
+        "units_sold": 1
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-14",
+        "units_sold": 2
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-15",
+        "units_sold": 2
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-16",
+        "units_sold": 1
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-17",
+        "units_sold": 1
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-18",
+        "units_sold": 1
+      },
+      {
+        "product_id": "walmart-90",
+        "date": "2014-09-19",
+        "units_sold": 5
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-13",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-14",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-15",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-16",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-17",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-18",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-93",
+        "date": "2014-09-19",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-13",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-14",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-15",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-16",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-17",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-18",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-96",
+        "date": "2014-09-19",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-13",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-14",
+        "units_sold": 2
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-15",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-16",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-17",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-18",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-97",
+        "date": "2014-09-19",
+        "units_sold": 0
+      }
+    ],
+    "walmart-demo-24": [
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-13",
+        "units_sold": 27
+      },
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-14",
+        "units_sold": 25
+      },
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-15",
+        "units_sold": 12
+      },
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-16",
+        "units_sold": 41
+      },
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-17",
+        "units_sold": 54
+      },
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-18",
+        "units_sold": 28
+      },
+      {
+        "product_id": "walmart-24-6",
+        "date": "2014-09-19",
+        "units_sold": 13
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-13",
+        "units_sold": 34
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-14",
+        "units_sold": 34
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-15",
+        "units_sold": 24
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-16",
+        "units_sold": 9
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-17",
+        "units_sold": 18
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-18",
+        "units_sold": 17
+      },
+      {
+        "product_id": "walmart-24-43",
+        "date": "2014-09-19",
+        "units_sold": 15
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-13",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-14",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-15",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-16",
+        "units_sold": 0
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-17",
+        "units_sold": 2
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-18",
+        "units_sold": 1
+      },
+      {
+        "product_id": "walmart-24-60",
+        "date": "2014-09-19",
+        "units_sold": 0
+      }
+    ],
+    "walmart-demo-17": [
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-13",
+        "units_sold": 56
+      },
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-14",
+        "units_sold": 50
+      },
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-15",
+        "units_sold": 39
+      },
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-16",
+        "units_sold": 45
+      },
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-17",
+        "units_sold": 34
+      },
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-18",
+        "units_sold": 36
+      },
+      {
+        "product_id": "walmart-17-37",
+        "date": "2014-09-19",
+        "units_sold": 31
+      }
+    ]
+  }
+}
