@@ -143,7 +143,7 @@ npm run dev
 
 비교식은 `abs(actual-expected) <= max(1e-4, 1e-5*max(abs(actual),abs(expected)))`다. 이는 **같은 CPU 경로**의 재현 기준이다. 기존 GPU 테스트 CSV와 샘플 70개 값의 최대 차이는 약 0.0235169로, GPU CSV를 이 허용 오차의 golden output으로 사용하지 않는다.
 
-빈 환경에 고정 requirements를 설치하고 smoke test를 통과했다. [측정 기록](examples/cpu-verification.json): Ryzen 7 260, CPU 스레드 1, 2상품, import **24.63초**, 첫 모델 로드+추론 **0.72초**, 로드 후 요청 **0.12초**. 기존 환경에서는 각각 약 7.03/0.35/0.06초였다. 디스크 캐시와 초기 로딩 영향이 있으며 목표 서버의 응답시간 보장은 아니다.
+빈 환경에 고정 requirements를 설치했던 별도 Python 3.11 환경에서도 확장된 10상품 smoke test를 통과했다([측정 기록](evaluation/benchmarks/windows-clean-smoke.json)). Ryzen 7 260, CPU 스레드 1 기준이다. 디스크 캐시·초기 로딩·다른 작업의 영향이 있으며 목표 서버의 응답시간 보장은 아니다.
 
 확장된 [10상품 측정](evaluation/benchmarks/windows-10.json)은 import 포함 첫 실행 8.34초, 반복 중앙값 0.21초, 최대 RSS 약 396MiB다. [50시계열 측정](evaluation/benchmarks/windows-50.json)은 10.24초, 0.96초, 약 393MiB다. Windows CPU 스레드 1에서 각각 3매장·10매장 요청을 순차 처리한 합계이며, 50시계열은 서로 다른 매장·상품쌍 50개와 상품 번호 29종이다. 메모리는 import·모델을 포함한 프로세스 최대 RSS다. 서버 수치로 해석하지 않는다. 같은 측정은 Python 3.11 모델 환경에서 아래 명령의 10을 50으로 바꿔 각각 새 프로세스로 실행한다.
 
@@ -153,4 +153,4 @@ python -m ml.verify_runtime --benchmark-input ml/examples/benchmark-10.json --be
 
 [이력 부족 입력](examples/insufficient-history.json)과 [예상 결과](examples/expected-insufficient-history.json): walmart-9는 55/56일로 부족, walmart-27은 정상, new-product는 미등록이다. 정상 상품은 계속 예측한다.
 
-unittest는 원본 특징 일치, SI/결측/trace, 학습·CUDA 차단, 상태 불변, 동시 요청, 상품·날짜 대응, 비정상 출력 거절을 검사한다. 전체 재학습·전체 테스트셋 CPU 재평가는 수행하지 않았다. 시간순 평가·기준선 수치·미검증 항목은 [evaluation.md](evaluation.md)를 따른다.
+unittest는 원본 특징 일치, SI/결측/trace, 학습·CUDA 차단, 상태 불변, 동시 요청, 상품·날짜 대응, 비정상 출력 거절을 검사한다. 현재 날씨 TFT의 전체 테스트셋 CPU 재평가는 수행하지 않았다. 별도 날씨 제외 학습·시간순 평가·기준선 수치·미검증 항목은 [evaluation.md](evaluation.md)를 따른다.

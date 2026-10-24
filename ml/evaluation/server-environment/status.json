@@ -1,9 +1,9 @@
 {
-  "revision": "557eb952915b36d79d4d67b68a22667f5498b3e9",
+  "revision": "31ad123b0a2dd90f41d83fe4d56a8a680070b9bf",
   "status": "missing_checkpoint",
   "stage": "checkpoint",
   "exit_code": 3,
-  "verification_id": "40066789373-1",
-  "finished_at": "2026-10-24T05:35:41.949016+00:00",
+  "verification_id": "40067229667-1",
+  "finished_at": "2026-10-24T05:42:39.914120+00:00",
   "production_activated": false
 }

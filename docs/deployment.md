@@ -111,7 +111,10 @@ Actions의 **Verify and deploy → Run workflow**에서 검증할 브랜치를 �
 
 공식 [PyTorch CPU wheel 목록](https://download.pytorch.org/whl/cpu/torch/)에서
 `torch-2.11.0+cpu-cp311-cp311-manylinux_2_28_aarch64.whl`의 존재를 확인했다.
-이는 패키지 후보가 존재한다는 근거이며 이 서버에서 설치와 추론을 통과했다는 근거는 아니다.
+2026-10-24 실제 서버에서 Python 3.11.14 환경 설치와 CPU 연산까지 성공했다.
+[검증 실행](https://github.com/hminkoo10/Hwagae_jangnal/actions/runs/40067229667)에서
+`/srv/hwagae` 내부에 체크포인트 후보가 0개였으므로 추론·전체 unittest·10/50상품 측정은 실행하지 않았다.
+설치 성공과 모델 추론 성공을 구분하며 [원본 증거](../ml/evaluation/server-environment/README.md)를 보존한다.
 
 ### 운영 배포
 

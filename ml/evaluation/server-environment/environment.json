@@ -9,7 +9,7 @@
   },
   "logical_cpus": 2,
   "memory_kib": 12219232,
-  "disk_free_bytes": 54870704128,
+  "disk_free_bytes": 53671620608,
   "checkpoint_exists": false,
   "system_python": "3.10.12"
 }
