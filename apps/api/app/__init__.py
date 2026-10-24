@@ -1,0 +1,1 @@
+"""Hwagae Jangnal API application."""
