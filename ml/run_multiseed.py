@@ -280,6 +280,14 @@ def write_csv(path, rows):
         writer.writerows(rows)
 
 
+def summary_limitations(plan):
+    limitations = list(plan["limitations"])
+    limitations.append("Removing the eleven weather value/missing/trace features changes input dimension and model parameter count; this is not a parameter-count-matched or causal comparison.")
+    if plan.get("reused_no_weather_42"):
+        limitations.append("Historical reused seed-42 protocol directly logs six package versions; pytorch-lightning/torchmetrics are verified only in the current unchanged eight-package environment probe, not a separate historical runtime record.")
+    return limitations
+
+
 def summarize(plan_path, output):
     plan = read_json(plan_path)
     verify_plan(plan)
@@ -335,9 +343,7 @@ def summarize(plan_path, output):
         "api_baseline": manifests[0]["inputs"]["api_baseline"], "artifacts": artifacts,
         "difference_convention": "weather minus no-weather; negative error differences favor weather; coverage differences alone are not improvements",
         "standard_deviation": "Sample standard deviation across three training seeds (ddof=1), not over daily prediction rows",
-        "limitations": plan["limitations"] + [
-            "Removing the eleven weather value/missing/trace features changes input dimension and model parameter count; this is not a parameter-count-matched or causal comparison.",
-            "Historical reused seed-42 protocol directly logs six package versions; pytorch-lightning/torchmetrics are verified only in the current unchanged eight-package environment probe, not a separate historical runtime record."],
+        "limitations": summary_limitations(plan),
     })
     print(json.dumps({"status": "summarized", "seed_pairs": 3, "output": str(output)}, indent=2))
 

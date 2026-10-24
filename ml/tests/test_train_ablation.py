@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pandas as pd
 
 from ml import train_ablation
-from ml.run_multiseed import paired_tables
+from ml.run_multiseed import paired_tables, summary_limitations
 from ml.train_ablation import assert_matched_rows, create_model, install_functions, prepare_output_dir
 
 
@@ -87,6 +87,16 @@ class AblationProtocolTests(unittest.TestCase):
         for changed in [rows[:-1], rows + [rows[0]]]:
             with self.assertRaisesRegex(ValueError, "exactly once"):
                 paired_tables(changed)
+
+    def test_fresh_runs_do_not_claim_historical_package_evidence_limitations(self):
+        plan = {"limitations": ["Three seeds are a small sample."]}
+        fresh = summary_limitations(plan)
+        self.assertFalse(any("Historical reused" in item for item in fresh))
+        self.assertTrue(any("parameter count" in item for item in fresh))
+        plan["reused_no_weather_42"] = {"directory": "historical-run"}
+        reused = summary_limitations(plan)
+        self.assertTrue(any("Historical reused" in item for item in reused))
+        self.assertEqual(plan["limitations"], ["Three seeds are a small sample."])
 
 
 if __name__ == "__main__":
