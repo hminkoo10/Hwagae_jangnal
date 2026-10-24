@@ -22,9 +22,17 @@ from openpyxl.styles import Font, PatternFill
 from pydantic import BaseModel
 
 from app.database import Database, encode, now_iso, password_matches, today
+from app.evaluation_report import evaluation_report
 from app.forecasting import run_forecast
 from app.imports import MAX_BYTES, parse_file
-from app.model_demo import describe_sample, replay, sample_context
+from app.model_demo import (
+    DEFAULT_SAMPLE_ID,
+    SampleId,
+    describe_sample,
+    replay,
+    sample_context,
+    sample_options,
+)
 from app.model_runtime import ModelRuntime, ModelUnavailable
 from app.ordering import recommend
 from app.schemas import (
@@ -183,23 +191,49 @@ def create_app(db_path=None, seed=True):
         }
 
     @application.get("/model-demo", tags=["model demo"])
-    def model_demo(user=Depends(authenticated)):
+    def model_demo(
+        sample_id: SampleId = DEFAULT_SAMPLE_ID, user=Depends(authenticated)
+    ):
         try:
-            sample = describe_sample(sample_context())
+            sample = describe_sample(sample_context(sample_id))
+            options = sample_options()
         except Exception:
             logger.exception("TFT demo sample could not be read")
-            raise HTTPException(503, "모델 체험용 자료를 준비하지 못했습니다.") from None
-        return {"runtime": application.state.model_runtime.status(), "sample": sample}
+            raise HTTPException(
+                503, "모델 체험용 자료를 준비하지 못했습니다."
+            ) from None
+        return {
+            "runtime": application.state.model_runtime.status(),
+            "sample": sample,
+            "sample_id": sample_id,
+            "samples": options,
+            "total_products": sum(option["product_count"] for option in options),
+        }
+
+    @application.get("/model-demo/evaluation", tags=["model demo"])
+    def model_demo_evaluation(user=Depends(authenticated)):
+        try:
+            return evaluation_report()
+        except Exception:
+            logger.exception("TFT evaluation report could not be read")
+            raise HTTPException(
+                503, "모델 평가 자료를 준비하지 못했습니다."
+            ) from None
 
     @application.post("/model-demo/forecast", tags=["model demo"])
-    def model_demo_forecast(user=Depends(authenticated)):
+    def model_demo_forecast(
+        sample_id: SampleId = DEFAULT_SAMPLE_ID, user=Depends(authenticated)
+    ):
         try:
-            return replay(application.state.model_runtime)
+            return replay(application.state.model_runtime, sample_id)
         except ModelUnavailable as exc:
             raise HTTPException(503, str(exc)) from None
         except Exception:
             logger.exception("TFT historical replay failed")
-            raise HTTPException(503, "TFT 실행 또는 출력 검사에 실패했습니다. 잠시 후 다시 시도해주세요.") from None
+            raise HTTPException(
+                503,
+                "TFT 실행 또는 출력 검사에 실패했습니다. 잠시 후 다시 시도해주세요.",
+            ) from None
 
     @application.get("/auth/me", tags=["accounts"])
     def me(user=Depends(authenticated)):

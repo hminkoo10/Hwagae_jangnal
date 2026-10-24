@@ -59,7 +59,7 @@ jobs:
       - run: npm run build
 
   ml-preprocess:
-    name: ML preprocessing tests
+    name: ML data and evaluation tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -76,6 +76,8 @@ jobs:
       - run: .model-venv/bin/python -m py_compile ops/tft_worker.py
       # CI has no checkpoint. Real CPU inference is checked before server activation.
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_preprocess.py -v
+      - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_evaluate.py -v
+      - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_samples.py -v
 
   deploy:
     name: Deploy Ubuntu

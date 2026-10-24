@@ -4,6 +4,68 @@
   padding-top: 6px;
   min-width: 0;
 }
+.predictionSection {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.evaluationSection {
+  min-width: 0;
+}
+.sectionTabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid #dfe7f2;
+}
+.sectionTabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 20px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #7e8fa7;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sectionTabs button[aria-pressed="true"] {
+  border-bottom-color: #2478f5;
+  color: #2478f5;
+}
+.sectionTabs button span {
+  font-size: 10px;
+  font-weight: 400;
+  color: #8b9bb0;
+}
+.sampleSelector {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 19px 23px;
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  background: white;
+}
+.sampleSelector label {
+  width: 300px;
+  max-width: 100%;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.sampleSelector select {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}
+.sampleSelector p {
+  color: #8293a9;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 0;
+}
 .introduction {
   display: flex;
   align-items: center;
@@ -258,6 +320,18 @@
   stroke-width: 2.5;
   stroke-dasharray: 6 5;
 }
+.actualLine {
+  fill: none;
+  stroke: #4c5c70;
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+}
+.actualPoint {
+  fill: #4c5c70;
+}
+.actualKey {
+  border-top: 2px dashed #4c5c70;
+}
 .chartPoint {
   fill: white;
   stroke: #2478f5;
@@ -327,6 +401,10 @@
   color: #2478f5;
   font-weight: 700;
 }
+.table td.actualValue {
+  color: #465b77;
+  font-weight: 650;
+}
 .resultMeta {
   display: flex;
   flex-wrap: wrap;
@@ -365,6 +443,24 @@
   }
 }
 @media (max-width: 700px) {
+  .sectionTabs button {
+    flex: 1;
+    justify-content: center;
+    padding: 13px 7px;
+    font-size: 12px;
+  }
+  .sectionTabs button span {
+    display: none;
+  }
+  .sampleSelector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 17px;
+  }
+  .sampleSelector label {
+    width: 100%;
+  }
   .introduction {
     padding: 23px 20px;
   }
