@@ -80,12 +80,11 @@ repository variable DEPLOY_ENABLED=true는 **서버 준비와 첫 배포 확인 
 Actions의 **Verify and deploy → Run workflow**에서 검증할 브랜치를 선택하고
 `verify_tft=true`, `deploy=false`, `tft_checkpoint=<서버의 기존 체크포인트 절대 경로>`를 지정한다.
 기본 체크포인트 위치는 `/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt`이다.
-서버에 파일이 없다면 이 비공개 저장소에 업로드한 기존 모델의 draft release asset ID를
-`tft_checkpoint_asset_id`에 입력할 수 있다. 이 경우 Actions의 읽기 전용 `GITHUB_TOKEN`으로
-asset을 임시 다운로드하고 manifest의 SHA-256을 확인한 뒤
-`/srv/hwagae/shared/models/walmart-e64b570d.ckpt`로 전달한다. 서버에서도 해시를 확인한다.
-asset ID를 지정하면 검증에 이 고정 경로를 사용하며 `tft_checkpoint` 입력은 모델 위치로 사용하지 않는다.
-체크포인트와 토큰은 보고서에 포함하지 않고 runner의 임시 모델 파일은 종료 시 삭제한다.
+현재 검증은 서버에 이미 존재하는 모델 파일만 사용하므로 `tft_checkpoint_asset_id`는 빈 값으로 둔다.
+기존 draft 첨부파일과 토큰 권한은 변경하지 않으며 모델 파일을 새로 전달하지 않는다.
+요청 경로의 파일이 없거나 해시가 다르면 `/srv/hwagae/shared/models/` 내부의 기존 `*.ckpt`만
+읽기 전용으로 검색한다. 디렉터리·파일 심볼릭 링크는 따라가지 않으며 manifest의 SHA-256과
+일치하는 파일만 선택한다. 선택 경로·실제 SHA-256과 검색 결과는 `checkpoint.json`에 기록한다.
 기존 production environment의 `DEPLOY_*` secrets로 접속하며 개인키나 서버 환경 파일을 출력하지 않는다.
 `verify_tft=true`이면 배포 job은 실행되지 않는다. API·웹 CI가 통과한 뒤 서버 검증이 시작된다.
 
@@ -93,9 +92,9 @@ asset ID를 지정하면 검증에 이 고정 경로를 사용하며 `tft_checkp
 
 1. `/srv/hwagae/shared/tft-verification/<sha>/`에 해당 Git 소스와 검증 결과를 보관한다.
 2. 실제 OS가 Ubuntu/Linux이고 CPU가 aarch64/arm64인지 확인하고 메모리·디스크·CPU·커널 정보를 기록한다.
-3. 체크포인트가 없거나 읽을 수 없으면 `missing_checkpoint`로 실패한다. 이 경우 환경 보고서는 남기며 모델 성공을 주장하지 않는다.
-4. 검증 폴더 안에 Python 3.11 모델 환경과 Python 3.14 API 환경을 각각 설치한다. 모델은 `ml/requirements-inference.txt`, API는 기존 `uv.lock`을 사용한다.
-5. 모델의 7일×5분위수 smoke test와 unittest를 실행한다. Python 3.14에서 `ml.bridge`로 Python 3.11 worker를 호출하여 같은 샘플의 7일×3분위수 및 이력 부족 응답을 비교하고 API 테스트를 실행한다.
+3. 요청한 기존 체크포인트 또는 위 제한된 검색에서 SHA-256이 일치하는 파일을 확인한다. 체크포인트 내용은 보고서에 넣지 않는다.
+4. 검증 폴더 안에 Python 3.11 모델 환경을 만들고 `ml/requirements-inference.txt`를 설치한 뒤 PyTorch·PyTorch Forecasting import와 CPU tensor 실행을 확인한다. 모델이 없어도 여기까지는 수행하고 `missing_checkpoint`로 종료한다. 설치/import 자체가 실패하면 그 단계의 실패와 로그를 남긴다. 어느 경우에도 추론 성공으로 표시하지 않는다.
+5. 체크포인트가 확인된 경우에만 10상품의 7일×5분위수 smoke test, 전체 unittest와 10/50상품 cold·warm·최고 RSS 측정을 실행한다. 이후 별도 Python 3.14 API 환경에 기존 `uv.lock`을 설치하고, `ml.bridge`로 Python 3.11 worker를 호출해 샘플의 7일×3분위수 및 이력 부족 응답을 비교하고 API 테스트를 실행한다.
 6. 상태·설치 로그·패키지 버전·실행 시간·비교 결과를 Actions artifact `tft-arm64-<sha>-<attempt>`로 수집한다. 비교 오차는 기존 smoke test의 `atol=1e-4`, `rtol=1e-5`이며 다른 아키텍처에서 실패하면 실패한 그대로 기록한다.
 
 전송 전 실패도 `runner-status.json`에 기록한다. 원격 보고서의 검증 실행 ID를 현재 실행과 대조하며,
@@ -103,7 +102,7 @@ asset ID를 지정하면 검증에 이 고정 경로를 사용하며 `tft_checkp
 
 이 작업은 검증 폴더의 별도 DB와 별도 Python 환경을 사용한다. 운영 `current` 링크, 운영 DB,
 `/etc/hwagae/hwagae.env`, systemd 및 Nginx를 변경하지 않는다. 서비스 배포/활성화는 별도 작업이다.
-모델 체크포인트를 Git이나 검증 보고서 artifact에 포함하지 않는다. 서버에 필요한 파일을 안전하게 전달한 뒤 검증을 실행한다.
+모델 체크포인트를 Git이나 검증 보고서 artifact에 포함하지 않는다. 기존 서버 모델 파일을 수정하지 않는다.
 보고서의 `status=passed`와 해당 커밋을 확인하기 전에는 ARM64 또는 Python 간 연결 검증이 완료되었다고 표기하지 않는다.
 
 공식 [PyTorch CPU wheel 목록](https://download.pytorch.org/whl/cpu/torch/)에서
