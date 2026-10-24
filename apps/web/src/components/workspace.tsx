@@ -31,6 +31,8 @@ import { InitialData } from "./initial-data";
 import { AiSettings, AiExplanation } from "./ai-settings";
 import { OperatorDashboard } from "./operator-dashboard";
 import { categoryOptions, filterProducts } from "@/lib/merchant-language";
+import { WeatherSource } from "./weather-source";
+import { OrderDetails } from "./order-details";
 
 type Tab =
   | "overview"
@@ -65,18 +67,17 @@ const tabs: { id: Tab; label: string; description: string }[] = [
   {
     id: "products",
     label: "상품 · 공급사",
-    description: "상품 가격과 주문 주기를 관리해요.",
+    description: "상품 가격과 유통기한·발주 주기를 관리해요.",
   },
   {
     id: "orders",
     label: "발주 계획",
-    description: "주문할 수량을 정하고 발주서를 만들어요.",
+    description: "발주할 수량을 정하고 발주서를 만들어요.",
   },
   {
     id: "ai-settings",
-    label: "AI 연결 설정",
-    description:
-      "AI 게이트웨이와 모델, 추론 강도와 자동 전환 순서를 관리하세요.",
+    label: "AI 도우미",
+    description: "발주 이유를 쉬운 말로 설명받아요. 연결은 선택사항이에요.",
   },
   {
     id: "model-demo",
@@ -288,6 +289,8 @@ export default function Workspace() {
     null,
   );
   const [storeModal, setStoreModal] = useState(false);
+  const [orderDetail, setOrderDetail] = useState<Order | null>(null);
+  useEffect(() => setOrderDetail(null), [storeId]);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(
     null,
   );
@@ -769,7 +772,7 @@ export default function Workspace() {
                   <th>{mode === "products" ? "공급사" : "내일 판매 예측"}</th>
                   <th>{mode === "products" ? "판매가 / 원가" : "확인 재고"}</th>
                   <th>
-                    {mode === "products" ? "도착 · 판매 기간" : "준비 상태"}
+                    {mode === "products" ? "도착 · 유통기한" : "준비 상태"}
                   </th>
                   <th className="number">관리</th>
                 </tr>
@@ -836,10 +839,10 @@ export default function Workspace() {
                       <td>
                         {mode === "products" ? (
                           <>
-                            주문 후 {product.lead_days}일 뒤 도착
+                            발주 후 {product.lead_days}일 뒤 도착
                             <small>
-                              받은 뒤 {product.shelf_days}일간 판매 ·{" "}
-                              {product.review_days}일마다 주문
+                              유통기한 {product.shelf_days}일 ·{" "}
+                              {product.review_days}일마다 발주
                             </small>
                           </>
                         ) : (
@@ -944,9 +947,6 @@ export default function Workspace() {
       </aside>
       <div className="main-area">
         <header className="topbar">
-          <span className="breadcrumb">
-            내 매장 <span>/</span> <strong>{currentTab.label}</strong>
-          </span>
           <div className="account-actions">
             <span className="user-avatar">{owner ? "사" : "직"}</span>
             <span>
@@ -978,7 +978,7 @@ export default function Workspace() {
                   ? (store?.name ?? "우리 매장")
                   : currentTab.label}
               </h1>
-              <p>{currentTab.description}</p>
+              {tab !== "overview" && <p>{currentTab.description}</p>}
               {!modelDemo && store?.timezone && (
                 <p>
                   {store.city} · {today} 마감 기준
@@ -1164,6 +1164,8 @@ export default function Workspace() {
                   selectedForecast={selectedForecast}
                   onSelectProduct={setSelectedProduct}
                   onNavigate={navigate}
+                  onOrder={setOrderDetail}
+                  disabled={busy || loading}
                   onInventory={(product) => {
                     if (!busy) setInventoryProduct(product);
                   }}
@@ -1239,9 +1241,7 @@ export default function Workspace() {
                               : " · 앞으로 7일"}
                           </p>
                         </div>
-                        <span className="pill neutral">
-                          {forecast.weather.source}
-                        </span>
+                        <span className="pill neutral">날씨 예보</span>
                       </div>
                       {forecast.weather.days.length > 0 ? (
                         <div className="weather-days">
@@ -1287,22 +1287,11 @@ export default function Workspace() {
                         </div>
                       )}
                       <div className="weather-caption">
-                        {forecast.weather.note} ·{" "}
                         {forecast.model.uses_weather
-                          ? "이 날씨 자료를 판매 예측에 사용했어요"
-                          : "날씨는 참고 정보이며 예측에 사용하지 않았어요"}{" "}
-                        · 조회{" "}
-                        {new Date(forecast.weather.fetched_at).toLocaleString(
-                          "ko-KR",
-                          { timeZone: "Asia/Seoul" },
-                        )}{" "}
-                        (한국 시간)
-                        {forecast.weather.cached ? " · 저장된 자료" : ""}
-                        {forecast.weather.message &&
-                        forecast.weather.days.length > 0
-                          ? ` · ${forecast.weather.message}`
-                          : ""}
+                          ? "판매 예측에 반영한 날씨예요."
+                          : "참고용 날씨예요. 판매 예측에는 반영하지 않았어요."}
                       </div>
+                      <WeatherSource weather={forecast.weather} />
                     </section>
                   )}
                   <section className="panel">
@@ -1688,9 +1677,15 @@ export default function Workspace() {
                             {data.orders.map((order) => (
                               <tr key={order.id}>
                                 <td>
-                                  <strong>
-                                    {order.order_date ?? order.as_of} 발주 예정
-                                  </strong>
+                                  <button
+                                    type="button"
+                                    className="order-title"
+                                    onClick={() => setOrderDetail(order)}
+                                    aria-label={`${order.order_date ?? order.as_of} 발주 내용 보기`}
+                                  >
+                                    {order.order_date ?? order.as_of} 발주 예정{" "}
+                                    <span>내용 보기</span>
+                                  </button>
                                   <small>
                                     판매 기준 {order.as_of} ·{" "}
                                     {order.lines.length}개 상품 ·{" "}
@@ -1796,6 +1791,16 @@ export default function Workspace() {
           today={today}
           onSaved={saved}
           onClose={() => setInventoryProduct(null)}
+        />
+      )}
+      {orderDetail && (
+        <OrderDetails
+          order={
+            data?.orders.find((order) => order.id === orderDetail.id) ??
+            orderDetail
+          }
+          onClose={() => setOrderDetail(null)}
+          onOpenOrders={() => navigate("orders")}
         />
       )}
       {productModal && (

@@ -14,17 +14,23 @@ const folder = await mkdtemp(
 let controls;
 let fields;
 let language;
+let summary;
+let orderDetails;
+let metrics;
 try {
   for (const name of [
     "ui",
     "controls",
     "product-fields",
     "merchant-language",
+    "merchant-summary",
+    "merchant-metrics",
+    "order-details",
   ]) {
     const source = await readFile(
       new URL(
-        name === "merchant-language"
-          ? "../src/lib/merchant-language.ts"
+        ["merchant-language", "merchant-summary"].includes(name)
+          ? `../src/lib/${name}.ts`
           : `../src/components/${name}.tsx`,
         import.meta.url,
       ),
@@ -40,6 +46,7 @@ try {
     code = code
       .replace('from "./ui"', 'from "./ui.mjs"')
       .replace('from "./controls"', 'from "./controls.mjs"')
+      .replace('from "@/lib/merchant-summary"', 'from "./merchant-summary.mjs"')
       .replace(
         'from "@/lib/merchant-language"',
         'from "./merchant-language.mjs"',
@@ -49,7 +56,7 @@ try {
   }
   await writeFile(
     path.join(folder, "api.mjs"),
-    "export const shortDate=x=>x; export const units=x=>x;",
+    "export const shortDate=x=>x; export const units=x=>x; export const won=x=>x.toLocaleString('ko-KR')+'원';",
   );
   controls = await import(
     pathToFileURL(path.join(folder, "controls.mjs")).href
@@ -60,6 +67,15 @@ try {
   language = await import(
     pathToFileURL(path.join(folder, "merchant-language.mjs")).href
   );
+  summary = await import(
+    pathToFileURL(path.join(folder, "merchant-summary.mjs")).href
+  );
+  orderDetails = await import(
+    pathToFileURL(path.join(folder, "order-details.mjs")).href
+  );
+  metrics = await import(
+    pathToFileURL(path.join(folder, "merchant-metrics.mjs")).href
+  );
 } finally {
   assert.ok(
     path
@@ -69,6 +85,142 @@ try {
   assert.ok(path.basename(folder).startsWith(".hwagae-controls-"));
   await rm(folder, { recursive: true, force: true });
 }
+
+test("merchant totals distinguish zero sales/current zero stock from missing and stale records", () => {
+  const products = [
+    { id: "A", name: "우유" },
+    { id: "B", name: "음료" },
+    { id: "C", name: "샌드위치" },
+  ];
+  const inventory = {
+    A: { measured_on: "2026-10-24", batches: [] },
+    B: { measured_on: "2026-10-23", batches: [{ quantity: 8 }] },
+  };
+  const forecast = {
+    dates: ["2026-10-25"],
+    products: [
+      {
+        product_id: "A",
+        status: "ready",
+        points: [{ date: "2026-10-25", p50: 0 }],
+      },
+      {
+        product_id: "B",
+        status: "ready",
+        points: [{ date: "2026-10-25", p50: 8 }],
+      },
+      {
+        product_id: "C",
+        status: "missing",
+        points: [{ date: "2026-10-25", p50: 100 }],
+      },
+      {
+        product_id: "not-registered",
+        status: "ready",
+        points: [{ date: "2026-10-25", p50: 100 }],
+      },
+    ],
+  };
+  const orders = [
+    { id: "draft", status: "draft", lines: [{ quantity: 7 }] },
+    { id: "final", status: "confirmed", lines: [] },
+  ];
+  const before = JSON.stringify({ products, inventory, forecast, orders });
+  const result = summary.merchantSummary(
+    products,
+    inventory,
+    forecast,
+    orders,
+    "2026-10-24",
+  );
+  assert.equal(result.demand, 8);
+  assert.equal(result.demandCount, 2);
+  assert.deepEqual(
+    result.ready.map((item) => item.product.id),
+    ["A", "B"],
+  );
+  assert.deepEqual(
+    result.missing.map((item) => item.product.id),
+    ["B", "C"],
+  );
+  assert.match(result.missing[0].inventoryReason, /2026-10-23/);
+  assert.match(result.missing[1].inventoryReason, /아직 입력하지/);
+  assert.deepEqual(
+    result.drafts.map((order) => order.id),
+    ["draft"],
+  );
+  assert.equal(
+    JSON.stringify({ products, inventory, forecast, orders }),
+    before,
+  );
+  const pending = summary.merchantSummary(
+    products,
+    inventory,
+    null,
+    orders,
+    "2026-10-24",
+  );
+  assert.equal(pending.demandCount, 0);
+  assert.equal(pending.ready.length, 0);
+});
+
+test("saved order detail shows saved edited quantity and amounts instead of recommendation", () => {
+  const order = {
+    id: "order",
+    order_date: "2026-10-26",
+    as_of: "2026-10-24",
+    author: "점주",
+    status: "draft",
+    total: 6650,
+    stale: true,
+    lines: [
+      {
+        product_id: "A",
+        name: "우유",
+        supplier: "화개푸드",
+        recommended_quantity: 99,
+        quantity: 7,
+        amount: 6650,
+      },
+    ],
+  };
+  const html = renderToStaticMarkup(
+    React.createElement(orderDetails.OrderContents, { order }),
+  );
+  assert.match(html, /2026-10-26/);
+  assert.match(html, /우유/);
+  assert.match(html, /화개푸드/);
+  assert.match(html, /7개/);
+  assert.match(html, /6,650원/);
+  assert.doesNotMatch(html, /99개/);
+  assert.match(html, /저장 후 판매·재고 정보가 달라졌어요/);
+  assert.match(html, /data-label="발주 수량"/);
+});
+
+test("all four home metrics expose detail buttons and unknown demand stays unreported", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(metrics.MerchantMetrics, {
+      products: [],
+      inventory: {},
+      forecast: null,
+      orders: [],
+      today: "2026-10-24",
+      onForecast: () => {},
+      onInventory: () => {},
+      onHistory: () => {},
+      onOrders: () => {},
+      onOrder: () => {},
+    }),
+  );
+  assert.equal(
+    (html.match(/class="metric-card metric-link"/g) ?? []).length,
+    4,
+  );
+  assert.match(html, /예상 판매량 —/);
+  assert.match(html, /저장한 상품과 수량 보기/);
+  assert.match(html, /확인할 상품 보기/);
+  assert.match(html, /type="button"/);
+});
 
 test("price adjustment uses 100 won, keeps off-step prices and clamps supported limits", () => {
   assert.equal(language.adjustPrice("950", 1), "1050");

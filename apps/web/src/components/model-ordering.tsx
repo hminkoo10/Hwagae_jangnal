@@ -908,7 +908,7 @@ export function ModelOrdering({
       );
       if (exported && !signal.aborted)
         setNotice(
-          "확정한 시연 수량을 파일로 내보냈어요. 실제 업체 주문은 전송되지 않아요.",
+          "확정한 시연 수량을 파일로 내보냈어요. 실제 업체 발주는 전송되지 않아요.",
         );
     });
   }
@@ -923,8 +923,8 @@ export function ModelOrdering({
         <div>
           <strong>내 계정에 저장하는 과거 발주 시연</strong>
           <p>
-            Walmart 상품에 시연용 가격·재고·기간을 적용해요. 일반 매장 주문과
-            분리되며 업체에 주문을 전송하지 않아요.
+            Walmart 상품에 시연용 가격·재고·기간을 적용해요. 일반 매장 발주와
+            분리되며 업체에 발주를 전송하지 않아요.
           </p>
         </div>
       </div>
