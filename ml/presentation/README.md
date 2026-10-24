@@ -10,6 +10,7 @@ main에 추가된 [일반 매장용 `merchant_tft`](../merchant_tft/README.md)�
 | [심사 질문 답변](judge-qa.md) | 기준선·날씨 효과·분위수·누출·실패·신규 상품·CPU·발주 질문의 짧은 답과 코드 근거 |
 | [대표 사례](cases.md) | 과거 56일 통계로 선정한 일반·변동·0판매 사례와 7일 예측 |
 | [실패 사례](failure-cases.md) | 테스트 오차가 큰 창을 결과 기준으로 고른 진단 자료와 선정 한계 |
+| 반복 실험 그래프: [PNG](figures/multiseed.png) · [SVG](figures/multiseed.svg) | 완료된 3개 seed의 날씨 포함/제거 비교를 발표에 사용할 이미지 |
 | [전체 평가 설명](../evaluation.md) | 분할·행 집합·지표 정의·과거 GPU 평가와 CPU 재현의 차이 |
 
 ## 숫자를 가져올 때 붙일 조건
@@ -45,11 +46,22 @@ main에 추가된 [일반 매장용 `merchant_tft`](../merchant_tft/README.md)�
 2. [평가 코드](../evaluate.py)와 [실제 API 기준선](../../apps/api/app/forecasting.py)에서 기준일까지의 이력과 지표 계산을 확인한다.
 3. [원본 노트북](../notebooks/startup_thon_1.ipynb), [실행 설정](../evaluation/run_config.json), [기존 날씨 제거 완료 기록](../ablation/completed-run.json)에서 모델과 학습 조건을 확인한다.
 4. [추론](../predict.py), [전처리](../preprocess.py), [샘플 안내](../examples/README.md)에서 입력·0판매·이력 부족·신규 그룹 처리와 후처리를 확인한다.
-5. [ML 실행 안내](../README.md)의 명령으로 CPU 샘플을 재현한다. 저장된 평가표는 아래 명령으로 독립 재생성한다.
+5. [ML 실행 안내](../README.md)의 명령으로 CPU 샘플을 재현한다. 원본 단일 실행 비교와 새 반복 실험의 저장 평가표는 아래의 서로 다른 ZIP으로 재생성한다.
+
+**기존 단일 실행 비교:** 저장소에 있는 `tft-evaluation-data.zip`은 원본 TFT·기존 날씨 제거 TFT·API 기준선의 세 모델×두 집합, 총 6행을 재현한다.
 
 ```bash
 python -m zipfile -e ml/evaluation/tft-evaluation-data.zip data/runtime/tft-evaluation
 python data/runtime/tft-evaluation/evaluation-data/reproduce.py
 ```
+
+**완료된 3개 seed 비교:** 별도로 전달하는 `tft-multiseed-evaluation-data.zip`은 6개 모델 실행의 저장 예측과 4개 기준 CSV를 담는다. 이 추가 ZIP은 Git 밖에 있으며 [파일 크기·SHA-256·검증 기록](../ablation/multiseed/external-data.json)을 저장소에 남겼다. 전달 파일 경로를 실제 위치로 바꾸어 압축을 풀고, 두 번째 한 명령으로 재생성한다.
+
+```bash
+python -m zipfile -e /path/to/tft-multiseed-evaluation-data.zip data/runtime/tft-multiseed
+python data/runtime/tft-multiseed/reproduce.py --repo data/runtime/tft-multiseed/source
+```
+
+모델·수치 패키지가 없는 새 Python 3.11 환경에서 입력 해시 검사, 3개 쌍의 전체 7,973행·부분집합 1,701행 비교를 통과했다. `metrics.csv`는 6개 실행×두 집합의 12행이며, `api-baseline.csv`·`paired-differences.csv`·`summary.csv`까지 4개 CSV가 저장 기준표와 바이트 단위로 같았다. 지표 비교 허용 오차는 절대·상대 각각 `1e-12`다. 두 ZIP 모두 체크포인트를 포함하지 않으며 저장 예측의 평가 재계산용이다. 재학습·새 모델 CPU 추론·`merchant_tft` 검증과 구분한다. [반복 실험 안내](../ablation/multiseed/README.md)
 
 대표 사례 그래프는 기존 Walmart 모델의 개별 결과 설명용이다. 전체 성능은 전체 평가표로, 실패 가능성은 결과 기준으로 선정했다고 밝힌 실패 사례로 설명한다. 익명 Walmart 상품에 한국 상품명·실제 가격·재고 등을 임의로 대응시키지 않는다. 타깃은 관측 판매 개수이며 재고·품절·프로모션 기록이 없어 무제한 잠재 수요와 구분할 수 없다. 일별 P50 합계를 주간 중앙값이라고 부르지 않는다. Walmart 모델의 실제 예보 지원과 발주량 계산은 각각 별도 검증·구현 범위다.

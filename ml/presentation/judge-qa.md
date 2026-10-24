@@ -113,7 +113,13 @@ python data/runtime/tft-evaluation/evaluation-data/reproduce.py
 
 입력 SHA-256을 확인한 뒤 세 모델×두 집합의 6행을 만들고, 행 키·건수 및 지표를 기존 표와 비교합니다. 지표의 절대·상대 허용 오차는 각각 `1e-12`이며 불일치하면 실패합니다. 이 ZIP은 기존 Walmart 단일 실행 비교를 재현하며 **완료된 동일 환경 3개 seed 실험이나 별도 `merchant_tft`의 결과를 포함하지 않습니다**. [ZIP 식별 정보](../evaluation/external-data.json), [평가 실행 코드](../evaluate.py)
 
-완료된 3개 seed의 작은 평가표는 [반복 실험 폴더](../ablation/multiseed/README.md)에 따로 있습니다. 이 실험의 전체 예측 CSV와 실행 기록을 사용해 재집계해야 하며, 기존 ZIP의 6행과 새 실험의 12행을 혼동하지 않습니다. 학습 재실행과 저장 예측의 지표 재계산도 서로 다른 검증입니다.
+완료된 3개 seed 비교에는 별도 전달 파일 `tft-multiseed-evaluation-data.zip`을 사용합니다. Git에는 [파일 크기·SHA-256·재현 검증 기록](../ablation/multiseed/external-data.json)과 [작은 평가표·실험 안내](../ablation/multiseed/README.md)가 있습니다. 이 ZIP을 `data/runtime/tft-multiseed`에 풀고 다음 한 명령으로 재집계합니다.
+
+```bash
+python data/runtime/tft-multiseed/reproduce.py --repo data/runtime/tft-multiseed/source
+```
+
+모델·수치 패키지가 없는 새 Python 3.11 환경에서 3개 쌍의 전체 7,973행·부분집합 1,701행 비교를 통과했고, 4개 CSV가 기준표와 바이트 단위로 같았습니다. 새 `metrics.csv`는 6개 실행×두 집합의 12행입니다. 기존 ZIP의 세 모델×두 집합 6행과 구분하며, 새 ZIP에도 체크포인트나 `merchant_tft` 결과는 없습니다. 학습 재실행과 저장 예측의 지표 재계산도 서로 다른 검증입니다.
 
 ## 17. 7일의 P50을 더하면 주간 판매량의 중앙값인가요?
 
