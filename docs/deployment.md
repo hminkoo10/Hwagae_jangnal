@@ -82,9 +82,13 @@ Actions의 **Verify and deploy → Run workflow**에서 검증할 브랜치를 �
 기본 체크포인트 위치는 `/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt`이다.
 현재 검증은 서버에 이미 존재하는 모델 파일만 사용하므로 `tft_checkpoint_asset_id`는 빈 값으로 둔다.
 기존 draft 첨부파일과 토큰 권한은 변경하지 않으며 모델 파일을 새로 전달하지 않는다.
-요청 경로의 파일이 없거나 해시가 다르면 `/srv/hwagae/shared/models/` 내부의 기존 `*.ckpt`만
+요청 경로의 파일이 없거나 해시가 다르면 `/srv/hwagae/` 프로젝트 폴더 내부의 기존 `*.ckpt`만
 읽기 전용으로 검색한다. 디렉터리·파일 심볼릭 링크는 따라가지 않으며 manifest의 SHA-256과
 일치하는 파일만 선택한다. 선택 경로·실제 SHA-256과 검색 결과는 `checkpoint.json`에 기록한다.
+검색은 체크포인트 후보 1,000개·디렉터리 20,000개로 제한하고, 256 MiB를 넘는 파일은 해시 계산에서 제외한다.
+제한 도달이나 읽기 오류는 보고서에 남기며 이 경우 프로젝트 전체를 확인했다고 표현하지 않는다.
+다른 사용자 홈이나 프로젝트 밖 파일시스템은 검색하지 않는다. `/srv/hwagae/releases/`에서 일치하는
+기존 파일이 발견되어도 읽기만 수행하며 운영 release와 모델 파일을 수정하지 않는다.
 기존 production environment의 `DEPLOY_*` secrets로 접속하며 개인키나 서버 환경 파일을 출력하지 않는다.
 `verify_tft=true`이면 배포 job은 실행되지 않는다. API·웹 CI가 통과한 뒤 서버 검증이 시작된다.
 

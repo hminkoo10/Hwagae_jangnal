@@ -10,11 +10,11 @@ shift
 checkpoint="$2"
 verification_id="${TFT_VERIFICATION_ID:-manual-$(date -u +%Y%m%dT%H%M%S)-$$}"
 [[ "$verification_id" =~ ^[A-Za-z0-9_-]+$ ]] || exit 2
-[[ "$checkpoint" =~ ^/srv/hwagae/shared/[A-Za-z0-9_./=+-]+$ ]] || exit 2
+[[ "$checkpoint" =~ ^/srv/hwagae/[A-Za-z0-9_./=+-]+$ ]] || exit 2
 verification_root=/srv/hwagae/shared/tft-verification
 workdir="$verification_root/$revision"
 [[ "$(realpath -m "$workdir")" == "$workdir" ]] || { echo 'Verification path must not traverse symlinks.' >&2; exit 2; }
-[[ "$(realpath -m "$checkpoint")" == /srv/hwagae/shared/* ]] || { echo 'Checkpoint must remain under shared.' >&2; exit 2; }
+[[ "$(realpath -m "$checkpoint")" == /srv/hwagae/* ]] || { echo 'Checkpoint must remain under the Hwagae project.' >&2; exit 2; }
 mkdir -p "$workdir/source"
 exec 9>"$verification_root/verification.lock"
 flock -n 9 || { echo 'Another TFT verification is running.' >&2; exit 2; }
@@ -65,19 +65,30 @@ tar -xzf "$workdir/source.tar.gz" --no-same-owner -C "$workdir/source"
 cd "$workdir/source"
 stage=checkpoint_discovery
 checkpoint="$(python3 - "$checkpoint" "$reports/checkpoint.json" ml/metadata/manifest.json <<'PY'
-import hashlib, json, os, pathlib, re, sys
+import hashlib, json, os, pathlib, re, stat, sys
 requested, report_path, manifest_path = map(pathlib.Path, sys.argv[1:])
 expected = json.loads(manifest_path.read_text())["checkpoint_sha256"]
 if not re.fullmatch(r"[a-f0-9]{64}", expected):
     raise SystemExit("Invalid expected checkpoint SHA-256.")
-models = pathlib.Path("/srv/hwagae/shared/models")
+project_root = pathlib.Path("/srv/hwagae")
+max_candidates, max_bytes, max_directories = 1000, 256 * 1024 * 1024, 20000
+candidate_count, visited_directories, search_truncated = 0, 0, False
+search_errors = []
 checks, selected = [], None
 
 def matches(path):
     entry = {"path": str(path)}
     try:
-        if not path.is_file():
+        if not path.resolve().is_relative_to(project_root):
+            entry["status"] = "outside_project"
+            return False
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode):
             entry["status"] = "missing_or_not_file"
+            return False
+        entry["size_bytes"] = metadata.st_size
+        if metadata.st_size > max_bytes:
+            entry["status"] = "exceeds_size_limit"
             return False
         digest = hashlib.sha256()
         with path.open("rb") as stream:
@@ -86,6 +97,9 @@ def matches(path):
         entry["sha256"] = digest.hexdigest()
         entry["status"] = "matched" if entry["sha256"] == expected else "hash_mismatch"
         return entry["status"] == "matched"
+    except FileNotFoundError:
+        entry["status"] = "missing_or_not_file"
+        return False
     except OSError as error:
         entry["status"] = "unreadable"
         entry["error_type"] = type(error).__name__
@@ -93,28 +107,43 @@ def matches(path):
     finally:
         checks.append(entry)
 
+def walk_error(error):
+    search_errors.append({"path": error.filename, "error_type": type(error).__name__})
+
 if matches(requested):
     selected = requested
-elif models.is_dir() and models.resolve() == models:
+elif project_root.is_dir() and project_root.resolve() == project_root:
     # Search only real files within this directory; do not follow directory or
     # file symlinks into other server locations. Files are hashed, never loaded.
-    for directory, folders, files in os.walk(models, followlinks=False):
+    for directory, folders, files in os.walk(project_root, followlinks=False, onerror=walk_error):
+        visited_directories += 1
+        if visited_directories > max_directories:
+            search_truncated = True
+            break
         folders[:] = sorted(name for name in folders if not (pathlib.Path(directory) / name).is_symlink())
         for name in sorted(files):
             candidate = pathlib.Path(directory) / name
-            if candidate.suffix != ".ckpt" or candidate.is_symlink() or candidate == requested:
+            if candidate.suffix.lower() != ".ckpt" or candidate.is_symlink() or candidate == requested:
                 continue
-            if not candidate.resolve().is_relative_to(models):
+            if not candidate.resolve().is_relative_to(project_root):
                 continue
+            if candidate_count >= max_candidates:
+                search_truncated = True
+                break
+            candidate_count += 1
             if matches(candidate):
                 selected = candidate
                 break
-        if selected:
+        if selected or search_truncated:
             break
 out = {"status": "matched_existing_checkpoint" if selected else "missing_checkpoint",
-       "requested_path": str(requested), "discovery_root": str(models),
+       "requested_path": str(requested), "discovery_root": str(project_root),
        "expected_sha256": expected, "selected_path": str(selected) if selected else None,
        "selected_sha256": expected if selected else None, "checks": checks,
+       "candidate_count": candidate_count, "visited_directories": visited_directories,
+       "max_candidate_files": max_candidates, "max_checkpoint_bytes": max_bytes,
+       "max_directories": max_directories, "search_truncated": search_truncated,
+       "search_errors": search_errors,
        "model_files_written": False}
 report_path.write_text(json.dumps(out, indent=2) + "\n")
 print(selected or "")
