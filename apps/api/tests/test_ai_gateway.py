@@ -186,13 +186,24 @@ def test_claude_unsupported_effort_does_not_silently_change_the_requested_value(
     assert result.json()["attempts"][0]["status"] == "request"
 
 
-@pytest.mark.parametrize("kind, wording", [("authentication", "연결 키"), ("request", "서비스 주소"), ("timeout", "응답이 늦어"), ("rate_limit", "한도"), ("provider", "AI 서비스"), ("network", "연결하지 못"), ("invalid_response", "목록")])
+@pytest.mark.parametrize("kind, wording", [("authentication", "연결 키"), ("request", "서비스 주소"), ("timeout", "응답이 늦어"), ("rate_limit", "한도"), ("provider", "AI 서비스"), ("network", "연결하지 못"), ("invalid_response", "목록"), ("blocked_address", "HTTPS")])
 def test_model_lookup_failure_explains_the_safe_cause(service, kind, wording):
     app, client, auth = service
     app.state.ai_request = Mock(side_effect=GatewayFailure(kind))
     result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
-    assert result.status_code == 502
+    # Cloudflare replaces origin 502 bodies; expected provider failures must
+    # survive the edge so the merchant can see the actual corrective action.
+    assert result.status_code == 424
     assert wording in result.json()["detail"]
+    assert KEY1 not in result.text
+
+
+def test_unreadable_model_list_preserves_safe_dependency_error(service):
+    app, client, auth = service
+    app.state.ai_request = Mock(return_value=None)
+    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
+    assert result.status_code == 424
+    assert "목록" in result.json()["detail"]
     assert KEY1 not in result.text
 
 
