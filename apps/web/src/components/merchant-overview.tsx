@@ -144,7 +144,7 @@ export function MerchantOverview({
                 입력 자료 확인 <Icon name="arrow" size={14} />
               </button>
             </div>
-            <p className="rail-note">이 표본은 Walmart 매장 4의 익명 상품 9와 27이에요. 실제 상품명이나 한국 매장과의 대응을 뜻하지 않아요.</p>
+            <p className="rail-note">선택한 매장의 Walmart 익명 상품 {products.length}개를 원본 학습 ID로 연결했어요. 실제 상품명이나 한국 매장과의 대응을 뜻하지 않아요.</p>
           </section>
         </div>
         <aside className="merchant-rail" aria-label="과거 재현 자료 설명">

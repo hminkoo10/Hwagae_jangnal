@@ -206,7 +206,7 @@ function LoginScreen({
             </button>
           </div>
           <p className="helper">
-            체험 매장의 상품·가격·판매 기록은 가상 자료예요.
+            기본 체험 매장의 상품·가격·판매 기록은 가상 자료예요.
             <br />
             재고는 직접 입력하기 전까지 비어 있어요.
           </p>
