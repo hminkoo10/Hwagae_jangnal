@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
+  addCalendarDays,
   ApiError,
   download,
+  isOrderDateInWindow,
   shortDate,
   units,
   won,
@@ -240,8 +242,13 @@ export default function Workspace() {
   const [user, setUser] = useState<User | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [storeId, setStoreId] = useState("");
-  const [today, setToday] = useState("");
+  const [serverToday, setServerToday] = useState("");
+  const today =
+    stores.find((store) => store.id === storeId)?.local_today ?? serverToday;
   const [asOf, setAsOf] = useState("");
+  const [orderDate, setOrderDate] = useState("");
+  const selectedStoreId = useRef(storeId);
+  selectedStoreId.current = storeId;
   const [tab, setTab] = useState<Tab>("overview");
   const modelDemo = tab === "model-demo";
   const [bundle, setBundle] = useState<Bundle | null>(null);
@@ -275,8 +282,14 @@ export default function Workspace() {
 
   useEffect(
     () => () => recommendationRequest.current?.abort(),
-    [token, storeId, asOf, reload, forecastReload, modelDemo],
+    [token, storeId, asOf, orderDate, reload, forecastReload, modelDemo],
   );
+
+  useEffect(() => {
+    setOrderDate(today);
+    setRecommendation(null);
+    setQuantities({});
+  }, [today, storeId]);
 
   function acceptLogin(value: string, account: User) {
     sessionStorage.setItem("hwagae-session", value);
@@ -318,7 +331,9 @@ export default function Workspace() {
           setRestoreError("");
         } else {
           setRestoreError(
-            error instanceof Error ? error.message : "매장에 연결하지 못했어요.",
+            error instanceof Error
+              ? error.message
+              : "매장에 연결하지 못했어요.",
           );
         }
       })
@@ -351,19 +366,25 @@ export default function Workspace() {
         "/stores",
         token,
       );
+      const nextId =
+        preferred ??
+        (result.stores.some((store) => store.id === selectedStoreId.current)
+          ? selectedStoreId.current
+          : (result.stores.find((store) => store.id === "gwangju")?.id ??
+            result.stores[0]?.id ??
+            ""));
+      const nextToday =
+        result.stores.find((store) => store.id === nextId)?.local_today ??
+        result.today;
       setStores(result.stores);
-      setToday(result.today);
-      setAsOf((current) => current || result.today);
-      setStoreId(
-        (current) =>
-          preferred ??
-          (result.stores.some((store) => store.id === current)
-            ? current
-            : (result.stores.find((store) => store.id === "gwangju")?.id ??
-              result.stores[0]?.id ??
-              "")),
+      setServerToday(result.today);
+      setAsOf((current) =>
+        preferred || selectedStoreId.current !== nextId
+          ? nextToday
+          : current || nextToday,
       );
-      return result.today;
+      setStoreId(nextId);
+      return nextToday;
     },
     [token],
   );
@@ -526,6 +547,19 @@ export default function Workspace() {
       ? forecastResult.forecast
       : null;
   const replay = !!today && asOf !== today;
+  const weatherLabel =
+    forecast?.weather.mode === "live_forecast"
+      ? "현재 실제 예보"
+      : forecast?.weather.mode === "historical_reanalysis"
+        ? "과거 재분석"
+        : forecast?.weather.mode === "recent_weather"
+          ? "최근 날씨 시나리오"
+          : "날씨 자료";
+  const validOrderDate = isOrderDateInWindow(orderDate, today);
+  const recommendationCurrent =
+    !!recommendation &&
+    (recommendation.order_date ?? asOf) === orderDate &&
+    !replay;
   const owner = store?.role === "owner";
   const currentTab = tabs.find((item) => item.id === tab)!;
   const filtered =
@@ -563,7 +597,10 @@ export default function Workspace() {
   );
 
   async function calculate() {
-    if (!data || !forecast || forecastLoading) return;
+    if (!data || !forecast || forecastLoading || replay || !validOrderDate)
+      return;
+    setRecommendation(null);
+    setQuantities({});
     recommendationRequest.current?.abort();
     const controller = new AbortController();
     recommendationRequest.current = controller;
@@ -573,10 +610,17 @@ export default function Workspace() {
       {
         method: "POST",
         signal: controller.signal,
-        body: JSON.stringify({ forecast_id: forecast.id }),
+        body: JSON.stringify({
+          forecast_id: forecast.id,
+          order_date: orderDate,
+        }),
       },
     );
     if (controller.signal.aborted) return;
+    if ((result.order_date ?? asOf) !== orderDate)
+      throw new Error(
+        "추천의 발주 예정일이 일치하지 않아요. 다시 계산해주세요.",
+      );
     setRecommendation(result);
     setQuantities(
       Object.fromEntries(
@@ -588,7 +632,8 @@ export default function Workspace() {
   }
 
   async function saveOrder() {
-    if (!recommendation) return;
+    if (!data || !recommendation || !recommendationCurrent || !validOrderDate)
+      return;
     const lines = recommendation.rows
       .filter((row) => row.quantity !== null)
       .map((row) => ({
@@ -857,6 +902,11 @@ export default function Workspace() {
                   : currentTab.label}
               </h1>
               <p>{currentTab.description}</p>
+              {!modelDemo && store?.timezone && (
+                <p>
+                  {store.city} 현지 오늘 {today} · {store.timezone}
+                </p>
+              )}
             </div>
             {!modelDemo && (
               <div className="store-picker">
@@ -866,9 +916,14 @@ export default function Workspace() {
                   disabled={busy}
                   value={storeId}
                   onChange={(event) => {
+                    const next = stores.find(
+                      (item) => item.id === event.target.value,
+                    );
+                    recommendationRequest.current?.abort();
+                    setRecommendation(null);
                     setStoreId(event.target.value);
                     setSearch("");
-                    setAsOf(today);
+                    setAsOf(next?.local_today ?? serverToday);
                     setInventoryProduct(null);
                     setProductModal(null);
                   }}
@@ -969,6 +1024,9 @@ export default function Workspace() {
                 key={`${token}:${storeId}`}
                 token={token}
                 storeId={storeId}
+                asOf={asOf}
+                today={today}
+                weatherMode={forecast?.weather.mode}
                 owner={owner}
                 busy={busy}
                 onBusyChange={setBusy}
@@ -1105,9 +1163,12 @@ export default function Workspace() {
                         <div>
                           <h2>{store?.city} 날씨</h2>
                           <p>
-                            {replay
-                              ? "과거 재분석 · 당시 예보 아님"
-                              : "앞으로 7일 · 현재 예보"}
+                            {weatherLabel}
+                            {forecast.weather.mode ===
+                              "historical_reanalysis" ||
+                            forecast.weather.mode === "recent_weather"
+                              ? " · 당시 예보 아님"
+                              : " · 앞으로 7일"}
                           </p>
                         </div>
                         <span className="pill neutral">
@@ -1160,7 +1221,7 @@ export default function Workspace() {
                       <div className="weather-caption">
                         {forecast.weather.note} ·{" "}
                         {forecast.model.uses_weather
-                          ? "이 예보를 판매 예측에 사용했어요"
+                          ? "이 날씨 자료를 판매 예측에 사용했어요"
                           : "날씨는 참고 정보이며 예측에 사용하지 않았어요"}{" "}
                         · 조회{" "}
                         {new Date(forecast.weather.fetched_at).toLocaleString(
@@ -1197,7 +1258,7 @@ export default function Workspace() {
                           ))}
                         </select>
                         <label className="date-picker">
-                          기준일
+                          판매 기준일
                           <input
                             aria-label="예측 기준일"
                             type="date"
@@ -1279,7 +1340,7 @@ export default function Workspace() {
                     {forecast && (
                       <p className="chart-footnote">
                         {forecast.model.uses_weather
-                          ? "실제 날씨 예보를 입력한 TFT 결과예요."
+                          ? `${weatherLabel} 자료를 반영한 TFT 결과예요.`
                           : "현재는 요일별 과거 판매량으로 계산해요. 표시된 날씨는 예측에 반영하지 않아요."}{" "}
                         {forecast.model.training_data === "synthetic"
                           ? "합성 자료로 학습한 실험 모델이며 실제 매장의 정확도는 검증 전이에요. "
@@ -1334,8 +1395,9 @@ export default function Workspace() {
                       <div>
                         <h2>새 발주 계획</h2>
                         <p>
-                          오늘 기준 재고와 상품 설정으로 계산해요. 실제 업체
-                          주문은 별도로 진행해주세요.
+                          판매·재고 기준일 {asOf}
+                          {store?.timezone ? ` (${store.timezone})` : ""}. 발주
+                          예정일과 입고까지 걸리는 기간을 함께 반영해요.
                         </p>
                       </div>
                       <button
@@ -1344,6 +1406,7 @@ export default function Workspace() {
                           busy ||
                           loading ||
                           replay ||
+                          !validOrderDate ||
                           forecastLoading ||
                           !forecast
                         }
@@ -1357,7 +1420,36 @@ export default function Workspace() {
                             : "발주량 계산"}
                       </button>
                     </div>
-                    {!recommendation ? (
+                    <div className="plan-summary">
+                      <label className="date-picker">
+                        발주 예정일
+                        <input
+                          type="date"
+                          aria-label="발주 예정일"
+                          value={orderDate}
+                          min={today}
+                          max={addCalendarDays(today, 6)}
+                          required
+                          disabled={busy || loading || replay}
+                          onChange={(event) => {
+                            recommendationRequest.current?.abort();
+                            setRecommendation(null);
+                            setQuantities({});
+                            setOrderDate(event.target.value);
+                          }}
+                        />
+                      </label>
+                      <span>
+                        오늘부터 7일 중 선택 · 날짜를 바꾸면 다시 계산해요.
+                      </span>
+                    </div>
+                    {replay && (
+                      <p className="helper assumptions">
+                        과거 판매·날씨는 예측 화면에서 볼 수 있어요. 현재 재고로
+                        발주하려면 오늘 기준 예측을 사용해주세요.
+                      </p>
+                    )}
+                    {!recommendation || !recommendationCurrent ? (
                       <Empty
                         title={
                           forecast
@@ -1379,6 +1471,10 @@ export default function Workspace() {
                     ) : (
                       <>
                         <div className="plan-summary">
+                          <span>
+                            발주 예정{" "}
+                            <strong>{recommendation.order_date ?? asOf}</strong>
+                          </span>
                           <span>
                             계산 가능한 상품{" "}
                             <strong>
@@ -1469,6 +1565,7 @@ export default function Workspace() {
                             disabled={
                               busy ||
                               loading ||
+                              !recommendationCurrent ||
                               !recommendation.calculated_count ||
                               invalidQuantity
                             }
@@ -1516,8 +1613,11 @@ export default function Workspace() {
                             {data.orders.map((order) => (
                               <tr key={order.id}>
                                 <td>
-                                  <strong>{order.as_of} 발주안</strong>
+                                  <strong>
+                                    {order.order_date ?? order.as_of} 발주 예정
+                                  </strong>
                                   <small>
+                                    판매 기준 {order.as_of} ·{" "}
                                     {order.lines.length}개 상품 ·{" "}
                                     {order.id.slice(0, 8)}
                                     {order.stale ? " · 현재 자료와 다름" : ""}
@@ -1572,11 +1672,12 @@ export default function Workspace() {
                                                 const exported = await download(
                                                   `/stores/${storeId}/orders/${order.id}/export?format=${format}`,
                                                   token,
-                                                  `화개장날_발주서_${order.as_of}.${format}`,
+                                                  `화개장날_발주서_${order.order_date ?? order.as_of}.${format}`,
                                                 );
-                                                if (exported) setNotice(
-                                                  "저장 당시 수량으로 발주서를 내보냈어요.",
-                                                );
+                                                if (exported)
+                                                  setNotice(
+                                                    "저장 당시 수량으로 발주서를 내보냈어요.",
+                                                  );
                                               })
                                             }
                                           >
@@ -1637,8 +1738,7 @@ export default function Workspace() {
           token={token}
           onSaved={(id) => {
             void action(async () => {
-              await refreshStores(id);
-              setAsOf(today);
+              setAsOf(await refreshStores(id));
               setTab("products");
               setNotice("새 매장을 추가했어요. 상품부터 등록해주세요.");
             });
@@ -1660,7 +1760,7 @@ export default function Workspace() {
             setInventoryProduct(null);
             setProductModal(null);
             setNotice(
-              "가상 판매·재고를 준비했어요. 실제 예보로 TFT 예측을 시작해요.",
+              "시연 판매·재고를 준비했어요. 매장 위치의 실제 예보로 TFT 예측을 시작해요.",
             );
           }}
         />

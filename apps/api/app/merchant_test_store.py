@@ -4,7 +4,7 @@ import math
 import uuid
 from datetime import timedelta
 
-from app.database import encode, now_iso, today
+from app.database import encode, now_iso, store_today
 
 DATA_NOTE = (
     "직접 테스트용 가상 매장입니다. 5개 상품·가격·오늘을 포함한 56일 판매·재고·입고는 "
@@ -16,7 +16,7 @@ DATA_NOTE = (
 
 def create_test_store(database, user_id, payload):
     store_id = uuid.uuid4().hex[:12]
-    stamp, cutoff = now_iso(), today()
+    stamp, cutoff = now_iso(), store_today({"timezone": payload.timezone})
     catalog = [
         ("TEST01", "햄치즈 샌드위치", "간편식", 4800, 2600, 2, 32),
         ("TEST02", "삼각김밥", "간편식", 1800, 950, 2, 46),
@@ -40,6 +40,7 @@ def create_test_store(database, user_id, payload):
         db.execute(
             "INSERT INTO memberships VALUES (?,?,?)", (user_id, store_id, "owner")
         )
+        db.execute("INSERT INTO store_locales VALUES (?,?,?)", (store_id, payload.timezone, "noaa_gfs" if payload.timezone.startswith("America/") else "auto"))
         db.execute(
             "INSERT INTO store_forecast_settings VALUES (?,?,?)",
             (store_id, "merchant_tft", stamp),
@@ -110,6 +111,8 @@ def create_test_store(database, user_id, payload):
         "latitude": payload.latitude,
         "longitude": payload.longitude,
         "provenance": DATA_NOTE,
+        "timezone": payload.timezone,
+        "local_today": cutoff.isoformat(),
         "role": "owner",
         "provider": "merchant_tft",
         "data_note": DATA_NOTE,

@@ -25,7 +25,7 @@ HEADERS = {
 }
 
 
-def parse_file(filename: str, content: bytes):
+def parse_file(filename: str, content: bytes, *, latest_date=None):
     if len(content) > MAX_BYTES:
         raise ValueError("파일은 5MB까지 지원합니다.")
     if filename.lower().endswith(".csv"):
@@ -70,7 +70,7 @@ def parse_file(filename: str, content: bytes):
                 if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(raw_day)):
                     raise ValueError("날짜는 YYYY-MM-DD 형식이어야 합니다.")
                 day = date.fromisoformat(str(raw_day))
-            if day > today():
+            if day > (latest_date or today()):
                 raise ValueError("미래 날짜의 판매 기록은 저장할 수 없습니다.")
             product_id = str(item.get("product_id") or "").strip()
             if not product_id or len(product_id) > 80:

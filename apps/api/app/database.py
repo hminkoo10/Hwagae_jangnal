@@ -10,6 +10,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 KST = timezone(timedelta(hours=9))
 
@@ -20,6 +21,11 @@ def now_iso() -> str:
 
 def today():
     return datetime.now(KST).date()
+
+
+def store_today(store):
+    """Use the merchant's business date, including US daylight saving time."""
+    return datetime.now(ZoneInfo(store.get("timezone", "Asia/Seoul"))).date()
 
 
 def password_hash(password: str, salt: str) -> str:
@@ -78,6 +84,15 @@ class Database:
                     store_id TEXT PRIMARY KEY REFERENCES stores(id),
                     provider TEXT NOT NULL CHECK(provider IN ('weekday','merchant_tft')),
                     updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS store_locales (
+                    store_id TEXT PRIMARY KEY REFERENCES stores(id),
+                    timezone TEXT NOT NULL, weather_provider TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS walmart_scenarios (
+                    store_id TEXT PRIMARY KEY REFERENCES stores(id),
+                    sample_id TEXT NOT NULL, anchor_date TEXT NOT NULL,
+                    source_end TEXT NOT NULL, history_payload TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS products (
                     store_id TEXT NOT NULL REFERENCES stores(id), id TEXT NOT NULL, name TEXT NOT NULL,

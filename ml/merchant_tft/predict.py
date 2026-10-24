@@ -74,8 +74,10 @@ def _prepare(context):
     if any(not isinstance(value, str) or not value.strip() for value in ids) or len(ids) != len(set(ids)):
         raise ValueError("product IDs must be unique nonempty strings")
     weather = context.get("weather", {})
-    if weather.get("status") != "ok" or weather.get("mode") != "live_forecast":
-        raise ValueError("complete live forecast required; historical or stale weather is not supported")
+    if weather.get("status") != "ok" or weather.get("mode") not in {
+        "live_forecast", "historical_reanalysis", "recent_weather"
+    }:
+        raise ValueError("complete forecast or explicitly labelled reanalysis weather required")
     days = weather.get("days", [])
     if not isinstance(days, list) or [day.get("date") for day in days] != dates:
         raise ValueError("weather must contain exactly the seven requested days in order")
@@ -143,8 +145,15 @@ def predict(context):
                      "p50": float(values[batch, offset, 2]), "p90": float(values[batch, offset, 4])}
                     for offset, day in enumerate(dates)
                 ]
-    return {
-        "model": {"name": "실시간 예보 TFT · 실험", "version": manifest["version"],
-                  "uses_weather": True, "training_data": "synthetic", "note": NOTE},
-        "products": products,
-    }
+    model = {"name": "실시간 예보 TFT · 실험", "version": manifest["version"],
+             "uses_weather": True, "training_data": "synthetic", "note": NOTE}
+    if context["weather"]["mode"] != "live_forecast":
+        model.update(
+            name="과거 날씨 TFT · 실험", experimental=True,
+            weather_strategy=context["weather"]["mode"],
+            note=("합성 판매·가상 예보로 학습한 별도 실험용 TFT에 과거 날씨 자료를 입력합니다. "
+                  "당시 발급된 예보가 아니므로 실제 미래 예측 성능의 평가에 사용할 수 없습니다. "
+                  "합성 학습에는 기온 상승 시 판매 증가·강한 비에 판매 감소라는 가정이 들어 있습니다. "
+                  "실매장 예측 성능은 검증하지 않았으며 Walmart TFT 평가 지표를 적용하지 않습니다."),
+        )
+    return {"model": model, "products": products}

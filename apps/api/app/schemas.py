@@ -2,6 +2,7 @@
 
 from datetime import date
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -44,6 +45,16 @@ class StoreInput(Payload):
     city: str = Field(min_length=1, max_length=80)
     latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
     longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    timezone: str = Field(default="Asia/Seoul", min_length=1, max_length=80)
+
+    @field_validator("timezone")
+    @classmethod
+    def valid_timezone(cls, value):
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("매장 시간대는 유효한 IANA 이름으로 입력하세요.") from None
+        return value
 
     @field_validator("name", "city")
     @classmethod
@@ -90,6 +101,7 @@ class Inventory(Payload):
 
 class RecommendationRequest(Payload):
     forecast_id: str
+    order_date: date | None = None
 
 
 class OrderLine(Payload):

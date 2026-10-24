@@ -1,5 +1,6 @@
 """Strict personal planning inputs; model forecasts remain server-owned."""
 
+from datetime import date
 from typing import Annotated
 
 from pydantic import Field, field_validator
@@ -31,6 +32,7 @@ class PlanningUpdate(Payload):
 class ModelRecommendationRequest(Payload):
     forecast_id: str = Field(min_length=1, max_length=80)
     revision: Version
+    order_date: date | None = None
 
 
 class ModelOrderUpdate(Payload):

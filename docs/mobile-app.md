@@ -8,7 +8,7 @@
 | 앱 ID | `kr.milky.hwagae` |
 | 구성 | Capacitor 8 · 기존 웹 화면 · 기존 FastAPI 서버 |
 | Android | 설치 가능한 테스트용 debug APK |
-| iOS | Xcode 프로젝트 · 서명 없는 Simulator용 앱 |
+| iOS | 서명 없는 실기기용 IPA · Simulator용 앱 · Xcode 프로젝트 |
 | 계정과 자료 | 웹과 같은 계정·매장·판매·발주 기록 |
 | 네트워크 | 로그인·자료 조회·예측·발주 저장에는 인터넷 필요 |
 | 최소 기기 환경 | Android 7 이상 + Android System WebView 111 이상 / iOS 16.4 이상 |
@@ -41,16 +41,34 @@
 
 debug APK는 해커톤 직접 테스트용입니다. Play Store 배포에는 별도 release 서명과 AAB 빌드가 필요합니다. CI의 임시 debug 서명 키는 실행마다 달라질 수 있으므로 기존 테스트 앱을 업데이트할 때 서명이 다르다는 오류가 나면 해당 테스트 앱을 삭제한 뒤 새 APK를 설치합니다. 서버에 저장한 매장·발주는 남고 기기 로그인 상태는 초기화됩니다.
 
-### iPhone / iOS Simulator
+### iPhone · iPad: Mac 없이 Windows에서 설치
+
+GitHub의 macOS 빌드 서버가 실기기용 앱을 만들고, Windows의 Sideloadly가 본인 Apple 계정으로 서명한 뒤 연결된 iPhone·iPad에 설치합니다. **`hwagae-ios-unsigned.ipa`는 서명 전 파일이므로 다운로드만 하거나 기기에서 직접 열어서는 설치되지 않습니다.** Apple 계정·비밀번호·인증 코드는 CI나 저장소에 넣지 않습니다.
+
+1. [GitHub Actions](https://github.com/hminkoo10/Hwagae_jangnal/actions/workflows/mobile.yml)의 원하는 실행에서 **iOS simulator and unsigned device builds** 성공을 확인합니다. **Artifacts → hwagae-ios-unsigned** ZIP을 받아 압축을 풀고 `hwagae-ios-unsigned.ipa`를 준비합니다.
+2. [Sideloadly 공식 사이트](https://sideloadly.io/)에서 Windows 버전을 설치합니다. Windows용 iTunes·iCloud는 해당 사이트가 안내하는 Apple 웹 배포판을 사용합니다. 기존 Store 버전이 있으면 공식 설치 안내의 충돌 처리 절차를 따릅니다.
+3. iOS/iPadOS **16.4 이상** 기기를 USB로 연결하고 잠금 해제 후 **이 컴퓨터를 신뢰**를 선택합니다.
+4. Sideloadly에서 연결 기기를 고르고 IPA를 끌어 넣습니다. 본인 Apple 계정을 입력하고 **Start**로 진행합니다. 비밀번호와 2단계 인증 코드는 사용자 본인이 Sideloadly 창에 직접 입력합니다. 화개장날 웹 로그인 계정과는 별개입니다.
+5. 기기의 **설정 → 개인정보 보호 및 보안 → 개발자 모드**를 켜고 재시동·확인을 진행합니다. 메뉴가 없으면 먼저 4번 설치를 시도한 뒤 다시 확인합니다. 개발용 앱 설치 후 메뉴가 표시될 수 있습니다. [Apple 개발자 모드 안내](https://developer.apple.com/videos/play/wwdc2022/110344/)
+6. **신뢰하지 않는 개발자**가 표시되면 **설정 → 일반 → VPN 및 기기 관리**에서 본인이 사용한 Apple 계정을 신뢰합니다. [Sideloadly 설치 FAQ](https://sideloadly.io/faq)
+7. **화개장날**을 열고 기존 웹 계정으로 로그인합니다. 아래 공통 기능 확인 순서대로 테스트합니다.
+
+무료 Apple 계정도 가능합니다. 무료 서명은 **7일 뒤 만료**되며 기기당 개발용 앱은 **최대 3개**입니다. 만료 전에 같은 Apple 계정·같은 앱 ID로 다시 설치하면 됩니다. Sideloadly 자동 갱신을 쓰려면 PC가 켜져 있고 기기가 USB 또는 설정된 Wi-Fi 연결로 검색되어야 합니다. [Sideloadly 갱신 안내](https://sideloadly.io/faq), [Apple 무료 개발 계정 제한](https://developer.apple.com/help/account/basics/about-your-developer-account)
+
+CI는 실기기 바이너리·패키지 구조까지 검사합니다. 개인 Apple 계정 서명, USB 설치, 실제 기기 동작은 사용자의 PC·기기에서 별도로 확인해야 합니다. 이 IPA는 TestFlight나 App Store 배포본이 아닙니다.
+
+### iOS Simulator · Mac의 Xcode
 
 `hwagae-ios-simulator` Artifact 안의 ZIP을 풀면 `App.app`이 나옵니다. **Mac의 iOS Simulator용**이며 iPhone에 직접 설치하는 IPA가 아닙니다. Mac에서 Xcode의 Simulator를 실행하고 호환되는 시뮬레이터 창에 `App.app`을 끌어 넣어 테스트합니다.
 
-실제 iPhone에서는 Mac의 Xcode로 프로젝트를 열고 **Signing & Capabilities → Team**을 선택한 뒤 연결한 iPhone에 빌드합니다. 개인 Apple 계정으로 가능한 개발용 설치와 Apple Developer Program의 TestFlight/App Store 배포는 별개입니다. 저장소 CI에는 Apple 인증서·프로비저닝 프로파일·자동 배포 설정을 넣지 않습니다.
+Simulator ZIP과 실기기 IPA는 서로 다른 플랫폼용 바이너리입니다. ZIP 확장자를 IPA로 바꾸거나 재서명해도 실기기용으로 변환되지 않습니다.
+
+Mac이 있으면 Xcode로 프로젝트를 열고 **Signing & Capabilities → Team**을 선택한 뒤 연결한 iPhone에 직접 빌드할 수도 있습니다. 개인 Apple 계정으로 가능한 개발용 설치와 Apple Developer Program의 TestFlight/App Store 배포는 별개입니다. 저장소 CI에는 Apple 인증서·프로비저닝 프로파일·자동 설치 설정을 넣지 않습니다.
 
 ## 공통 기능 확인 순서
 
 1. 로그인 → 매장 선택 → **실시간 TFT 테스트 매장 만들기**로 테스트 자료를 준비합니다.
-2. **7일 판매 예측**에서 실제 예보·날짜·모델 이름을 확인합니다. 가상 판매·재고와 합성 학습 TFT라는 표시는 웹과 같습니다.
+2. **7일 판매 예측**에서 실제 예보·날짜·모델 이름을 확인합니다. 기본 Walmart 매장은 공개 판매의 날짜 이동·미국 시연 위치·실험 모델을 표시하며, 합성 자료 매장을 선택하면 합성 학습 TFT로 표시합니다.
 3. **재고 확인**에서 재고·입고 예정 수량을 바꾸고 **발주 계획**에서 추천을 다시 계산합니다.
 4. 발주 수량을 수정·저장·확정한 뒤 CSV와 Excel을 내보냅니다. OS 공유 창에서 파일 앱·메일 등 원하는 대상을 직접 고릅니다.
 5. 판매 자료 업로드에서 기기의 파일 선택기로 CSV/Excel 파일을 선택합니다. 앱에 저장소 전체 접근 권한을 줄 필요가 없습니다.
@@ -120,7 +138,8 @@ Xcode에서 `App` scheme과 Simulator 또는 연결한 iPhone을 고릅니다. �
 [mobile.yml](../.github/workflows/mobile.yml)은 모바일·웹·관련 패키지 변경 PR, main 변경, 수동 실행에서 동작합니다.
 
 - Android: Ubuntu24.04 + Java21 → 정적 화면·설정 검사 → `assembleDebug` → APK 보관.
-- iOS: macOS26 → 정적 화면·설정 검사 → 서명 없이 Simulator용 컴파일 → `.app` ZIP 보관.
+- iOS: macOS26 → 정적 화면·설정 검사 → Simulator용 컴파일 → `.app` ZIP 보관 → 실기기용 `iphoneos`/`arm64` Release 컴파일 → `Payload/App.app` 구조의 무서명 IPA 보관.
+- `hwagae-ios-unsigned`는 Windows에서 개인 계정으로 서명할 실기기용 파일이고, `hwagae-ios-simulator`는 Mac Simulator용 파일입니다. CI에는 Apple 계정·서명 키가 필요하지 않습니다.
 - 산출물 보관 기간은 7일입니다. 만료되면 Actions에서 다시 실행합니다.
 - CI 빌드 성공은 컴파일 검증입니다. 실제 기기 터치·파일 선택·공유·로그인 성공을 대신하지 않습니다.
 - 앱 스토어 업로드·운영 데이터 변경·앱 자동 배포는 수행하지 않습니다.

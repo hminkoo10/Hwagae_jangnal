@@ -121,6 +121,48 @@ def _weather_frame(
     return weather[weather.date >= pd.Timestamp(encoder_start)].reset_index(drop=True)
 
 
+def _forecast_weather_frame(records: object, units: str, forecast_dates: list[date]) -> pd.DataFrame:
+    """Validate explicit scenario weather; never fill missing future values.
+
+    API forecasts have no observed NOAA trace flag. Numeric precipitation is
+    used as supplied and precip_trace=0 is an explicit experimental convention.
+    This does not assert that trace precipitation was observed to be absent.
+    """
+    if not isinstance(records, list) or len(records) != HORIZON:
+        raise ValueError("model_input.forecast_weather must contain exactly seven days")
+    rows = []
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("forecast_weather records must be objects")
+        day = _day(record.get("date"), "forecast_weather.date")
+        values = {}
+        for name in WEATHER_BASE:
+            value = record.get(name)
+            if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+                raise ValueError(f"forecast_weather.{name} must be finite numeric data")
+            values[name] = float(value)
+        si = dict(values)
+        if units == "walmart":
+            for name in ("tavg", "tmax", "tmin"):
+                si[name] = (si[name] - 32) * 5 / 9
+            si["preciptotal"] *= 25.4
+            si["avgspeed"] *= 0.44704
+        if not -90 <= si["tmin"] <= si["tavg"] <= si["tmax"] <= 65:
+            raise ValueError("forecast_weather temperatures must be ordered and within -90..65 Celsius")
+        if not 0 <= si["preciptotal"] <= 2000 or not 0 <= si["avgspeed"] <= 150:
+            raise ValueError("forecast_weather precipitation or wind speed is outside the supported range")
+        if units == "si":
+            for name in ("tavg", "tmax", "tmin"):
+                values[name] = values[name] * 9 / 5 + 32
+            values["preciptotal"] /= 25.4
+            values["avgspeed"] /= 0.44704
+        rows.append({"date": pd.Timestamp(day), **values,
+                     **{name: 0.0 for name in WEATHER_MISSING}, "precip_trace": 0.0})
+    if [row["date"].date() for row in rows] != sorted(forecast_dates):
+        raise ValueError("forecast_weather dates must be D+1 through D+7 in chronological order")
+    return pd.DataFrame(rows)
+
+
 def prepare_context(
     context: dict,
     parameters: dict,
@@ -155,12 +197,16 @@ def prepare_context(
         raise ValueError("model_input.dataset must be 'walmart-stormy-weather'")
     store = _identifier(spec.get("store_nbr"), "model_input.store_nbr")
     station = _identifier(spec.get("station_nbr"), "model_input.station_nbr")
-    if spec.get("weather_strategy") != "persistence":
-        raise ValueError("this checkpoint requires model_input.weather_strategy='persistence'")
+    if spec.get("weather_strategy") not in {"persistence", "provided_forecast"}:
+        raise ValueError("model_input.weather_strategy must be persistence or provided_forecast")
     if spec.get("weather_units") not in {"walmart", "si"}:
         raise ValueError("model_input.weather_units must be 'walmart' or 'si'")
     if "history_weather" not in spec:
         raise ValueError("model_input.history_weather is required (an empty list uses saved defaults)")
+    forecast_weather = (
+        _forecast_weather_frame(spec.get("forecast_weather"), spec["weather_units"], forecast_dates)
+        if spec["weather_strategy"] == "provided_forecast" else None
+    )
     if parameters.get("max_encoder_length") != ENCODER_DAYS or parameters.get("max_prediction_length") != HORIZON:
         raise ValueError("saved dataset must have a 56-day encoder and 7-day decoder")
     products = context.get("products")
@@ -234,7 +280,8 @@ def prepare_context(
             future = pd.DataFrame({"date": pd.date_range(origin + timedelta(days=1), periods=HORIZON),
                                    "units": 0.0, "sales_observed": 0.0, "station_nbr": station})
             for name in WEATHER_FEATURES:
-                future[name] = float(weather.iloc[-1][name])
+                future[name] = (float(weather.iloc[-1][name]) if forecast_weather is None
+                                else forecast_weather[name].to_numpy())
             frame = pd.concat([history, future], ignore_index=True)
             frame["store_nbr"], frame["item_nbr"] = store, item
             frame = calendar_features(frame)

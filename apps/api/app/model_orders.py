@@ -6,7 +6,7 @@ import json
 import logging
 import re
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 from fastapi import Depends, HTTPException
@@ -188,8 +188,10 @@ def _require_fresh(db, user_id, sample_id, forecast_id, revision):
 
 
 def _order_view(db, record):
+    payload = json.loads(record["payload"])
     return {
-        **json.loads(record["payload"]),
+        **payload,
+        "order_date": payload.get("order_date", payload["as_of"]),
         "id": record["id"],
         "sample_id": record["sample_id"],
         "status": record["status"],
@@ -246,7 +248,14 @@ def _safe(value):
 def _export(order, format):
     rows = [
         ["개인 시연용 발주서 · 외부 발주 전송 없음"],
-        ["과거 기준일", order["as_of"], "시연 매장", order["sample_id"]],
+        [
+            "과거 기준일",
+            order["as_of"],
+            "시연 매장",
+            order["sample_id"],
+            "발주 예정일",
+            order.get("order_date", order["as_of"]),
+        ],
         ["모델", order["model"]["name"], "버전", order["model"]["version"]],
         ["확정 시각", order["confirmed_at"], "발주안", order["id"]],
         ["가정", order["assumptions"]],
@@ -384,6 +393,13 @@ def mount_model_order_routes(application, database, authenticated):
                 raise HTTPException(
                     409, "시연 기준일이 변경되었습니다. 예측을 다시 실행하세요."
                 )
+            cutoff = date.fromisoformat(as_of)
+            order_date = payload.order_date or cutoff
+            if not cutoff <= order_date <= cutoff + timedelta(days=6):
+                raise HTTPException(
+                    422,
+                    "발주 예정일은 판매 마감 기준일부터 6일 뒤까지 선택하세요. 입고·판매기간이 7일 예측 안에 들어야 합니다.",
+                )
             _, items = _workspace(db, user["id"], context)
             snapshot = json.loads(run["payload"])
         forecasts = {item["product_id"]: item for item in snapshot["products"]}
@@ -396,7 +412,8 @@ def mount_model_order_routes(application, database, authenticated):
                 {**item, "id": item["product_id"]},
                 forecasts[item["product_id"]],
                 item["stock"],
-                date.fromisoformat(as_of),
+                cutoff,
+                order_date,
             )
             for item in items
         ]
@@ -405,6 +422,7 @@ def mount_model_order_routes(application, database, authenticated):
             "sample_id": sample_id,
             "forecast_id": run["id"],
             "as_of": as_of,
+            "order_date": order_date.isoformat(),
             "revision": payload.revision,
             "model": snapshot["model"],
             "rows": rows,
@@ -460,6 +478,9 @@ def mount_model_order_routes(application, database, authenticated):
                 key: recommendation[key]
                 for key in ("as_of", "forecast_id", "model", "assumptions")
             }
+            snapshot["order_date"] = recommendation.get(
+                "order_date", recommendation["as_of"]
+            )
             snapshot.update(lines=lines, total=sum(line["amount"] for line in lines))
             order_id = str(uuid.uuid4())
             db.execute(

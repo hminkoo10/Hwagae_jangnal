@@ -149,6 +149,38 @@ class PredictionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "after as_of"):
             inference.predict(changed)
 
+    def test_provided_forecast_changes_real_tft_predictions_without_changing_persistence(self):
+        original = sample_context()
+        baseline = inference.predict(original)
+        expected = json.loads((ML_ROOT / "examples/expected-api-store-4.json").read_text(encoding="utf-8"))
+        self.assertEqual(baseline["model"], expected["model"])
+        for actual, reference in zip(baseline["products"], expected["products"], strict=True):
+            np.testing.assert_allclose(
+                [[point[name] for name in ("p10", "p50", "p90")] for point in actual["points"]],
+                [[point[name] for name in ("p10", "p50", "p90")] for point in reference["points"]],
+                rtol=1e-5, atol=1e-5,
+            )
+        cool, warm = deepcopy(original), deepcopy(original)
+        for sample, temperature in ((cool, 45), (warm, 85)):
+            spec = sample["model_input"]
+            spec["weather_strategy"] = "provided_forecast"
+            spec["forecast_weather"] = [
+                {"date": day, "tavg": temperature + offset, "tmin": temperature - 5 + offset,
+                 "tmax": temperature + 5 + offset, "preciptotal": 0, "avgspeed": 5}
+                for offset, day in enumerate(sample["dates"])
+            ]
+        frozen = deepcopy(warm)
+        first, second = inference.predict(cool), inference.predict(warm)
+        self.assertEqual(warm, frozen)
+        self.assert_ready_contract(first, cool)
+        self.assert_ready_contract(second, warm)
+        self.assertEqual(second["model"]["training_data"], "walmart")
+        self.assertTrue(second["model"]["experimental"])
+        self.assertEqual(second["model"]["weather_strategy"], "provided_forecast")
+        flatten = lambda value: [point["p50"] for product in value["products"] for point in product["points"]]
+        self.assertFalse(np.allclose(flatten(first), flatten(second), rtol=1e-5, atol=1e-5))
+        self.assertEqual(baseline, inference.predict(original))
+
     def test_concurrent_calls_preserve_request_and_saved_model_state(self):
         context = sample_context()
         original = deepcopy(context)

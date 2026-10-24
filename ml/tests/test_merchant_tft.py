@@ -99,7 +99,7 @@ class MerchantTftTests(unittest.TestCase):
             self.assertIn("55/56", product["reason"])
 
     def test_no_future_targets_or_invalid_weather_can_enter(self):
-        for case in ("future_sale", "duplicate_sale", "negative_sale", "nan_sale", "bool_sale", "stale", "historical", "missing_weather", "duplicate_weather", "inverted_temperature", "nan_rain"):
+        for case in ("future_sale", "duplicate_sale", "negative_sale", "nan_sale", "bool_sale", "stale", "unknown_weather_mode", "missing_weather", "duplicate_weather", "inverted_temperature", "nan_rain"):
             with self.subTest(case=case):
                 sample = context()
                 if case == "future_sale":
@@ -110,8 +110,8 @@ class MerchantTftTests(unittest.TestCase):
                     sample["sales"][0]["units_sold"] = {"negative_sale": -1, "nan_sale": float("nan"), "bool_sale": True}[case]
                 elif case == "stale":
                     sample["weather"]["status"] = "stale"
-                elif case == "historical":
-                    sample["weather"]["mode"] = "historical_reanalysis"
+                elif case == "unknown_weather_mode":
+                    sample["weather"]["mode"] = "unspecified_weather"
                 elif case == "missing_weather":
                     sample["weather"]["days"].pop()
                 elif case == "duplicate_weather":
@@ -120,6 +120,22 @@ class MerchantTftTests(unittest.TestCase):
                     sample["weather"]["days"][0]["temp_min"] = 40
                 else:
                     sample["weather"]["days"][0]["rain_mm"] = float("nan")
+                with self.assertRaises(ValueError):
+                    inference.predict(sample)
+
+    def test_historical_weather_is_an_explicit_experiment_with_unchanged_date_contract(self):
+        for mode in ("historical_reanalysis", "recent_weather"):
+            with self.subTest(mode=mode):
+                sample = context()
+                reference = inference.predict(sample)
+                sample["weather"]["mode"] = mode
+                result = inference.predict(sample)
+                self.assertEqual(result["products"], reference["products"])
+                self.assertTrue(result["model"]["experimental"])
+                self.assertEqual(result["model"]["weather_strategy"], mode)
+                self.assertIn("과거", result["model"]["name"])
+                self.assertIn("당시 발급된 예보가 아니", result["model"]["note"])
+                sample["weather"]["days"][0]["date"] = sample["as_of"]
                 with self.assertRaises(ValueError):
                     inference.predict(sample)
 

@@ -9,8 +9,10 @@ import {
 } from "react";
 import {
   api,
+  addCalendarDays,
   ApiError,
   download,
+  isOrderDateInWindow,
   units,
   won,
   type ModelDemoOrder,
@@ -455,10 +457,10 @@ function SavedOrder({
     <article className={styles.orderCard}>
       <div className={styles.orderHeader}>
         <div>
-          <strong>{order.as_of} 시연 발주안</strong>
+          <strong>{order.order_date ?? order.as_of} 시연 발주 예정</strong>
           <small>
-            {order.lines.length}개 상품 · {order.id.slice(0, 8)} · 버전{" "}
-            {order.version}
+            판매 기준 {order.as_of} · {order.lines.length}개 상품 ·{" "}
+            {order.id.slice(0, 8)} · 버전 {order.version}
           </small>
         </div>
         <span
@@ -606,6 +608,7 @@ export function ModelOrdering({
   onBusyChange: (busy: boolean) => void;
 }) {
   const [plan, setPlan] = useState<ModelDemoPlanning | null>(null);
+  const [orderDate, setOrderDate] = useState("");
   const [orders, setOrders] = useState<ModelDemoOrder[]>([]);
   const [recommendation, setRecommendation] =
     useState<ModelDemoRecommendation | null>(null);
@@ -643,6 +646,9 @@ export function ModelOrdering({
           "선택한 매장의 발주 자료가 아니에요. 다시 불러와주세요.",
         );
       setPlan(next);
+      setOrderDate((current) =>
+        isOrderDateInWindow(current, next.as_of) ? current : next.as_of,
+      );
       setOrders(saved.orders);
     },
     [sampleId, token],
@@ -758,8 +764,12 @@ export function ModelOrdering({
   }
 
   const activeForecastId = plan?.latest_forecast_id ?? forecastId;
+  const validOrderDate = !!plan && isOrderDateInWindow(orderDate, plan.as_of);
+  const recommendationCurrent =
+    !!recommendation &&
+    (recommendation.order_date ?? recommendation.as_of) === orderDate;
   async function calculate() {
-    if (!plan || !activeForecastId) return;
+    if (!plan || !activeForecastId || !validOrderDate) return;
     setRecommendation(null);
     setQuantities({});
     await perform(async (signal) => {
@@ -772,6 +782,7 @@ export function ModelOrdering({
           body: JSON.stringify({
             forecast_id: activeForecastId,
             revision: plan.revision,
+            order_date: orderDate,
           }),
         },
       );
@@ -779,10 +790,11 @@ export function ModelOrdering({
       if (
         next.sample_id !== sampleId ||
         next.forecast_id !== activeForecastId ||
-        next.revision !== plan.revision
+        next.revision !== plan.revision ||
+        (next.order_date ?? next.as_of) !== orderDate
       )
         throw new Error(
-          "추천 결과의 매장·예측·재고 기준이 일치하지 않아요. 다시 불러와주세요.",
+          "추천 결과의 매장·예측·재고·발주 예정일이 일치하지 않아요. 다시 불러와주세요.",
         );
       setRecommendation(next);
       setQuantities(
@@ -807,7 +819,14 @@ export function ModelOrdering({
     0,
   );
   async function saveRecommendation() {
-    if (!recommendation || !readyRows.length || invalid) return;
+    if (
+      !recommendation ||
+      !recommendationCurrent ||
+      !validOrderDate ||
+      !readyRows.length ||
+      invalid
+    )
+      return;
     await perform(async (signal) => {
       const order = await api<ModelDemoOrder>("/model-demo/orders", token, {
         method: "POST",
@@ -885,7 +904,7 @@ export function ModelOrdering({
       const exported = await download(
         `/model-demo/orders/${encodeURIComponent(order.id)}/export?format=${format}`,
         token,
-        `화개장날_TFT시연_${order.as_of}_${order.id.slice(0, 8)}.${format}`,
+        `화개장날_TFT시연_${order.order_date ?? order.as_of}_${order.id.slice(0, 8)}.${format}`,
         { signal },
       );
       if (exported && !signal.aborted)
@@ -977,7 +996,9 @@ export function ModelOrdering({
             <div className={styles.heading}>
               <div>
                 <h2>1. 발주에 사용할 TFT 예측</h2>
-                <p>시연 기준일 {plan.as_of} · 이후 7일을 계획해요.</p>
+                <p>
+                  판매·재고 기준일 {plan.as_of} · 이후 7일의 수요를 예측해요.
+                </p>
               </div>
               <button
                 className="button secondary"
@@ -1100,7 +1121,9 @@ export function ModelOrdering({
               </div>
               <button
                 className="button primary"
-                disabled={busy || loading || !activeForecastId}
+                disabled={
+                  busy || loading || !activeForecastId || !validOrderDate
+                }
                 onClick={() => void calculate()}
               >
                 <Icon name="refresh" size={16} />
@@ -1111,7 +1134,32 @@ export function ModelOrdering({
                     : "발주량 계산"}
               </button>
             </div>
-            {!recommendation ? (
+            <div className={styles.summary}>
+              <label className="date-picker">
+                발주 예정일
+                <input
+                  type="date"
+                  aria-label="시연 발주 예정일"
+                  value={orderDate}
+                  min={plan.as_of}
+                  max={addCalendarDays(plan.as_of, 6)}
+                  required
+                  disabled={busy || loading}
+                  onChange={(event) => {
+                    if (busyRef.current) return;
+                    request.current?.abort();
+                    setRecommendation(null);
+                    setQuantities({});
+                    setOrderDate(event.target.value);
+                    setNotice(
+                      "발주 예정일을 바꿨어요. 새 날짜로 추천을 다시 계산해주세요.",
+                    );
+                  }}
+                />
+              </label>
+              <span>판매 기준일과 발주일을 나눠 계획해요.</span>
+            </div>
+            {!recommendation || !recommendationCurrent ? (
               <div className={styles.empty}>
                 {activeForecastId
                   ? "상품별 재고·가정을 확인한 뒤 발주량을 계산해주세요."
@@ -1120,6 +1168,12 @@ export function ModelOrdering({
             ) : (
               <>
                 <div className={styles.summary}>
+                  <span>
+                    발주 예정{" "}
+                    <strong>
+                      {recommendation.order_date ?? recommendation.as_of}
+                    </strong>
+                  </span>
                   <span>
                     계산 가능{" "}
                     <strong>
@@ -1214,7 +1268,9 @@ export function ModelOrdering({
                   {readyRows.length > 0 && (
                     <button
                       className="button primary"
-                      disabled={busy || loading || invalid}
+                      disabled={
+                        busy || loading || invalid || !recommendationCurrent
+                      }
                       onClick={() => void saveRecommendation()}
                     >
                       시연 발주안 저장
