@@ -8,7 +8,7 @@ CD는 DEPLOY_ENABLED=true일 때 검사를 통과한 main 또는 명시적으로
 대상은 Ubuntu 22.04 ARM64 서버, 서비스 주소는 https://hwagae.milky.kr 입니다.
 관리 접속은 ubuntu, Actions 배포는 별도 hwagae 계정과 전용 키를 사용합니다.
 기존 navi·eom 서비스와 Minecraft는 별도이며 설정·런타임을 교체하지 않습니다.
-첫 공개 배포와 Actions 배포 검증 결과는 아래 운영 확인 기록에 추가합니다.
+첫 공개 배포는 완료했으며, main 반영 전이므로 Actions 자동 배포는 아직 비활성입니다.
 
 ## 구성
 
@@ -91,7 +91,12 @@ release·백업을 자동 삭제하지 않으므로 보관 정책은 운영 환�
 - 앱 전용 계정·Node 24.22.1·uv 0.10.6·Python 3.14.3 준비.
 - 전용 배포 계정은 두 앱 서비스의 restart·stop만 sudo 허용.
 - 운영 초기 비밀번호는 서버에서 무작위 생성하며 저장소·Actions Secrets에 넣지 않음.
-- 첫 공개 배포·GitHub CD 완료 여부는 실제 결과 확인 뒤 갱신.
+- b3d37d9 첫 공개 배포 완료. HTTPS 웹·API 상태·운영 계정 로그인·점주/직원 매장 범위 확인.
+- 실시간 7일 날씨·10상품 7일 예측·재고 미입력 시 발주 보류 확인.
+- 두 systemd 서비스의 부팅 시 자동 시작과 Nginx 문법 검사 통과.
+- 기존 navi/eom HTTPS 200, Docker 컨테이너·Minecraft 리스닝 유지 확인.
+- GitHub CI 통과 및 배포 Secrets 등록 완료. main 반영·자동 배포 활성화/실행은 후속 확인 단계.
+- 운영 로그인 정보는 배포 담당 PC의 .ssh/hwagae-login.txt에 별도로 보관합니다.
 
 출처: [GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax),
 [systemd](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
