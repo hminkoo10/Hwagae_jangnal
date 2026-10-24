@@ -49,7 +49,27 @@
 | 44 | 날씨 포함 | 11 | 5 | 39분 51초 |
 | 44 | 날씨 제거 | 13 | 7 | 27분 53초 |
 
-## 재실행
+## 저장 예측으로 평가표 재현
+
+별도 전달 파일 `tft-multiseed-evaluation-data.zip`에는 6개 모델의 저장된 예측, 평가 입력, 기준 표, 재현 코드 스냅샷이 있다. ZIP과 원시 예측 CSV는 Git 밖에 보관하며, 파일 경로·크기·SHA-256·검증 결과는 [external-data.json](external-data.json)에 기록했다. ZIP은 5,464,633바이트이며 SHA-256은 `202b4cd7dfa0c708f8e6674f22d34d13e04d4036288c2a77c36a21d96b582fe0`이다.
+
+Python **3.11 이상과 표준 라이브러리만** 필요하다. 패키지 설치, 체크포인트, 모델 학습·추론은 필요하지 않다. 새 작업 폴더에서 ZIP 내용을 `data/runtime/tft-multiseed/`에 압축 해제한 뒤 다음 한 명령으로 실행한다.
+
+```sh
+python data/runtime/tft-multiseed/reproduce.py --repo data/runtime/tft-multiseed/source
+```
+
+런처는 보관 파일의 크기·해시와 실행 소스가 전달 스냅샷과 같은지 검사한 후 평가를 실행한다. 결과는 `data/runtime/tft-multiseed/recomputed/`에 생기며, 이미 존재하는 결과 폴더는 덮어쓰지 않는다. 다시 실행하려면 별도의 새 폴더에 압축을 풀거나 아래 직접 실행 명령에서 새 출력 경로를 지정한다.
+
+torch·numpy·pandas·pytorch-forecasting이 설치되지 않은 새 Python 3.11 환경에서 3개 쌍의 전체 7,973행·관측 56일 1,701행을 재현했다. 수치 비교의 절대·상대 허용 오차는 각각 **1e-12**이며, 실제 검증에서는 Git에 저장한 표·ZIP 기준 표·재계산한 **4개 CSV가 모두 바이트 단위로 동일**했다. 이는 저장된 예측의 평가표 재현이며 GPU 학습이나 모델 추론의 재실행은 아니다.
+
+최신 저장소 코드를 수정한 뒤 회귀를 확인할 때는 저장소 루트에서 아래 명령을 직접 실행한다. ZIP은 같은 상대 경로에 압축 해제하고 `recomputed-current`는 존재하지 않는 새 폴더여야 한다. 이 명령은 **현재 저장소 코드**를 사용해 전달 표와 비교한다. 반면 위 런처는 전달 소스 스냅샷과의 동일성을 먼저 요구하므로 두 검증 목적을 구분한다.
+
+```sh
+python -m ml.reproduce_multiseed --evaluation-data data/runtime/tft-multiseed/evaluation-data --runs-dir data/runtime/tft-multiseed/runs --reference-dir data/runtime/tft-multiseed/reference --output-dir data/runtime/tft-multiseed/recomputed-current
+```
+
+## 학습부터 재실행
 
 저장소 루트에서 CUDA 모델 전용 Python 환경으로 실행한다. `--output-dir`는 저장소 밖의 새 폴더여야 한다. GPU 작업은 한 번에 하나만 실행한다.
 
