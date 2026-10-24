@@ -119,13 +119,13 @@ def plot(directory, output_dir):
     legend = [Line2D([], [], color=colors[variant], marker=markers[variant], linestyle="None", markersize=7,
                      label="Weather TFT" if variant == "weather" else "No-weather TFT") for variant in VARIANTS]
     legend.append(Line2D([], [], color="#475569", linestyle="--", label="API weekday baseline (84-day history)"))
-    figure.suptitle("Same-environment TFT controls: three paired seeds", fontsize=16, fontweight="bold", y=.97)
+    figure.suptitle("Walmart TFT controls: three paired seeds in one environment", fontsize=16, fontweight="bold", y=.97)
     figure.legend(handles=legend, loc="upper center", bbox_to_anchor=(.5, .9), ncol=3, frameon=False, fontsize=10)
     axis_note = "Same zoomed y-axis in both panels; it does not start at zero." if limits[0] > 0 else "Same y-axis in both panels; zero is included."
     figure.text(.5, .18, axis_note + "\nMatched test dates: 2014-09-06 to 2014-10-31 | n = 3 seeds (42, 43, 44)."
                 "\nHistorical-weather persistence; individual points here, means and sample SD in summary.csv.",
                 ha="center", va="center", fontsize=10, color="#334155")
-    figure.text(.5, .045, "Same-environment control models; production-model 6.98% / 10.71% comparisons are separate."
+    figure.text(.5, .045, "Original Walmart model: the 6.98% / 10.71% comparisons are separate from these control models."
                 "\nInput dimensions differ; three seeds do not establish a causal weather effect.",
                 ha="center", fontsize=9, color="#475569")
     provenance = json.dumps({"input_sha256": evidence, "script_sha256": digest(Path(__file__)),
