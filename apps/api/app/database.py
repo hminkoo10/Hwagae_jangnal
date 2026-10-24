@@ -74,6 +74,11 @@ class Database:
                     user_id TEXT NOT NULL REFERENCES users(id), store_id TEXT NOT NULL REFERENCES stores(id),
                     role TEXT NOT NULL CHECK(role IN ('owner','staff')), PRIMARY KEY(user_id,store_id)
                 );
+                CREATE TABLE IF NOT EXISTS store_forecast_settings (
+                    store_id TEXT PRIMARY KEY REFERENCES stores(id),
+                    provider TEXT NOT NULL CHECK(provider IN ('weekday','merchant_tft')),
+                    updated_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS products (
                     store_id TEXT NOT NULL REFERENCES stores(id), id TEXT NOT NULL, name TEXT NOT NULL,
                     category TEXT NOT NULL, supplier TEXT NOT NULL, price INTEGER NOT NULL CHECK(price>=0),

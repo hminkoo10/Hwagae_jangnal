@@ -34,11 +34,17 @@ def main() -> int:
         raise ValueError("non-finite JSON number")
 
     try:
-        from ml.predict import predict
+        if sys.argv[1:] == ["--merchant"]:
+            from ml.merchant_tft.predict import predict
 
-        example = json.loads(
-            (root / "ml/examples/input.json").read_text(encoding="utf-8")
-        )
+            example_path = root / "ml/merchant_tft/smoke.json"
+        elif not sys.argv[1:]:
+            from ml.predict import predict
+
+            example_path = root / "ml/examples/input.json"
+        else:
+            raise ValueError("unsupported worker profile")
+        example = json.loads(example_path.read_text(encoding="utf-8"))
         predict(example)
         emit({"kind": "ready"})
         while True:
@@ -55,7 +61,13 @@ def main() -> int:
                 or not isinstance(request.get("context"), dict)
             ):
                 raise ValueError("invalid worker request")
-            result = predict(request["context"])
+            try:
+                result = predict(request["context"])
+            except ValueError:
+                # Invalid inputs or out-of-bound predictions reject this request,
+                # not every other store sharing this already-warmed process.
+                emit({"kind": "request_error", "id": request["id"]})
+                continue
             if not isinstance(result, dict):
                 raise ValueError("invalid prediction")
             emit({"kind": "result", "id": request["id"], "result": result})

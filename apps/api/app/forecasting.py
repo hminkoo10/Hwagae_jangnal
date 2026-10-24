@@ -64,7 +64,7 @@ def baseline(context):
     }
 
 
-def run_forecast(database, store, as_of, weather):
+def run_forecast(database, store, as_of, weather, predictor=None):
     dates = [(as_of + timedelta(days=i)).isoformat() for i in range(1, 8)]
     products = database.products(store["id"])
     with database.connect() as db:
@@ -96,7 +96,9 @@ def run_forecast(database, store, as_of, weather):
         "weather": weather,
     }
     entry = os.getenv("FORECAST_PROVIDER", "").strip()
-    if entry:
+    if predictor is not None:
+        result = predictor(context)
+    elif entry:
         project_root = str(Path(__file__).resolve().parents[3])
         if project_root not in sys.path:
             sys.path.insert(0, project_root)

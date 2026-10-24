@@ -1,0 +1,144 @@
+.panel {
+  margin-bottom: 20px;
+  padding: 22px 24px;
+  border: 1px solid #dce5f0;
+  border-radius: 10px;
+  background: #fff;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+.heading h2 {
+  margin: 5px 0 0;
+  color: #243149;
+  font-size: 18px;
+  line-height: 1.45;
+  letter-spacing: -0.5px;
+}
+.eyebrow {
+  color: #61738c;
+  font-size: 12px;
+  font-weight: 650;
+}
+.selector {
+  display: grid;
+  flex-shrink: 0;
+  gap: 6px;
+  color: #65758b;
+  font-size: 12px;
+}
+.selector select {
+  min-width: 210px;
+  color: #243149;
+  font-size: 13px;
+}
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.badges span {
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+.blue {
+  color: #2469ce;
+  background: #edf4ff;
+}
+.green {
+  color: #18816c;
+  background: #edf8f4;
+}
+.amber {
+  color: #916014;
+  background: #fff7e6;
+}
+.neutral {
+  color: #586779;
+  background: #f0f3f6;
+}
+.description {
+  margin: 12px 0 0;
+  color: #58697d;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.note {
+  margin: 10px 0 0;
+  color: #738195;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.dataGuide {
+  margin-top: 12px;
+  color: #65758b;
+  font-size: 12px;
+}
+.dataGuide summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 600;
+}
+.dataGuide summary:focus-visible {
+  outline: 2px solid #2e7bed;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.dataGuide[open] .note {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f7f9fc;
+}
+.runtime {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  margin-top: 12px;
+  background: #f7f9fc;
+  border-radius: 6px;
+  color: #58697d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.runtime button {
+  flex-shrink: 0;
+}
+.fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+@media (max-width: 650px) {
+  .panel {
+    padding: 18px 16px;
+  }
+  .heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .heading h2 {
+    font-size: 16px;
+  }
+  .selector select {
+    min-width: 0;
+    width: 100%;
+  }
+  .runtime {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

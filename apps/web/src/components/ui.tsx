@@ -157,7 +157,7 @@ export function Empty({
 
 export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
   if (!forecast.points.length)
-    return <Empty title="판매 기록이 더 필요해요">{forecast.reason}</Empty>;
+    return <Empty title="예측 준비가 필요해요">{forecast.reason}</Empty>;
   const points = forecast.points;
   const max =
     Math.max(
