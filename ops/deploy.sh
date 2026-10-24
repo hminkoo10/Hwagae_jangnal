@@ -66,6 +66,27 @@ tar -xzf "$archive" --no-same-owner -C "$release"
 cd "$release"
 printf '%s\n' "$revision" > REVISION
 uv sync --locked --no-dev --python 3.14
+# The API keeps its Python 3.14 environment; the optional model runs separately.
+model_checkpoint="$app_root/shared/models/best-epoch=02-val_loss=3.9847.ckpt"
+if [[ -f "$model_checkpoint" ]]; then
+  [[ -r "$model_checkpoint" ]] || { echo 'The model checkpoint is not readable.' >&2; exit 2; }
+  uv venv --no-project --allow-existing --python 3.11 .model-venv
+  uv pip install --python .model-venv/bin/python --index-strategy unsafe-best-match \
+    --default-index https://pypi.org/simple -r ml/requirements-inference.txt
+  TFT_CHECKPOINT_PATH="$model_checkpoint" .model-venv/bin/python -m ml.smoke_test
+  TFT_CHECKPOINT_PATH="$model_checkpoint" .model-venv/bin/python - <<'PY'
+import sys
+import unittest
+
+suite = unittest.defaultTestLoader.discover("ml/tests")
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+if result.skipped:
+    print("Model deployment requires all tests to run; skipped tests are not accepted.", file=sys.stderr)
+sys.exit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun == 0)
+PY
+else
+  echo 'No shared TFT checkpoint; deploying the app without the model demo.'
+fi
 npm ci --include=dev
 export NEXT_PUBLIC_API_BASE_URL=/api
 export NEXT_PUBLIC_DEMO_LOGIN_ENABLED=false

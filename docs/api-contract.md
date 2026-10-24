@@ -36,6 +36,8 @@ CORS는 설정된 웹 주소의 GET·POST·PUT·PATCH와 인증 헤더를 허용
 
 | 메서드 | 경로 | 내용 |
 | --- | --- | --- |
+| GET | `/model-demo` | 로그인 후 고정 Walmart 샘플 설명과 모델 프로세스 준비 상태 |
+| POST | `/model-demo/forecast` | 고정 과거 샘플의 실제 TFT 추론 및 같은 입력의 요일 기준선 비교; DB 저장 없음 |
 | GET / POST | `/stores` | 소속 매장과 오늘 날짜 / 새 매장 생성 |
 | GET / POST | `/stores/{store}/products` | 상품·재고 / 상품 등록, 매장당 최대 50개 |
 | PATCH | `/stores/{store}/products/{product}` | 가격·원가·납기·판매 기간·발주 주기 |
@@ -49,6 +51,12 @@ CORS는 설정된 웹 주소의 GET·POST·PUT·PATCH와 인증 헤더를 허용
 | GET / POST | `/stores/{store}/orders` | 발주안 목록 / 수정한 수량으로 초안 저장 |
 | POST | `/stores/{store}/orders/{order}/confirm` | 점주 최종 확정 |
 | GET | `/stores/{store}/orders/{order}/export?format=csv` | 확정 당시 값으로 CSV·XLSX 내보내기 |
+
+## TFT 과거 시연
+
+모델 체험은 별도 인증 경로입니다. `GET /model-demo`는 `runtime: {status, message}`와 `sample: {title, as_of, dates, history_start, history_end, history_days, product_count, products, source, weather_strategy, note}`를 반환합니다. 상태는 `disabled/starting/ready/unavailable`입니다.
+
+`POST /model-demo/forecast`는 본문 없이 고정 샘플을 실제 실행합니다. `model`, `products`, `as_of`, `dates`, `created_at`, `elapsed_ms`, `baseline: {model, products}`, `provenance`, `weather_strategy`, `note`를 반환합니다. 상품별 포인트는 기존 P10/P50/P90 형식이며 `actual=null`입니다. 오류는 503, 인증 실패는 401이며 DB 예측 ID는 생성하지 않습니다.
 
 ## 판매 입력
 
