@@ -1,6 +1,9 @@
 """Store isolation, data integrity, model handoff and complete ordering workflow."""
 
+import csv
 import io
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import pytest
@@ -315,6 +318,7 @@ def test_empty_store_and_server_validation(client):
         ).status_code
         == 422
     )
+
     assert (
         client.post(
             f"/stores/{store_id}/sales",
@@ -331,3 +335,174 @@ def test_empty_store_and_server_validation(client):
         ).status_code
         == 422
     )
+
+
+@pytest.mark.parametrize("filetype", ["csv", "xlsx"])
+def test_export_cleans_legacy_xml_characters_before_formula_protection(
+    client, filetype
+):
+    auth = headers(client)
+    # Existing database values must remain exportable, including values that
+    # become formula prefixes only after invalid XML characters are removed.
+    with client.app.state.database.connect() as db:
+        db.execute("UPDATE stores SET name=? WHERE id='gwangju'", ("\x00=1+1",))
+        db.execute(
+            "UPDATE products SET name=?,supplier=? WHERE store_id='gwangju' AND id='P001'",
+            ("\ufffe+상품", "공급\x08사\uffff\t정상 🍞"),
+        )
+    stock(client, auth)
+    rec = recommendation(client, auth, forecast(client, auth))
+    created = client.post(
+        "/stores/gwangju/orders",
+        headers=auth,
+        json={
+            "recommendation_id": rec["id"],
+            "lines": [{"product_id": "P001", "quantity": 17}],
+        },
+    )
+    assert created.status_code == 201, created.text
+    path = f"/stores/gwangju/orders/{created.json()['id']}"
+    assert client.post(path + "/confirm", headers=auth).status_code == 200
+    result = client.get(path + f"/export?format={filetype}", headers=auth)
+    assert result.status_code == 200, result.text
+    if filetype == "csv":
+        values = list(csv.reader(io.StringIO(result.content.decode("utf-8-sig"))))[1]
+    else:
+        book = load_workbook(io.BytesIO(result.content), data_only=False)
+        try:
+            cells = list(book.active[2])
+            assert cells[0].data_type == cells[5].data_type == "s"
+            values = [cell.value for cell in cells]
+        finally:
+            book.close()
+    assert values[0] == "'=1+1"
+    assert values[2] == "공급사\t정상 🍞"
+    assert values[5] == "'+상품"
+    assert int(values[6]) == 17
+    assert int(values[8]) == 17 * 2600
+
+
+def test_seven_day_maximum_demand_recommendation_can_be_saved(client):
+    auth = headers(client)
+    product = {
+        "id": "HIGH",
+        "name": "큰 수량 상품",
+        "category": "식품",
+        "supplier": "공급사",
+        "price": 100,
+        "cost": 50,
+        "lead_days": 1,
+        "shelf_days": 7,
+        "review_days": 7,
+    }
+    assert (
+        client.post("/stores/gwangju/products", headers=auth, json=product).status_code
+        == 201
+    )
+    rows = [
+        {
+            "product_id": "HIGH",
+            "date": (today() - timedelta(days=offset)).isoformat(),
+            "units_sold": 1_000_000,
+        }
+        for offset in range(1, 29)
+    ]
+    assert (
+        client.post(
+            "/stores/gwangju/sales", headers=auth, json={"rows": rows}
+        ).status_code
+        == 201
+    )
+    assert (
+        client.put(
+            "/stores/gwangju/inventory/HIGH",
+            headers=auth,
+            json={"batches": [], "incoming": [], "incoming_confirmed": True},
+        ).status_code
+        == 200
+    )
+    rec = recommendation(client, auth, forecast(client, auth))
+    row = next(row for row in rec["rows"] if row["product_id"] == "HIGH")
+    assert row["quantity"] == 7_000_000
+    payload = {
+        "recommendation_id": rec["id"],
+        "lines": [{"product_id": "HIGH", "quantity": row["quantity"]}],
+    }
+    saved = client.post("/stores/gwangju/orders", headers=auth, json=payload)
+    assert saved.status_code == 201, saved.text
+    assert saved.json()["total"] == 7_000_000 * 50
+    payload["lines"][0]["quantity"] += 1
+    assert (
+        client.post("/stores/gwangju/orders", headers=auth, json=payload).status_code
+        == 422
+    )
+    # Raising the order horizon limit must not raise the daily sales limit.
+    assert (
+        client.post(
+            "/stores/gwangju/sales",
+            headers=auth,
+            json={
+                "rows": [
+                    {
+                        "product_id": "HIGH",
+                        "date": today().isoformat(),
+                        "units_sold": 1_000_001,
+                    }
+                ]
+            },
+        ).status_code
+        == 422
+    )
+
+
+@pytest.mark.parametrize("change", ["product", "inventory"])
+def test_data_changed_during_recommendation_requires_recalculation(
+    client, monkeypatch, change
+):
+    auth = headers(client)
+    prediction = forecast(client, auth)
+    database = client.app.state.database
+    read_stock = database.stock
+    entered, resume = threading.Event(), threading.Event()
+
+    def paused_stock(store_id):
+        entered.set()
+        assert resume.wait(5), "Concurrent product creation did not finish"
+        return read_stock(store_id)
+
+    monkeypatch.setattr(database, "stock", paused_stock)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(
+            client.post,
+            "/stores/gwangju/recommendations",
+            headers=auth,
+            json={"forecast_id": prediction["id"]},
+        )
+        try:
+            assert entered.wait(5), "Recommendation did not reach the stock read"
+            if change == "product":
+                created = client.post(
+                    "/stores/gwangju/products",
+                    headers=auth,
+                    json={
+                        "id": "NEW",
+                        "name": "동시에 추가한 상품",
+                        "category": "식품",
+                        "supplier": "공급사",
+                        "price": 100,
+                        "cost": 50,
+                        "lead_days": 1,
+                        "shelf_days": 2,
+                        "review_days": 1,
+                    },
+                )
+                assert created.status_code == 201, created.text
+            else:
+                stock(client, auth, 10)
+        finally:
+            resume.set()
+        result = pending.result(timeout=10)
+    assert result.status_code == 409, result.text
+    assert "다시" in result.json()["detail"]
+    with database.connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM recommendations").fetchone()[0] == 0

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   ApiError,
@@ -257,6 +257,12 @@ export default function Workspace() {
     null,
   );
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const recommendationRequest = useRef<AbortController | null>(null);
+
+  useEffect(
+    () => () => recommendationRequest.current?.abort(),
+    [token, storeId, asOf, reload, modelDemo],
+  );
 
   function acceptLogin(value: string, account: User) {
     sessionStorage.setItem("hwagae-session", value);
@@ -393,6 +399,7 @@ export default function Workspace() {
     try {
       await task();
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       setError(error instanceof Error ? error.message : "요청에 실패했어요.");
       if (error instanceof ApiError && error.status === 401) clearSession();
     } finally {
@@ -448,19 +455,24 @@ export default function Workspace() {
     (row) =>
       row.quantity !== null &&
       (!/^\d+$/.test(quantities[row.product_id] ?? "") ||
-        Number(quantities[row.product_id]) > 1000000),
+        Number(quantities[row.product_id]) > 7000000),
   );
 
   async function calculate() {
     if (!data) return;
+    recommendationRequest.current?.abort();
+    const controller = new AbortController();
+    recommendationRequest.current = controller;
     const result = await api<Recommendation>(
       `/stores/${storeId}/recommendations`,
       token,
       {
         method: "POST",
+        signal: controller.signal,
         body: JSON.stringify({ forecast_id: data.forecast.id }),
       },
     );
+    if (controller.signal.aborted) return;
     setRecommendation(result);
     setQuantities(
       Object.fromEntries(
@@ -786,7 +798,13 @@ export default function Workspace() {
               {error}
               <button
                 className="text-button"
-                onClick={() => setReload((value) => value + 1)}
+                disabled={busy || loading}
+                onClick={() =>
+                  void action(async () => {
+                    await refreshStores();
+                    setReload((value) => value + 1);
+                  })
+                }
               >
                 다시 연결
               </button>
@@ -1186,7 +1204,7 @@ export default function Workspace() {
                                         aria-label={`${row.name} 최종 발주 개수`}
                                         type="number"
                                         min="0"
-                                        max="1000000"
+                                        max="7000000"
                                         step="1"
                                         value={quantities[row.product_id] ?? ""}
                                         onChange={(event) =>
