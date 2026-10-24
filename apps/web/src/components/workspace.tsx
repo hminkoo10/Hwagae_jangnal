@@ -30,6 +30,7 @@ import { MerchantModelPanel } from "./merchant-model-panel";
 import { InitialData } from "./initial-data";
 import { AiSettings, AiExplanation } from "./ai-settings";
 import { OperatorDashboard } from "./operator-dashboard";
+import { categoryOptions, filterProducts } from "@/lib/merchant-language";
 
 type Tab =
   | "overview"
@@ -277,6 +278,8 @@ export default function Workspace() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
+  const [productCategory, setProductCategory] = useState("all");
+  useEffect(() => setProductCategory("all"), [storeId]);
   const [selectedProduct, setSelectedProduct] = useState("P001");
   const [inventoryProduct, setInventoryProduct] = useState<Product | null>(
     null,
@@ -594,12 +597,11 @@ export default function Workspace() {
     !replay;
   const owner = store?.role === "owner";
   const currentTab = tabs.find((item) => item.id === tab)!;
-  const filtered =
-    data?.products.filter((product) =>
-      `${product.name} ${product.id}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    ) ?? [];
+  const filtered = filterProducts(
+    data?.products ?? [],
+    search,
+    productCategory,
+  );
   const readyCount =
     forecast?.products.filter((product) => product.status === "ready").length ??
     0;
@@ -690,22 +692,50 @@ export default function Workspace() {
                 : mode === "products"
                   ? "등록 상품"
                   : "상품별 준비 현황"}
-              <span className="count-label">{data?.products.length ?? 0}</span>
+              <span className="count-label">
+                {filtered.length} / {data?.products.length ?? 0}개
+              </span>
             </h2>
             <p>
               {mode === "inventory"
-                ? "빈 재고는 0개가 아니에요. 실사 후 직접 입력해주세요."
+                ? "재고를 세어 입력해주세요. 비어 있으면 재고가 없는지 아직 알 수 없어요."
                 : "상품별 개수 기준으로 확인해요."}
             </p>
           </div>
           <div className="table-tools">
+            <span className="product-filter">
+              <Select
+                aria-label="상품 종류로 보기"
+                value={productCategory}
+                onChange={(e) => setProductCategory(e.target.value)}
+              >
+                <option value="all">모든 상품 종류</option>
+                {categoryOptions(data?.products ?? []).map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </Select>
+            </span>
             <input
               className="search-input"
               aria-label="상품 검색"
-              placeholder="상품명 · 코드 검색"
+              placeholder="상품 이름 · 코드 · 공급사 검색"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
+            {(search || productCategory !== "all") && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setSearch("");
+                  setProductCategory("all");
+                }}
+              >
+                전체 보기
+              </button>
+            )}
             {mode === "products" && owner && (
               <button
                 className="button primary small"
@@ -719,9 +749,15 @@ export default function Workspace() {
           </div>
         </div>
         {!filtered.length ? (
-          <Empty title={search ? "검색 결과가 없어요" : "등록된 상품이 없어요"}>
-            {search
-              ? "다른 상품명이나 코드를 입력해보세요."
+          <Empty
+            title={
+              search || productCategory !== "all"
+                ? "조건에 맞는 상품이 없어요"
+                : "등록된 상품이 없어요"
+            }
+          >
+            {search || productCategory !== "all"
+              ? "상품 종류를 바꾸거나 전체 보기를 눌러주세요."
               : "상품을 등록하고 판매 기록을 입력해보세요."}
           </Empty>
         ) : (
@@ -733,7 +769,7 @@ export default function Workspace() {
                   <th>{mode === "products" ? "공급사" : "내일 판매 예측"}</th>
                   <th>{mode === "products" ? "판매가 / 원가" : "확인 재고"}</th>
                   <th>
-                    {mode === "products" ? "납기 / 판매 기간" : "준비 상태"}
+                    {mode === "products" ? "도착 · 판매 기간" : "준비 상태"}
                   </th>
                   <th className="number">관리</th>
                 </tr>
@@ -753,7 +789,7 @@ export default function Workspace() {
                       <td>
                         <div className="product-cell">
                           <span
-                            className={`product-symbol category-${product.category === "음료" ? "drink" : product.category === "유제품" ? "milk" : "food"}`}
+                            className={`product-symbol category-${({ 음료: "drink", 유제품: "milk", 신선식품: "fresh", 베이커리: "bakery", 냉동식품: "frozen" } as Record<string, string>)[product.category] ?? "food"}`}
                           >
                             <Icon name="products" />
                           </span>
@@ -773,7 +809,7 @@ export default function Workspace() {
                             <strong>{units(prediction.p50)}개</strong>
                             <small>
                               {units(prediction.p10)}~{units(prediction.p90)}개
-                              · P10~P90
+                              · 예상 범위
                             </small>
                           </>
                         ) : (
@@ -800,8 +836,11 @@ export default function Workspace() {
                       <td>
                         {mode === "products" ? (
                           <>
-                            {product.lead_days}일 / {product.shelf_days}일
-                            <small>{product.review_days}일마다 발주</small>
+                            주문 후 {product.lead_days}일 뒤 도착
+                            <small>
+                              받은 뒤 {product.shelf_days}일간 판매 ·{" "}
+                              {product.review_days}일마다 주문
+                            </small>
                           </>
                         ) : (
                           <span
@@ -823,7 +862,7 @@ export default function Workspace() {
                               disabled={busy}
                               onClick={() => setProductModal(product)}
                             >
-                              설정
+                              수정
                             </button>
                           ) : (
                             <span className="muted">조회</span>
@@ -1315,7 +1354,10 @@ export default function Workspace() {
                       </div>
                     </div>
                     {selectedForecast ? (
-                      <ForecastChart forecast={selectedForecast} />
+                      <ForecastChart
+                        forecast={selectedForecast}
+                        onHistory={() => navigate("sales")}
+                      />
                     ) : (
                       <Empty
                         title={
@@ -1369,9 +1411,9 @@ export default function Workspace() {
                       )}
                     {forecast && (
                       <p className="chart-footnote">
-                        예상 판매는 중앙값, 범위는 적게 팔릴 때(P10)부터 많이
-                        팔릴 때(P90)까지예요. 실제 판매는 날씨와 매장 상황에
-                        따라 달라질 수 있어요.
+                        예상 판매량과 적게·많이 팔릴 때의 범위를 함께
+                        보여드려요. 실제 판매량은 날씨와 매장 상황에 따라 달라질
+                        수 있어요.
                       </p>
                     )}
                   </section>

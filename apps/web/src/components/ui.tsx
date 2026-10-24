@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { shortDate, units, type ProductForecast } from "@/lib/api";
+import { forecastHelp } from "@/lib/merchant-language";
 
 const paths: Record<string, ReactNode> = {
   calendar: (
@@ -178,9 +179,28 @@ export function Empty({
   );
 }
 
-export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
+export function ForecastChart({
+  forecast,
+  onHistory,
+}: {
+  forecast: ProductForecast;
+  onHistory?: () => void;
+}) {
   if (!forecast.points.length)
-    return <Empty title="예측 준비가 필요해요">{forecast.reason}</Empty>;
+    return (
+      <Empty title={forecastHelp(forecast.reason).title}>
+        <p>{forecastHelp(forecast.reason).description}</p>
+        {onHistory && (
+          <button
+            type="button"
+            className="button secondary forecast-next-step"
+            onClick={onHistory}
+          >
+            {forecastHelp(forecast.reason).action}
+          </button>
+        )}
+      </Empty>
+    );
   const points = forecast.points;
   const max =
     Math.max(
@@ -216,7 +236,7 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
           className="forecast-chart"
           viewBox="0 0 664 232"
           role="img"
-          aria-label={`${forecast.name} 7일 예측 중앙값과 범위입니다. 7일 판매 예측 메뉴에서 수량 표를 확인할 수 있습니다.`}
+          aria-label={`${forecast.name}의 7일 예상 판매량과 적게·많이 팔릴 때의 범위예요. 7일 판매 예측 메뉴에서 날짜별 수량을 확인할 수 있어요.`}
         >
           {[0, 1, 2, 3].map((level) => (
             <g key={level}>
@@ -281,11 +301,11 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
       <div className="chart-legend">
         <span>
           <i className="legend-line" />
-          예측 중앙값
+          예상 판매량
         </span>
         <span>
           <i className="legend-band" />
-          P10~P90 범위
+          적게·많이 팔릴 때
         </span>
         {actual.length > 0 && (
           <span>

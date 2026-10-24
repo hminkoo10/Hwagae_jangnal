@@ -15,6 +15,7 @@ import {
   type Stock,
 } from "@/lib/api";
 import { Empty, Icon, Modal } from "./ui";
+import { PriceField, ProductCategoryField } from "./product-fields";
 
 const message = (error: unknown) =>
   error instanceof Error ? error.message : "요청에 실패했어요.";
@@ -414,7 +415,7 @@ export function InventoryModal({
             checked={zero}
             onChange={(event) => setZero(event.target.checked)}
           />
-          실사 결과 현재 재고가 0개예요
+          직접 세어보니 재고가 없어요
         </label>
         {!zero && (
           <>
@@ -600,7 +601,7 @@ export function ProductModal({
     );
     try {
       const body = product
-        ? settings
+        ? { ...settings, category: String(fields.get("category")).trim() }
         : {
             ...settings,
             ...Object.fromEntries(
@@ -628,7 +629,12 @@ export function ProductModal({
     }
   }
   return (
-    <Modal title={product ? "상품 설정" : "상품 등록"} onClose={onClose}>
+    <Modal
+      title={product ? "상품 정보 수정" : "상품 등록"}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
       <form onSubmit={submit} className="stack">
         {error && (
           <div className="error-banner" role="alert">
@@ -642,42 +648,65 @@ export function ProductModal({
         ) : (
           <div className="form-grid">
             {[
-              ["id", "상품코드", "P001"],
-              ["name", "상품명", "햄치즈 샌드위치"],
-              ["category", "분류", "간편식"],
-              ["supplier", "공급사", "화개푸드"],
+              ["id", "상품 코드", "예: P001"],
+              ["name", "상품 이름", "예: 햄치즈 샌드위치"],
+              ["supplier", "상품을 받는 곳", "예: 화개푸드"],
             ].map(([key, label, placeholder]) => (
               <label key={key}>
                 {label}
                 <input
                   name={key}
                   placeholder={placeholder}
-                  maxLength={key === "id" ? 40 : key === "category" ? 40 : 80}
+                  maxLength={key === "id" ? 40 : 80}
                   pattern={key === "id" ? "[A-Za-z0-9_-]+" : undefined}
                   required
+                  disabled={busy}
                 />
               </label>
             ))}
           </div>
         )}
         <div className="form-grid">
+          <ProductCategoryField value={product?.category} disabled={busy} />
+        </div>
+        <div className="form-grid">
+          <PriceField
+            name="price"
+            label="판매 가격"
+            defaultValue={product?.price}
+            disabled={busy}
+          />
+          <PriceField
+            name="cost"
+            label="한 개를 사오는 가격"
+            defaultValue={product?.cost}
+            disabled={busy}
+          />
+        </div>
+        <div className="form-grid">
           {[
-            { key: "price", label: "판매가(원)", min: 0, max: 1000000 },
-            { key: "cost", label: "개당 매입 원가(원)", min: 0, max: 1000000 },
             {
               key: "lead_days",
-              label: "발주 후 입고까지(일)",
+              label: "주문하면 며칠 뒤에 오나요?",
+              hint: "예: 다음 날 도착하면 1일",
               min: 1,
               max: 30,
             },
             {
               key: "shelf_days",
-              label: "입고일부터 판매 가능 기간(일)",
+              label: "받은 뒤 며칠 동안 팔 수 있나요?",
+              hint: "예: 받은 날과 다음 날까지 팔면 2일",
               min: 1,
               max: 365,
             },
-            { key: "review_days", label: "다음 발주까지(일)", min: 1, max: 7 },
-          ].map(({ key, label, min, max }) => (
+            {
+              key: "review_days",
+              label: "며칠마다 주문하나요?",
+              hint: "예: 매일 주문하면 1일",
+              min: 1,
+              max: 7,
+            },
+          ].map(({ key, label, hint, min, max }) => (
             <label key={key}>
               {label}
               <input
@@ -687,6 +716,7 @@ export function ProductModal({
                 max={max}
                 step="1"
                 required
+                disabled={busy}
                 defaultValue={
                   product
                     ? product[key as keyof Product]
@@ -695,12 +725,14 @@ export function ProductModal({
                       : undefined
                 }
               />
+              <small className="field-description">{hint}</small>
             </label>
           ))}
         </div>
         <p className="helper">
-          입고는 해당 날짜 시작, 만료는 해당 날짜 마감 기준이에요. 필요한 수요가
-          7일을 넘으면 발주 계산을 보류해요.
+          도착한 날 아침부터 마지막 판매일 저녁까지 팔 수 있다고 계산해요.
+          확인해야 할 기간이 7일 예측 범위를 넘으면 추천 수량을 보여드리지
+          않아요.
         </p>
         <button className="button primary" disabled={busy}>
           {busy ? "저장 중…" : "상품 저장"}
