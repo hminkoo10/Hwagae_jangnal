@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "filename": "tft-evaluation-data.zip",
+  "local_delivery_path": "C:\\Users\\User\\Documents\\Codex\\2026-10-24\\tft-cpu-1-main-feat-tft-3\\outputs\\tft-evaluation-data.zip",
+  "bytes": 3464987,
+  "sha256": "213d195418373de5f437d1bc602dc8a0bd6e51e698490442ca42a180518bef5b",
+  "archive_root": "evaluation-data/",
+  "file_count": 18,
+  "input_manifest": "evaluation-data/MANIFEST.json",
+  "reference_metrics": "evaluation-data/reference-metrics.csv",
+  "contains_checkpoint": false,
+  "stored_in_git": false,
+  "reproduce": {
+    "working_directory": "repository root",
+    "command": "python /path/to/evaluation-data/reproduce.py",
+    "path_instruction": "Replace /path/to with the directory where the ZIP was extracted.",
+    "input_integrity": "Verify every input SHA-256 against MANIFEST.json before evaluation.",
+    "metric_check": "ml.evaluate --check-against; exact subset/model keys and counts, abs_tol=1e-12 and rel_tol=1e-12 for metrics."
+  },
+  "verified_result": {
+    "tables": 6,
+    "original_rows": 7973,
+    "strict_rows": 1701,
+    "comparison": "passed"
+  }
+}
