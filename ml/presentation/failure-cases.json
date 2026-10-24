@@ -2,7 +2,7 @@
   "analysis_script_sha256": "bdd048784f18cf943b8b582a7b86b807f31beab03218176edfdfa6e89de8cd7b",
   "api_baseline_source": {
     "path": "apps/api/app/forecasting.py",
-    "sha256": "8fe44130ac6fc59e7f258cbebcda57f3e593659157818055079fcdab60d76572",
+    "sha256": "737de259bcf001f89fa2ca54114737490e22893dae44346665d2a161c64e8309",
     "functions_sha256": "9ed2258e46bdd044203414cdb5a7aa2216f8d2248e0f4d0d9e3f126576c01738",
     "functions": [
       "percentile",
