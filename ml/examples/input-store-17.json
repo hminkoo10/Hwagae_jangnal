@@ -1,0 +1,775 @@
+{
+  "schema_version": "1",
+  "store_id": "walmart-demo-17",
+  "as_of": "2014-09-12",
+  "dates": [
+    "2014-09-13",
+    "2014-09-14",
+    "2014-09-15",
+    "2014-09-16",
+    "2014-09-17",
+    "2014-09-18",
+    "2014-09-19"
+  ],
+  "products": [
+    {
+      "id": "walmart-17-37",
+      "model_item_nbr": "37",
+      "name": "Walmart store 17 item 37 (observed sample)"
+    }
+  ],
+  "sales": [
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-19",
+      "units_sold": 52
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-20",
+      "units_sold": 41
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-21",
+      "units_sold": 42
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-22",
+      "units_sold": 34
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-23",
+      "units_sold": 51
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-24",
+      "units_sold": 41
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-25",
+      "units_sold": 48
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-26",
+      "units_sold": 45
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-27",
+      "units_sold": 54
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-28",
+      "units_sold": 40
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-29",
+      "units_sold": 55
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-30",
+      "units_sold": 38
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-07-31",
+      "units_sold": 42
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-01",
+      "units_sold": 77
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-02",
+      "units_sold": 60
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-03",
+      "units_sold": 74
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-04",
+      "units_sold": 48
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-05",
+      "units_sold": 62
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-06",
+      "units_sold": 56
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-07",
+      "units_sold": 50
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-08",
+      "units_sold": 41
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-09",
+      "units_sold": 57
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-10",
+      "units_sold": 52
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-11",
+      "units_sold": 53
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-12",
+      "units_sold": 55
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-13",
+      "units_sold": 53
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-14",
+      "units_sold": 30
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-15",
+      "units_sold": 52
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-16",
+      "units_sold": 53
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-17",
+      "units_sold": 51
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-18",
+      "units_sold": 37
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-19",
+      "units_sold": 33
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-20",
+      "units_sold": 46
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-21",
+      "units_sold": 36
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-22",
+      "units_sold": 26
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-23",
+      "units_sold": 40
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-24",
+      "units_sold": 38
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-25",
+      "units_sold": 43
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-26",
+      "units_sold": 29
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-27",
+      "units_sold": 24
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-28",
+      "units_sold": 34
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-29",
+      "units_sold": 35
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-30",
+      "units_sold": 42
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-08-31",
+      "units_sold": 38
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-01",
+      "units_sold": 50
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-02",
+      "units_sold": 37
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-03",
+      "units_sold": 51
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-04",
+      "units_sold": 33
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-05",
+      "units_sold": 33
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-06",
+      "units_sold": 52
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-07",
+      "units_sold": 80
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-08",
+      "units_sold": 30
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-09",
+      "units_sold": 39
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-10",
+      "units_sold": 31
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-11",
+      "units_sold": 45
+    },
+    {
+      "product_id": "walmart-17-37",
+      "date": "2014-09-12",
+      "units_sold": 43
+    }
+  ],
+  "weather": {
+    "status": "ok",
+    "mode": "historical_observations",
+    "source": "Walmart Stormy Weather",
+    "fetched_at": null,
+    "days": []
+  },
+  "model_input": {
+    "dataset": "walmart-stormy-weather",
+    "store_nbr": "17",
+    "station_nbr": "20",
+    "weather_units": "walmart",
+    "history_weather": [
+      {
+        "date": "2014-07-18",
+        "tavg": 73.0,
+        "tmax": 79.0,
+        "tmin": 66.0,
+        "preciptotal": 0.01,
+        "avgspeed": 7.8
+      },
+      {
+        "date": "2014-07-19",
+        "tavg": 73.0,
+        "tmax": 79.0,
+        "tmin": 67.0,
+        "preciptotal": 0.0,
+        "avgspeed": 4.3
+      },
+      {
+        "date": "2014-07-20",
+        "tavg": 80.0,
+        "tmax": 93.0,
+        "tmin": 66.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.4
+      },
+      {
+        "date": "2014-07-21",
+        "tavg": 86.0,
+        "tmax": 98.0,
+        "tmin": 73.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.6
+      },
+      {
+        "date": "2014-07-22",
+        "tavg": 87.0,
+        "tmax": 98.0,
+        "tmin": 76.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.3
+      },
+      {
+        "date": "2014-07-23",
+        "tavg": 85.0,
+        "tmax": 97.0,
+        "tmin": 73.0,
+        "preciptotal": 0.01,
+        "avgspeed": 3.9
+      },
+      {
+        "date": "2014-07-24",
+        "tavg": 84.0,
+        "tmax": 96.0,
+        "tmin": 72.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.6
+      },
+      {
+        "date": "2014-07-25",
+        "tavg": 87.0,
+        "tmax": 100.0,
+        "tmin": 73.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.9
+      },
+      {
+        "date": "2014-07-26",
+        "tavg": 90.0,
+        "tmax": 101.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.9
+      },
+      {
+        "date": "2014-07-27",
+        "tavg": 91.0,
+        "tmax": 103.0,
+        "tmin": 79.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.2
+      },
+      {
+        "date": "2014-07-28",
+        "tavg": 90.0,
+        "tmax": 99.0,
+        "tmin": 81.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.1
+      },
+      {
+        "date": "2014-07-29",
+        "tavg": 80.0,
+        "tmax": 85.0,
+        "tmin": 74.0,
+        "preciptotal": "T",
+        "avgspeed": 3.5
+      },
+      {
+        "date": "2014-07-30",
+        "tavg": 83.0,
+        "tmax": 93.0,
+        "tmin": 72.0,
+        "preciptotal": 0.03,
+        "avgspeed": 9.5
+      },
+      {
+        "date": "2014-07-31",
+        "tavg": 79.0,
+        "tmax": 86.0,
+        "tmin": 71.0,
+        "preciptotal": 0.01,
+        "avgspeed": 9.7
+      },
+      {
+        "date": "2014-08-01",
+        "tavg": 77.0,
+        "tmax": 82.0,
+        "tmin": 71.0,
+        "preciptotal": 0.01,
+        "avgspeed": 6.7
+      },
+      {
+        "date": "2014-08-02",
+        "tavg": 79.0,
+        "tmax": 91.0,
+        "tmin": 67.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.8
+      },
+      {
+        "date": "2014-08-03",
+        "tavg": 83.0,
+        "tmax": 94.0,
+        "tmin": 71.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.3
+      },
+      {
+        "date": "2014-08-04",
+        "tavg": 84.0,
+        "tmax": 95.0,
+        "tmin": 72.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.8
+      },
+      {
+        "date": "2014-08-05",
+        "tavg": 87.0,
+        "tmax": 100.0,
+        "tmin": 73.0,
+        "preciptotal": 0.11,
+        "avgspeed": 5.7
+      },
+      {
+        "date": "2014-08-06",
+        "tavg": 90.0,
+        "tmax": 101.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.4
+      },
+      {
+        "date": "2014-08-07",
+        "tavg": 90.0,
+        "tmax": 100.0,
+        "tmin": 79.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.1
+      },
+      {
+        "date": "2014-08-08",
+        "tavg": 93.0,
+        "tmax": 104.0,
+        "tmin": 81.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.8
+      },
+      {
+        "date": "2014-08-09",
+        "tavg": 91.0,
+        "tmax": 103.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.7
+      },
+      {
+        "date": "2014-08-10",
+        "tavg": 92.0,
+        "tmax": 104.0,
+        "tmin": 80.0,
+        "preciptotal": 0.01,
+        "avgspeed": 5.1
+      },
+      {
+        "date": "2014-08-11",
+        "tavg": 89.0,
+        "tmax": 100.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.2
+      },
+      {
+        "date": "2014-08-12",
+        "tavg": 87.0,
+        "tmax": 97.0,
+        "tmin": 77.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.6
+      },
+      {
+        "date": "2014-08-13",
+        "tavg": 81.0,
+        "tmax": 95.0,
+        "tmin": 66.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.0
+      },
+      {
+        "date": "2014-08-14",
+        "tavg": 84.0,
+        "tmax": 97.0,
+        "tmin": 70.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.1
+      },
+      {
+        "date": "2014-08-15",
+        "tavg": 88.0,
+        "tmax": 101.0,
+        "tmin": 74.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.3
+      },
+      {
+        "date": "2014-08-16",
+        "tavg": 91.0,
+        "tmax": 102.0,
+        "tmin": 80.0,
+        "preciptotal": "T",
+        "avgspeed": 7.8
+      },
+      {
+        "date": "2014-08-17",
+        "tavg": 80.0,
+        "tmax": 86.0,
+        "tmin": 73.0,
+        "preciptotal": 0.86,
+        "avgspeed": 5.5
+      },
+      {
+        "date": "2014-08-18",
+        "tavg": 84.0,
+        "tmax": 91.0,
+        "tmin": 77.0,
+        "preciptotal": "T",
+        "avgspeed": 4.1
+      },
+      {
+        "date": "2014-08-19",
+        "tavg": 86.0,
+        "tmax": 95.0,
+        "tmin": 76.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.9
+      },
+      {
+        "date": "2014-08-20",
+        "tavg": 89.0,
+        "tmax": 99.0,
+        "tmin": 79.0,
+        "preciptotal": 0.0,
+        "avgspeed": 11.2
+      },
+      {
+        "date": "2014-08-21",
+        "tavg": 89.0,
+        "tmax": 100.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 10.0
+      },
+      {
+        "date": "2014-08-22",
+        "tavg": 91.0,
+        "tmax": 102.0,
+        "tmin": 80.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.4
+      },
+      {
+        "date": "2014-08-23",
+        "tavg": 90.0,
+        "tmax": 101.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.1
+      },
+      {
+        "date": "2014-08-24",
+        "tavg": 90.0,
+        "tmax": 101.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.5
+      },
+      {
+        "date": "2014-08-25",
+        "tavg": 90.0,
+        "tmax": 102.0,
+        "tmin": 77.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.8
+      },
+      {
+        "date": "2014-08-26",
+        "tavg": 89.0,
+        "tmax": 100.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 7.2
+      },
+      {
+        "date": "2014-08-27",
+        "tavg": 86.0,
+        "tmax": 97.0,
+        "tmin": 75.0,
+        "preciptotal": 0.0,
+        "avgspeed": 5.6
+      },
+      {
+        "date": "2014-08-28",
+        "tavg": 85.0,
+        "tmax": 98.0,
+        "tmin": 72.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.6
+      },
+      {
+        "date": "2014-08-29",
+        "tavg": 84.0,
+        "tmax": 96.0,
+        "tmin": 71.0,
+        "preciptotal": 0.06,
+        "avgspeed": 6.6
+      },
+      {
+        "date": "2014-08-30",
+        "tavg": 86.0,
+        "tmax": 96.0,
+        "tmin": 75.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.3
+      },
+      {
+        "date": "2014-08-31",
+        "tavg": 87.0,
+        "tmax": 97.0,
+        "tmin": 76.0,
+        "preciptotal": 0.0,
+        "avgspeed": 10.3
+      },
+      {
+        "date": "2014-09-01",
+        "tavg": 88.0,
+        "tmax": 98.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 11.8
+      },
+      {
+        "date": "2014-09-02",
+        "tavg": 89.0,
+        "tmax": 100.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 10.2
+      },
+      {
+        "date": "2014-09-03",
+        "tavg": 89.0,
+        "tmax": 99.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 9.3
+      },
+      {
+        "date": "2014-09-04",
+        "tavg": 89.0,
+        "tmax": 99.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.4
+      },
+      {
+        "date": "2014-09-05",
+        "tavg": 88.0,
+        "tmax": 99.0,
+        "tmin": 77.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.5
+      },
+      {
+        "date": "2014-09-06",
+        "tavg": 87.0,
+        "tmax": 97.0,
+        "tmin": 76.0,
+        "preciptotal": 0.04,
+        "avgspeed": 5.7
+      },
+      {
+        "date": "2014-09-07",
+        "tavg": 82.0,
+        "tmax": 91.0,
+        "tmin": 73.0,
+        "preciptotal": 0.0,
+        "avgspeed": 6.1
+      },
+      {
+        "date": "2014-09-08",
+        "tavg": 85.0,
+        "tmax": 96.0,
+        "tmin": 73.0,
+        "preciptotal": "T",
+        "avgspeed": 5.6
+      },
+      {
+        "date": "2014-09-09",
+        "tavg": 88.0,
+        "tmax": 99.0,
+        "tmin": 77.0,
+        "preciptotal": 0.0,
+        "avgspeed": 8.6
+      },
+      {
+        "date": "2014-09-10",
+        "tavg": 90.0,
+        "tmax": 101.0,
+        "tmin": 78.0,
+        "preciptotal": 0.0,
+        "avgspeed": 9.7
+      },
+      {
+        "date": "2014-09-11",
+        "tavg": 83.0,
+        "tmax": 91.0,
+        "tmin": 74.0,
+        "preciptotal": 0.05,
+        "avgspeed": 8.0
+      },
+      {
+        "date": "2014-09-12",
+        "tavg": 68.0,
+        "tmax": 75.0,
+        "tmin": 60.0,
+        "preciptotal": 0.06,
+        "avgspeed": 10.6
+      }
+    ],
+    "weather_strategy": "persistence"
+  }
+}

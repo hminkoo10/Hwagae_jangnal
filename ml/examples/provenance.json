@@ -1,0 +1,48 @@
+{
+  "schema_version": "1",
+  "dataset": "Walmart Recruiting II: Sales in Stormy Weather",
+  "local_source_directory": "G:\\내 드라이브\\weather_order_tft",
+  "source_zip_sha256": {
+    "train.csv.zip": "70d7b0c7f24a55369ac22f092148e8cced5991623645d1f136ea1977c9d7eadf",
+    "weather.csv.zip": "feb96736bad00d4e819715049d7cbc9af7352105c04e488f468c7b2d4b0edced",
+    "key.csv.zip": "145270ab9b544e0fc5c93a822e36c48621c1ba3ebc895170b7ffc96c2250004a"
+  },
+  "training_run": "walmart_20261024T020058Z",
+  "max_trained_products_per_store": 6,
+  "demo_products": 10,
+  "demo_requests": 3,
+  "demo_as_of": "2014-09-12",
+  "demo_distinct_skus": 10,
+  "benchmark_products": 50,
+  "benchmark_requests": 10,
+  "benchmark_as_of": "2014-10-17",
+  "benchmark_distinct_skus": 29,
+  "benchmark_selection": {
+    "history_start": "2014-08-23",
+    "history_end": "2014-10-17",
+    "eligible_trained_series_with_56_observed_days": 56,
+    "excluded_store_nbr": "35",
+    "excluded_series": 6,
+    "exclusion_reason": "Station 5 has M for all five weather fields on every history date; omit its six store-35 series to select exactly 50 supported pairs with observed weather.",
+    "ordering": "Ascending numeric store_nbr, then item_nbr; one sequential request per store.",
+    "scope": "50 distinct trained store/item pairs, 29 distinct item_nbr values, 10 requests; fixed performance workload, not an accuracy cohort."
+  },
+  "history_policy": "56 consecutive observed sales days; no sales imputation. Minimal earlier weather observations seed exact full-history causal fill, verified during build.",
+  "future_actuals": "actuals.json is a separate comparison fixture; all input sales and weather dates are <= as_of.",
+  "expected_values": "CPU float32 checkpoint predictions, clipped at zero then sorted across all five quantiles; rtol=1e-5, atol=1e-4.",
+  "legacy_sample": {
+    "source_commit": "3056d6be24e4a39bf2df7a19dcc05318d281bdcb",
+    "products": 2,
+    "store_nbr": "4",
+    "item_nbr": [
+      "9",
+      "27"
+    ],
+    "policy": "Preserve the original main replay input and expected files byte-for-byte; the ten-product manifest uses separate store-specific files.",
+    "files_sha256": {
+      "input.json": "65a40a2bdc5af2b8a4b693403f06f3b44fa8d580f2e82760170c019bb9a66feb",
+      "expected-api.json": "9c141a9ffd9488c569c70f3c2b2663426102ad54a0613f06e6b1432787392c0c",
+      "expected-quantiles.json": "d350d111e311ae7e125018c30a12b468613f562cc0b7ea95e04ac6b1bfc4b390"
+    }
+  }
+}
