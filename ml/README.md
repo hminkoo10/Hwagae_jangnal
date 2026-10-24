@@ -105,6 +105,8 @@ PyTorch Forecasting 1.5의 `from_parameters()`는 학습된 내부 group encoder
 
 시연 매장에는 `ml.bridge:predict`가 자동 선택된다. bridge는 Python 3.14 표준 라이브러리만 사용하고, 지정한 Python 3.11 worker를 한 번 시작해 재사용한다. API 시작 시 모델을 미리 로드한다. 요청은 직렬 처리하며 실패·시간 초과 시 worker를 종료하고 다음 요청에서 다시 시작한다. 정상 일반 매장을 위해 `FORECAST_PROVIDER`를 전역 TFT로 바꿀 필요가 없다. 예측에 재고·가격·원가·납기·발주 계산은 필요하지 않다.
 
+최신 main의 별도 **모델 체험** 화면(`/model-demo`)도 유지한다. 이 화면은 기본 입력의 6상품과 API 기준선을 보여주며 DB를 변경하지 않는다. `ModelRuntime`과 `ops/tft_worker.py`가 비동기로 모델을 준비하고 상태를 표시한다. `TFT_DEMO_ENABLED=true`의 3매장 시연까지 함께 켜면 두 경로가 각각 모델 프로세스를 유지한다. 아래 메모리 측정은 모델 프로세스 하나의 수치이며, 두 경로와 API·웹을 합친 서비스 전체 메모리는 별도 측정해야 한다. Linux에서는 `TFT_PYTHON`에 가상환경의 `bin/python` 경로를 그대로 지정한다.
+
 실제 예보 지원은 아직 없다. 이를 추가하려면 예보 발급 시각·대상 날짜·관측소·단위를 포함한 당시 예보 자료를 확보하고, 각 예측 기준일에 이용 가능했던 예보만 학습과 검증에 사용해야 한다. 예보 갱신·누락 처리와 특징 정의를 저장 전처리에 반영한 새 모델을 만든 뒤, 같은 시간순 분할과 API 기준선에서 다시 평가해야 한다. 미래 실제 관측을 당시 예보로 취급하거나 설정 이름만 바꾸는 것은 지원이 아니다.
 
 ## 실제 10상품 웹 시연
@@ -151,6 +153,6 @@ npm run dev
 python -m ml.verify_runtime --benchmark-input ml/examples/benchmark-10.json --benchmark-expected ml/examples/benchmark-10-expected.json --report /tmp/tft-benchmark-10.json
 ```
 
-[이력 부족 입력](examples/insufficient-history.json)과 [예상 결과](examples/expected-insufficient-history.json): walmart-9는 55/56일로 부족, walmart-27은 정상, new-product는 미등록이다. 정상 상품은 계속 예측한다.
+[이력 부족 입력](examples/insufficient-history.json)과 [예상 결과](examples/expected-insufficient-history.json): walmart-9는 55/56일로 부족, 나머지 기존 5상품은 정상, new-product는 미등록이다. 정상 상품은 계속 예측한다.
 
 unittest는 원본 특징 일치, SI/결측/trace, 학습·CUDA 차단, 상태 불변, 동시 요청, 상품·날짜 대응, 비정상 출력 거절을 검사한다. 현재 날씨 TFT의 전체 테스트셋 CPU 재평가는 수행하지 않았다. 별도 날씨 제외 학습·시간순 평가·기준선 수치·미검증 항목은 [evaluation.md](evaluation.md)를 따른다.

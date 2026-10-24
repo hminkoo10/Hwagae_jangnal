@@ -55,6 +55,67 @@ for line in sys.stdin:
 '''
 
 
+class BridgeConfigurationTests(unittest.TestCase):
+    def setUp(self):
+        bridge.close()
+        self.addCleanup(bridge.close)
+        directory = tempfile.TemporaryDirectory(prefix="hwagae-tft-config-test-")
+        self.addCleanup(directory.cleanup)
+        self.directory = Path(directory.name)
+        self.checkpoint = self.directory / "model.ckpt"
+        self.checkpoint.touch()
+        env = patch.dict(os.environ, {
+            "TFT_PYTHON": sys.executable,
+            "TFT_CHECKPOINT_PATH": str(self.checkpoint),
+            "TFT_REQUEST_TIMEOUT_SECONDS": "3",
+        })
+        env.start()
+        self.addCleanup(env.stop)
+
+    def test_configured_interpreter_path_is_preserved(self):
+        interpreter = self.directory / "model-env-python"
+        interpreter.touch()
+        original_resolve = Path.resolve
+
+        def resolve(path, *args, **kwargs):
+            # Emulate a venv symlink on Windows, where creating symlinks may
+            # require privileges; the POSIX test below exercises a real venv.
+            if path == interpreter:
+                return Path(sys.executable)
+            return original_resolve(path, *args, **kwargs)
+
+        with patch.dict(os.environ, {"TFT_PYTHON": str(interpreter)}):
+            with patch.object(Path, "resolve", new=resolve):
+                client = bridge._client()
+        self.assertEqual(client.command[0], str(interpreter.absolute()))
+        self.assertIsNone(client.process)
+
+    @unittest.skipUnless(os.name == "posix", "real symlink venv requires POSIX")
+    def test_symlinked_venv_keeps_its_own_python_environment(self):
+        import venv
+
+        environment = self.directory / "model-env"
+        venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
+        interpreter = environment / "bin/python"
+        self.assertTrue(interpreter.is_symlink())
+        with patch.dict(os.environ, {"TFT_PYTHON": str(interpreter)}):
+            client = bridge._client()
+        output = subprocess.check_output(
+            [client.command[0], "-c", "import sys; print(sys.prefix)"],
+            cwd=client.cwd, env=client.env, text=True, encoding="utf-8", timeout=10,
+        )
+        self.assertEqual(Path(output.strip()).resolve(), environment.resolve())
+
+    def test_missing_or_directory_interpreter_is_rejected(self):
+        for interpreter, error in [(self.directory / "missing", FileNotFoundError),
+                                   (self.directory, ValueError)]:
+            with self.subTest(interpreter=interpreter):
+                with patch.dict(os.environ, {"TFT_PYTHON": str(interpreter)}):
+                    with self.assertRaises(error):
+                        bridge._client()
+                self.assertIsNone(bridge._CLIENT)
+
+
 class WorkerClientTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix="hwagae-tft-bridge-test-")

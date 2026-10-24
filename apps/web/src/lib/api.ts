@@ -83,6 +83,40 @@ export type Forecast = {
   weather: Weather;
   products: ProductForecast[];
 };
+export type ModelDemoStatus = {
+  runtime: {
+    status: "disabled" | "starting" | "ready" | "unavailable";
+    message: string;
+  };
+  sample: {
+    title: string;
+    as_of: string;
+    dates: string[];
+    history_start: string;
+    history_end: string;
+    history_days: 56;
+    product_count: number;
+    products: { id: string; name: string }[];
+    source: string;
+    weather_strategy: "persistence";
+    note: string;
+  };
+};
+export type ModelDemoForecast = {
+  as_of: string;
+  dates: string[];
+  created_at: string;
+  elapsed_ms: number;
+  model: Forecast["model"];
+  products: ProductForecast[];
+  baseline: {
+    model: Forecast["model"];
+    products: ProductForecast[];
+  };
+  provenance: string;
+  weather_strategy: "persistence";
+  note: string;
+};
 export type RecommendationRow = {
   product_id: string;
   name: string;

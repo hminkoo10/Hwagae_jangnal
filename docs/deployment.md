@@ -18,6 +18,16 @@ PR #2의 main 병합과 GitHub Actions 자동 배포까지 완료했습니다. D
 코드는 /srv/hwagae/releases/커밋에 보관하며 current 링크로 선택합니다.
 DB는 코드 밖의 /srv/hwagae/shared/hwagae.sqlite3에 유지합니다.
 
+### 선택적 TFT 시연 실행 환경
+
+검증한 체크포인트를 `/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt`에 배치하면 다음 배포부터 해당 release의 `.model-venv`에 Python 3.11 추론 환경을 설치합니다. 파일 해시는 `ml/metadata/manifest.json`과 일치해야 하며 파일은 Git에 넣지 않습니다.
+
+배포는 실제 체크포인트로 smoke test와 전체 ML unittest를 실행한 다음 코드를 활성화합니다. 테스트 생략도 실패입니다. 모델 파일이 없으면 기존 웹·API 배포만 수행합니다. API의 Python 3.14 환경은 유지합니다.
+
+API가 별도 모델 자식 프로세스를 관리하므로 새 포트·systemd 서비스·sudo 권한을 추가하지 않습니다. 시작 시 백그라운드에서 샘플을 실행해 준비하고, 로그인 후 `/api/model-demo`에서 `disabled/starting/ready/unavailable`을 확인합니다. 모델 준비와 API `/health`는 별개입니다. 체크포인트나 환경을 수정한 뒤에는 API를 재시작합니다.
+
+로컬은 `uv venv --no-project --python 3.11 .model-venv`로 환경을 만든 뒤 `ml/README.md`의 고정 요구사항을 설치합니다. `TFT_CHECKPOINT_PATH`를 실제 파일로 지정한 API 프로세스에서 체험할 수 있습니다. `.model-venv`는 Git 제외 대상입니다.
+
 ## 대상 확인 후 1회 준비
 
 1. Ubuntu 버전·CPU·메모리·디스크, SSH 계정·포트, 기존 80·443·3000·8000 서비스 점검.

@@ -59,7 +59,15 @@
 
 현재 API 기준선은 원본 테스트의 1,139개 window에서 모두 `ready`였다. 누락 판매일을 0으로 채우지 않았으며 원본 CSV의 모든 정답을 `train.csv.zip`의 실제 판매량과 대조했다. 날짜/상품이 달라지거나 추가적인 제외 조건을 적용한 지표를 같은 표에 섞지 않았다.
 
-저장소 루트에서 다음 한 명령으로 별도 임시 폴더에 작은 표와 manifest를 다시 만들고, 커밋된 평가표와 같은 결과인지 자동 확인한다. Python 표준 라이브러리만 사용하며 큰 원본 CSV/ZIP은 Git 밖에 둔다.
+평가 재현에 필요한 외부 자료는 `tft-evaluation-data.zip`으로 별도 전달한다. 실제 전달 위치는 `C:\Users\User\Documents\Codex\2026-10-24\tft-cpu-1-main-feat-tft-3\outputs\tft-evaluation-data.zip`이며, 크기는 **3,464,987 bytes**, SHA-256은 `213d195418373de5f437d1bc602dc8a0bd6e51e698490442ca42a180518bef5b`이다. [전달 묶음 식별 정보](evaluation/external-data.json)에도 같은 값을 기록했다. ZIP 안의 `evaluation-data/`에는 입력 해시를 기록한 `MANIFEST.json`, `reproduce.py`, `reference-metrics.csv`, 판매/날씨/매장 대응 ZIP 및 두 TFT 예측 CSV 등 18개 파일이 들어 있다. 체크포인트는 포함하지 않는다.
+
+ZIP을 푼 뒤 **저장소 루트**에서 아래 명령의 경로를 압축 해제 위치로 바꿔 실행한다. 스크립트는 모든 입력 SHA-256을 확인하고 세 모델×두 집합의 평가표 6행을 다시 만든 뒤 `--check-against`로 기준표와 비교한다. 실제 전달 묶음으로 실행하여 `original_rows=7973`, `strict_rows=1701`, `comparison="passed"`를 확인했다.
+
+```bash
+python /path/to/evaluation-data/reproduce.py
+```
+
+원본 파일을 직접 지정할 때는 저장소 루트에서 다음 명령으로 별도 임시 폴더에 작은 표와 manifest를 다시 만들고, 커밋된 평가표와 같은 결과인지 자동 확인한다. Python 표준 라이브러리만 사용하며 큰 원본 CSV/ZIP은 Git 밖에 둔다.
 
 ```powershell
 python -m ml.evaluate --predictions 'G:\내 드라이브\weather_order_tft\runs\walmart_20261024T020058Z\test_predictions.csv' --sales 'G:\내 드라이브\weather_order_tft\train.csv.zip' --no-weather-predictions 'D:\tmp\codex-tft-ablation-20261024\matched-no-weather\tft_no_weather_test_predictions.csv' --output-dir "$env:TEMP/tft-evaluation-check" --check-against ml/evaluation/api-comparison/metrics.csv

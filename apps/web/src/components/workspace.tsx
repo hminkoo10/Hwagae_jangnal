@@ -20,9 +20,16 @@ import {
 import { InventoryModal, ProductModal, SalesPanel, StoreModal } from "./forms";
 import { Empty, ForecastChart, Icon } from "./ui";
 import { MerchantOverview } from "./merchant-overview";
+import { ModelDemo } from "./model-demo";
 
 type Tab =
-  "overview" | "forecast" | "sales" | "inventory" | "products" | "orders";
+  | "overview"
+  | "forecast"
+  | "sales"
+  | "inventory"
+  | "products"
+  | "orders"
+  | "model-demo";
 const tabs: { id: Tab; label: string; description: string }[] = [
   {
     id: "overview",
@@ -53,6 +60,11 @@ const tabs: { id: Tab; label: string; description: string }[] = [
     id: "orders",
     label: "발주 계획",
     description: "필요한 수량을 확인하고 수정한 뒤 발주서로 저장하세요.",
+  },
+  {
+    id: "model-demo",
+    label: "TFT 모델 체험",
+    description: "과거 공개 데이터로 학습한 모델의 예측을 직접 실행해보세요.",
   },
 ];
 type Bundle = {
@@ -225,6 +237,7 @@ export default function Workspace() {
   const [today, setToday] = useState("");
   const [asOf, setAsOf] = useState("");
   const [tab, setTab] = useState<Tab>("overview");
+  const modelDemo = tab === "model-demo";
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -317,6 +330,10 @@ export default function Workspace() {
   }, [token, refreshStores, clearSession]);
 
   useEffect(() => {
+    if (modelDemo) {
+      setLoading(false);
+      return;
+    }
     if (!token || !storeId || !forecastDate) return;
     const controller = new AbortController();
     const options = { signal: controller.signal };
@@ -360,7 +377,7 @@ export default function Workspace() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [token, storeId, forecastDate, sampleDemo, reload, clearSession]);
+  }, [token, storeId, forecastDate, sampleDemo, reload, clearSession, modelDemo]);
 
   useEffect(() => {
     if (notice) {
@@ -376,7 +393,7 @@ export default function Workspace() {
   function navigate(next: Tab) {
     setTab(next);
     setSearch("");
-    if (next !== "forecast") setAsOf(store?.demo_as_of ?? today);
+    if (next !== "forecast" && next !== "model-demo") setAsOf(store?.demo_as_of ?? today);
   }
   async function action(task: () => Promise<void>) {
     setBusy(true);
@@ -679,7 +696,7 @@ export default function Workspace() {
               aria-current={tab === item.id ? "page" : undefined}
               onClick={() => navigate(item.id)}
             >
-              <Icon name={item.id} />
+              <Icon name={item.id === "model-demo" ? "forecast" : item.id} />
               <span>{item.label}</span>
               {item.id === "inventory" && missingStock > 0 && (
                 <em>{missingStock}</em>
@@ -720,6 +737,8 @@ export default function Workspace() {
               className="text-button muted"
               onClick={() =>
                 void action(async () => {
+                  // Leaving the replay cancels its in-flight model request immediately.
+                  if (modelDemo) navigate("overview");
                   await api("/auth/logout", token, { method: "POST" });
                   clearSession();
                 })
@@ -739,45 +758,47 @@ export default function Workspace() {
                   : currentTab.label}
               </h1>
               <p>
-                {sampleDemo
+                {sampleDemo && !modelDemo
                   ? `Walmart 공개자료 · ${forecastDate} 기준 과거 판매 재현`
                   : currentTab.description}
               </p>
             </div>
-            <div className="store-picker">
-              <Icon name="store" />
-              <select
-                aria-label="매장 선택"
-                value={storeId}
-                onChange={(event) => {
-                  const nextStore = stores.find(
-                    (item) => item.id === event.target.value,
-                  );
-                  setStoreId(event.target.value);
-                  setSearch("");
-                  setAsOf(nextStore?.demo_as_of ?? today);
-                  if (nextStore?.demo_as_of && (tab === "inventory" || tab === "orders"))
-                    setTab("overview");
-                  setInventoryProduct(null);
-                  setProductModal(null);
-                }}
-              >
-                {stores.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-              {owner && !sampleDemo && (
-                <button
-                  className="icon-button"
-                  aria-label="매장 추가"
-                  onClick={() => setStoreModal(true)}
+            {!modelDemo && (
+              <div className="store-picker">
+                <Icon name="store" />
+                <select
+                  aria-label="매장 선택"
+                  value={storeId}
+                  onChange={(event) => {
+                    const nextStore = stores.find(
+                      (item) => item.id === event.target.value,
+                    );
+                    setStoreId(event.target.value);
+                    setSearch("");
+                    setAsOf(nextStore?.demo_as_of ?? today);
+                    if (nextStore?.demo_as_of && (tab === "inventory" || tab === "orders"))
+                      setTab("overview");
+                    setInventoryProduct(null);
+                    setProductModal(null);
+                  }}
                 >
-                  <Icon name="plus" size={18} />
-                </button>
-              )}
-            </div>
+                  {stores.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                {owner && !sampleDemo && (
+                  <button
+                    className="icon-button"
+                    aria-label="매장 추가"
+                    onClick={() => setStoreModal(true)}
+                  >
+                    <Icon name="plus" size={18} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           {notice && (
             <div className="toast" role="status">
@@ -792,7 +813,7 @@ export default function Workspace() {
               </button>
             </div>
           )}
-          {error && (
+          {!modelDemo && error && (
             <div className="error-banner" role="alert">
               {error}
               <button
@@ -803,7 +824,7 @@ export default function Workspace() {
               </button>
             </div>
           )}
-          {store && (
+          {!modelDemo && store && (
             <div className="source-note">
               <span className="source-dot" />
               <span>{store.provenance}</span>
@@ -814,7 +835,7 @@ export default function Workspace() {
               </span>
             </div>
           )}
-          {sampleDemo && (
+          {!modelDemo && sampleDemo && (
             <div className="info-banner">
               <Icon name="forecast" />
               <div>
@@ -825,18 +846,21 @@ export default function Workspace() {
               </div>
             </div>
           )}
-          {loading && (
+          {!modelDemo && loading && (
             <div className="loading-banner" role="status">
               <span className="loading-spinner" />
               판매 기록과 날씨를 확인하고 있어요…
             </div>
           )}
-          {!data && !loading && !error && (
+          {!modelDemo && !data && !loading && !error && (
             <Empty title="매장을 준비하고 있어요">
               접근 가능한 매장이 없다면 점주에게 소속을 확인해주세요.
             </Empty>
           )}
-          {data && (
+          {modelDemo && (
+            <ModelDemo token={token} onSessionExpired={clearSession} />
+          )}
+          {!modelDemo && data && (
             <div
               className={loading ? "content-updating" : undefined}
               aria-busy={loading}
@@ -1388,7 +1412,11 @@ export default function Workspace() {
           )}
           <footer className="workspace-footer">
             <span>화개장날 · 화개장터 팀</span>
-            <span>판매 예측과 발주량을 구분해, 필요한 만큼 준비해요.</span>
+            <span>
+              {modelDemo
+                ? "과거 공개 데이터 재현 · 현재 매장 발주와 분리된 체험"
+                : "판매 예측과 발주량을 구분해, 필요한 만큼 준비해요."}
+            </span>
           </footer>
         </main>
       </div>

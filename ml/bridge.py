@@ -143,7 +143,14 @@ def _client():
     checkpoint = os.getenv("TFT_CHECKPOINT_PATH", "")
     if not python or not checkpoint:
         raise ValueError("TFT_PYTHON and TFT_CHECKPOINT_PATH are required for the model worker")
-    interpreter = str(Path(python).resolve(strict=True))
+    # A POSIX venv's python is commonly a symlink to the base interpreter.
+    # Keep its configured path so Python discovers the adjacent pyvenv.cfg.
+    interpreter_path = Path(python).absolute()
+    if not interpreter_path.exists():
+        raise FileNotFoundError(f"TFT_PYTHON does not exist: {interpreter_path}")
+    if not interpreter_path.is_file():
+        raise ValueError("TFT_PYTHON must point to a Python executable file")
+    interpreter = str(interpreter_path)
     model_path = str(Path(checkpoint).resolve(strict=True))
     timeout = float(os.getenv("TFT_REQUEST_TIMEOUT_SECONDS", "60"))
     if not math.isfinite(timeout) or timeout <= 0 or timeout > 600:
