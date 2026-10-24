@@ -401,9 +401,11 @@ def mount_ai_routes(application, database, access, authenticated, saved_record):
                 "network": "AI 서비스에 연결하지 못했어요. 서비스 주소를 확인하고 다시 시도해주세요.",
                 "blocked_address": "외부에서 접속할 수 있는 HTTPS 서비스 주소를 입력해주세요.",
             }
-            raise HTTPException(502, messages.get(exc.kind, "AI 목록을 읽지 못했어요. 다시 가져오거나 안내받은 AI 이름을 직접 입력해주세요.")) from None
+            # Cloudflare replaces origin 502 bodies with its own error page.
+            # This is a handled provider dependency failure, not an app outage.
+            raise HTTPException(424, messages.get(exc.kind, "AI 목록을 읽지 못했어요. 다시 가져오거나 안내받은 AI 이름을 직접 입력해주세요.")) from None
         except KeyError, TypeError, AttributeError:
-            raise HTTPException(502, "AI 목록을 읽지 못했어요. 다시 가져오거나 안내받은 AI 이름을 직접 입력해주세요.") from None
+            raise HTTPException(424, "AI 목록을 읽지 못했어요. 다시 가져오거나 안내받은 AI 이름을 직접 입력해주세요.") from None
 
     @router.post("/test")
     def test(store_id: str, user=Depends(authenticated)):
