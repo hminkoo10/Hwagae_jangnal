@@ -59,8 +59,11 @@ class SampleTests(unittest.TestCase):
                 expected = read(f"benchmark-{size}-expected.json")["results"]
                 self.assertEqual(len(expected), len(workload["contexts"]))
                 pairs, identifiers = [], []
-                for context in workload["contexts"]:
+                for context, reference in zip(workload["contexts"], expected, strict=True):
                     self.assert_observed_context(context)
+                    self.assertEqual([product["product_id"] for product in reference["products"]],
+                                     [product["id"] for product in context["products"]])
+                    self.assertTrue(all(product["status"] == "ready" for product in reference["products"]))
                     pairs.extend((context["model_input"]["store_nbr"], product["model_item_nbr"]) for product in context["products"])
                     identifiers.extend(product["id"] for product in context["products"])
                 self.assertEqual(len(pairs), size)

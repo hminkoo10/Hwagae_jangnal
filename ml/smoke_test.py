@@ -78,6 +78,8 @@ def main():
     actuals = [predict_quantiles(context) for context, _, _ in samples]
     cold_done = time.perf_counter()
     for (context, expected, _), actual in zip(samples, actuals, strict=True):
+        if any(product["status"] != "ready" for product in actual["products"]):
+            raise AssertionError(f"{context['store_id']}: the observed normal sample must be ready")
         compare(actual, expected, context["store_id"])
         validate_points(actual, context["dates"], ["p10", "p25", "p50", "p75", "p90"])
     responses = [predict(context) for context, _, _ in samples]

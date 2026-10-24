@@ -18,6 +18,9 @@ from app import tft_demo
 
 EXAMPLES = Path(__file__).resolve().parents[3] / "ml/examples"
 EXPECTED = json.loads((EXAMPLES / "expected-api.json").read_text(encoding="utf-8"))
+MANIFEST = json.loads((EXAMPLES / "demo-manifest.json").read_text(encoding="utf-8"))
+EXPECTED_BY_STORE = {entry["store_id"]: json.loads((EXAMPLES / entry["expected_api"]).read_text(encoding="utf-8"))
+                     for entry in MANIFEST["samples"]}
 
 
 def login(client, role="owner"):
@@ -42,7 +45,8 @@ def demo(tmp_path, monkeypatch):
 
     def predict(context):
         calls["contexts"].append(deepcopy(context))
-        expected_by_id = {p["product_id"]: p for p in EXPECTED["products"]}
+        expected = EXPECTED_BY_STORE[context["store_id"]]
+        expected_by_id = {p["product_id"]: p for p in expected["products"]}
         products = []
         for product in context["products"]:
             rows = [row for row in context["sales"] if row["product_id"] == product["id"]]
@@ -50,7 +54,7 @@ def demo(tmp_path, monkeypatch):
                 products.append(deepcopy(expected_by_id[product["id"]]))
             else:
                 products.append({"product_id": product["id"], "status": "insufficient_history", "points": [], "reason": "56 observed days required"})
-        return {"model": deepcopy(EXPECTED["model"]), "products": products}
+        return {"model": deepcopy(expected["model"]), "products": products}
 
     fake.warmup, fake.close, fake.predict = warmup, close, predict
     monkeypatch.setitem(sys.modules, "ml.bridge", fake)
@@ -82,7 +86,7 @@ def test_demo_store_metadata_auth_and_unavailable_commercial_values(demo):
     assert store["latitude"] is None and store["longitude"] is None
     assert store["ordering_available"] is False
     products = client.get(f"/stores/{tft_demo.STORE_ID}/products", headers=owner).json()["products"]
-    assert len(products) == 2
+    assert len(products) == 6
     assert all(p["price"] is None and p["cost"] is None for p in products)
     assert client.post(f"/stores/{tft_demo.STORE_ID}/forecasts", headers=login(client, "staff")).status_code == 403
 
@@ -98,7 +102,7 @@ def test_demo_forecast_uses_database_history_and_explicit_persistence(demo):
     assert result["weather"]["source"] == "Walmart Stormy Weather 관측자료"
     assert result["model"]["uses_weather"] is True
     assert result["model"]["weather_strategy"] == "persistence"
-    assert len(result["products"]) == 2
+    assert len(result["products"]) == 6
     assert all(len(p["points"]) == 7 for p in result["products"])
     assert all(set(point) == {"date", "p10", "p50", "p90", "actual"}
                for product in result["products"] for point in product["points"])
@@ -119,6 +123,28 @@ def test_demo_forecast_uses_database_history_and_explicit_persistence(demo):
     assert all(row["date"] <= "2014-09-12" for row in latest)
     product = next(p for p in second.json()["products"] if p["product_id"] == "walmart-9")
     assert product["points"][0]["actual"] == 9999
+
+
+def test_all_three_demo_stores_have_ten_distinct_skus_and_no_future_seed(demo):
+    client, calls, _ = demo
+    auth = login(client)
+    total, items = 0, set()
+    for entry in MANIFEST["samples"]:
+        store_id = entry["store_id"]
+        response = client.post(f"/stores/{store_id}/forecasts", headers=auth)
+        assert response.status_code == 200, response.text
+        result = response.json()
+        assert len(result["products"]) == entry["product_count"]
+        assert all(point["actual"] is None for product in result["products"] for point in product["points"])
+        context = calls["contexts"][-1]
+        assert context["model_input"]["store_nbr"] == entry["store_nbr"]
+        assert len(context["sales"]) == 56 * entry["product_count"]
+        assert all(row["date"] <= context["as_of"] for row in context["sales"])
+        items.update(product["model_item_nbr"] for product in context["products"])
+        total += len(result["products"])
+        with client.app.state.database.connect() as db:
+            assert db.execute("SELECT COUNT(*) FROM sales WHERE store_id=? AND date>?", (store_id, "2014-09-12")).fetchone()[0] == 0
+    assert total == len(items) == 10
 
 
 def test_demo_missing_history_is_not_reseeded(demo):
@@ -165,6 +191,29 @@ def test_seed_never_grants_access_to_an_unrelated_account(tmp_path):
         assert db.execute("SELECT COUNT(*) FROM stores").fetchone()[0] == 0
 
 
+def test_legacy_two_product_seed_expands_without_restoring_missing_sales(tmp_path):
+    database = Database(tmp_path / "legacy.sqlite3")
+    database.initialize()
+    sample = tft_demo._sample()
+    with database.connect() as db:
+        db.execute("INSERT INTO stores(id,name,city,latitude,longitude,provenance) VALUES (?,?,?,?,?,?)",
+                   (tft_demo.STORE_ID, "legacy sample", "unknown", 0, 0, tft_demo.LEGACY_PROVENANCE))
+        db.execute("INSERT INTO memberships VALUES (?,?,?)", ("demo-owner", tft_demo.STORE_ID, "owner"))
+        for product in sample["products"][:2]:
+            db.execute("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?)",
+                       (tft_demo.STORE_ID, product["id"], product["name"], "sample", "unavailable", 0, 0, 1, 1, 1))
+            db.executemany("INSERT INTO sales VALUES (?,?,?,?,?,?)", [
+                (tft_demo.STORE_ID, row["product_id"], row["date"], row["units_sold"], "walmart_observed_sample", "legacy")
+                for row in sample["sales"] if row["product_id"] == product["id"] and row["date"] != "2014-08-01"
+            ])
+    tft_demo.seed_sample(database)
+    tft_demo.seed_sample(database)
+    with database.connect() as db:
+        assert db.execute("SELECT COUNT(*) FROM products WHERE store_id LIKE 'walmart-demo-%'").fetchone()[0] == 10
+        assert db.execute("SELECT COUNT(*) FROM sales WHERE store_id=? AND product_id='walmart-9'", (tft_demo.STORE_ID,)).fetchone()[0] == 55
+        assert db.execute("SELECT COUNT(*) FROM sales WHERE store_id=? AND product_id='walmart-90'", (tft_demo.STORE_ID,)).fetchone()[0] == 56
+
+
 @pytest.mark.skipif(os.getenv("TFT_REAL_INTEGRATION") != "1", reason="requires configured isolated model interpreter and checkpoint")
 def test_actual_cpu_worker_matches_sample_through_api(tmp_path, monkeypatch):
     monkeypatch.setenv("TFT_DEMO_ENABLED", "true")
@@ -172,13 +221,15 @@ def test_actual_cpu_worker_matches_sample_through_api(tmp_path, monkeypatch):
     application = create_app(tmp_path / "real-tft.sqlite3")
     application.state.weather_reader = lambda *args: pytest.fail("sample fetched external weather")
     with TestClient(application) as client:
-        response = client.post(f"/stores/{tft_demo.STORE_ID}/forecasts", headers=login(client))
-        assert response.status_code == 200, response.text
-        by_id = {p["product_id"]: p for p in response.json()["products"]}
-        for expected in EXPECTED["products"]:
-            actual = by_id[expected["product_id"]]
-            assert actual["status"] == "ready"
-            for observed, reference in zip(actual["points"], expected["points"], strict=True):
-                assert observed["date"] == reference["date"]
-                for key in ["p10", "p50", "p90"]:
-                    assert math.isclose(observed[key], reference[key], rel_tol=1e-5, abs_tol=1e-4)
+        auth = login(client)
+        for store_id, expected_result in EXPECTED_BY_STORE.items():
+            response = client.post(f"/stores/{store_id}/forecasts", headers=auth)
+            assert response.status_code == 200, response.text
+            by_id = {p["product_id"]: p for p in response.json()["products"]}
+            for expected in expected_result["products"]:
+                actual = by_id[expected["product_id"]]
+                assert actual["status"] == "ready"
+                for observed, reference in zip(actual["points"], expected["points"], strict=True):
+                    assert observed["date"] == reference["date"]
+                    for key in ["p10", "p50", "p90"]:
+                        assert math.isclose(observed[key], reference[key], rel_tol=1e-5, abs_tol=1e-4)
