@@ -64,7 +64,7 @@ def baseline(context):
     }
 
 
-def run_forecast(database, store, as_of, weather):
+def run_forecast(database, store, as_of, weather, *, demo=False):
     dates = [(as_of + timedelta(days=i)).isoformat() for i in range(1, 8)]
     products = database.products(store["id"])
     with database.connect() as db:
@@ -95,7 +95,13 @@ def run_forecast(database, store, as_of, weather):
         "sales": sales,
         "weather": weather,
     }
-    entry = os.getenv("FORECAST_PROVIDER", "").strip()
+    if demo:
+        from app.tft_demo import add_model_input
+
+        context = add_model_input(context, store)
+        entry = "ml.bridge:predict"
+    else:
+        entry = os.getenv("FORECAST_PROVIDER", "").strip()
     if entry:
         project_root = str(Path(__file__).resolve().parents[3])
         if project_root not in sys.path:
@@ -110,12 +116,20 @@ def run_forecast(database, store, as_of, weather):
     model = result["model"]
     if not model.get("name") or not model.get("version"):
         raise ValueError("모델 이름과 버전이 필요합니다.")
+    if demo and not model["uses_weather"]:
+        raise ValueError("Walmart TFT demo requires the configured weather model; no baseline fallback is allowed")
+    persistence_demo = (
+        demo and weather["status"] == "ok"
+        and weather["mode"] == "historical_persistence_demo"
+    )
     if model["uses_weather"] and (
         weather["status"] != "ok" or weather["mode"] != "live_forecast"
-    ):
+    ) and not persistence_demo:
         raise ValueError(
             "이 모델의 예측에 필요한 이용 가능한 실시간 예보가 없습니다. 과거 관측을 당시 예보로 대신하지 않습니다."
         )
+    if demo:
+        model = {**model, "weather_strategy": "persistence", "mode": "historical_sample_replay"}
     names = {product["id"]: product["name"] for product in products}
     output, seen = [], set()
     for product in result["products"]:

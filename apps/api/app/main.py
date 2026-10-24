@@ -35,6 +35,7 @@ from app.schemas import (
     StoreInput,
 )
 from app.weather import get_weather
+from app import tft_demo
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,16 @@ def create_app(db_path=None, seed=True):
         database.initialize(
             seed=seed and os.getenv("SEED_DEMO", "true").lower() == "true"
         )
-        yield
+        model_bridge = None
+        try:
+            if tft_demo.enabled():
+                tft_demo.seed_sample(database)
+                model_bridge = tft_demo.bridge()
+                application.state.tft_runtime = model_bridge.warmup()
+            yield
+        finally:
+            if model_bridge is not None:
+                model_bridge.close()
 
     application = FastAPI(
         title="화개장날 API",
@@ -124,6 +134,8 @@ def create_app(db_path=None, seed=True):
             ).fetchone()
         if not row or (owner and row["role"] != "owner"):
             raise HTTPException(403, "이 매장 또는 작업에 접근할 권한이 없습니다.")
+        if tft_demo.is_demo(row) and not tft_demo.enabled():
+            raise HTTPException(404, "TFT 표본 시연이 비활성화되어 있습니다.")
         return dict(row)
 
     def find_product(store_id, product_id):
@@ -194,7 +206,11 @@ def create_app(db_path=None, seed=True):
                     (user["id"],),
                 )
             ]
-        return {"stores": rows, "today": today().isoformat()}
+        return {
+            "stores": [tft_demo.public_store(row) for row in rows
+                       if not tft_demo.is_demo(row) or tft_demo.enabled()],
+            "today": today().isoformat(),
+        }
 
     @application.post("/stores", status_code=201, tags=["stores"])
     def create_store(payload: StoreInput, user=Depends(authenticated)):
@@ -225,8 +241,12 @@ def create_app(db_path=None, seed=True):
     @application.get("/stores/{store_id}/products", tags=["products"])
     def products(store_id: str, user=Depends(authenticated)):
         store = access(store_id, user)
+        catalog = database.products(store_id)
+        if tft_demo.is_demo(store):
+            catalog = [{**product, "price": None, "cost": None,
+                        "commercial_settings_available": False} for product in catalog]
         return {
-            "products": database.products(store_id),
+            "products": catalog,
             "inventory": database.stock(store_id),
             "revision": store["revision"],
         }
@@ -437,9 +457,15 @@ def create_app(db_path=None, seed=True):
     @application.get("/stores/{store_id}/weather", tags=["weather"])
     def weather(store_id: str, as_of: date | None = None, user=Depends(authenticated)):
         store = access(store_id, user)
-        cutoff = as_of or today()
+        demo = tft_demo.is_demo(store)
+        cutoff = as_of or (tft_demo.AS_OF if demo else today())
         if cutoff > today():
             raise HTTPException(422, "기준일은 오늘 또는 과거 날짜여야 합니다.")
+        if demo:
+            try:
+                return tft_demo.weather(store, cutoff)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
         return application.state.weather_reader(database, store, cutoff)
 
     @application.post("/stores/{store_id}/forecasts", tags=["forecast"])
@@ -447,12 +473,19 @@ def create_app(db_path=None, seed=True):
         store_id: str, as_of: date | None = None, user=Depends(authenticated)
     ):
         store = access(store_id, user)
-        cutoff = as_of or today()
+        demo = tft_demo.is_demo(store)
+        cutoff = as_of or (tft_demo.AS_OF if demo else today())
         if cutoff > today():
             raise HTTPException(422, "기준일은 오늘 또는 과거 날짜여야 합니다.")
-        weather_data = application.state.weather_reader(database, store, cutoff)
+        if demo:
+            try:
+                weather_data = tft_demo.weather(store, cutoff)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+        else:
+            weather_data = application.state.weather_reader(database, store, cutoff)
         try:
-            return run_forecast(database, store, cutoff, weather_data)
+            return run_forecast(database, store, cutoff, weather_data, demo=demo)
         except Exception:
             logger.exception("Forecast provider failed for store %s", store_id)
             raise HTTPException(
