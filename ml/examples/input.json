@@ -15,12 +15,32 @@
     {
       "id": "walmart-9",
       "model_item_nbr": "9",
-      "name": "Walmart item 9 (demo)"
+      "name": "Walmart store 4 item 9 (observed sample)"
     },
     {
       "id": "walmart-27",
       "model_item_nbr": "27",
-      "name": "Walmart item 27 (demo)"
+      "name": "Walmart store 4 item 27 (observed sample)"
+    },
+    {
+      "id": "walmart-90",
+      "model_item_nbr": "90",
+      "name": "Walmart store 4 item 90 (observed sample)"
+    },
+    {
+      "id": "walmart-93",
+      "model_item_nbr": "93",
+      "name": "Walmart store 4 item 93 (observed sample)"
+    },
+    {
+      "id": "walmart-96",
+      "model_item_nbr": "96",
+      "name": "Walmart store 4 item 96 (observed sample)"
+    },
+    {
+      "id": "walmart-97",
+      "model_item_nbr": "97",
+      "name": "Walmart store 4 item 97 (observed sample)"
     }
   ],
   "sales": [
@@ -583,6 +603,1126 @@
       "product_id": "walmart-27",
       "date": "2014-09-12",
       "units_sold": 17
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-07-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-07",
+      "units_sold": 2
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-08",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-11",
+      "units_sold": 4
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-13",
+      "units_sold": 2
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-14",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-15",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-16",
+      "units_sold": 3
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-17",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-18",
+      "units_sold": 4
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-23",
+      "units_sold": 2
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-24",
+      "units_sold": 6
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-25",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-26",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-27",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-28",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-29",
+      "units_sold": 2
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-30",
+      "units_sold": 2
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-08-31",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-01",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-02",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-03",
+      "units_sold": 3
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-04",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-05",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-06",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-07",
+      "units_sold": 1
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-08",
+      "units_sold": 3
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-11",
+      "units_sold": 3
+    },
+    {
+      "product_id": "walmart-90",
+      "date": "2014-09-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-07-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-07",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-08",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-11",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-13",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-14",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-15",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-16",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-17",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-18",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-08-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-07",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-08",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-11",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-93",
+      "date": "2014-09-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-07-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-07",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-08",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-11",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-13",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-14",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-15",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-16",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-17",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-18",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-08-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-07",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-08",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-11",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-96",
+      "date": "2014-09-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-07-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-07",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-08",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-11",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-12",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-13",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-14",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-15",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-16",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-17",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-18",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-19",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-20",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-21",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-22",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-23",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-24",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-25",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-26",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-27",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-28",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-29",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-30",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-08-31",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-01",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-02",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-03",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-04",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-05",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-06",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-07",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-08",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-09",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-10",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-11",
+      "units_sold": 0
+    },
+    {
+      "product_id": "walmart-97",
+      "date": "2014-09-12",
+      "units_sold": 0
     }
   ],
   "weather": {

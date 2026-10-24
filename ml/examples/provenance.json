@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "dataset": "Walmart Recruiting II: Sales in Stormy Weather",
+  "local_source_directory": "G:\\내 드라이브\\weather_order_tft",
+  "source_zip_sha256": {
+    "train.csv.zip": "70d7b0c7f24a55369ac22f092148e8cced5991623645d1f136ea1977c9d7eadf",
+    "weather.csv.zip": "feb96736bad00d4e819715049d7cbc9af7352105c04e488f468c7b2d4b0edced",
+    "key.csv.zip": "145270ab9b544e0fc5c93a822e36c48621c1ba3ebc895170b7ffc96c2250004a"
+  },
+  "training_run": "walmart_20261024T020058Z",
+  "max_trained_products_per_store": 6,
+  "demo_products": 10,
+  "demo_requests": 3,
+  "demo_as_of": "2014-09-12",
+  "benchmark_products": 50,
+  "benchmark_requests": 10,
+  "benchmark_as_of": "2014-10-17",
+  "history_policy": "56 consecutive observed sales days; no sales imputation. Minimal earlier weather observations seed exact full-history causal fill, verified during build.",
+  "future_actuals": "actuals.json is a separate comparison fixture; all input sales and weather dates are <= as_of.",
+  "expected_values": "CPU float32 checkpoint predictions, clipped at zero then sorted across all five quantiles; rtol=1e-5, atol=1e-4."
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "as_of": "2014-09-12",
+  "total_products": 10,
+  "actuals_file": "actuals.json",
+  "samples": [
+    {
+      "store_id": "walmart-demo-4",
+      "store_nbr": "4",
+      "station_nbr": "9",
+      "input": "input.json",
+      "expected_quantiles": "expected-quantiles.json",
+      "expected_api": "expected-api.json",
+      "product_count": 6
+    },
+    {
+      "store_id": "walmart-demo-24",
+      "store_nbr": "24",
+      "station_nbr": "9",
+      "input": "input-store-24.json",
+      "expected_quantiles": "expected-quantiles-store-24.json",
+      "expected_api": "expected-api-store-24.json",
+      "product_count": 3
+    },
+    {
+      "store_id": "walmart-demo-17",
+      "store_nbr": "17",
+      "station_nbr": "20",
+      "input": "input-store-17.json",
+      "expected_quantiles": "expected-quantiles-store-17.json",
+      "expected_api": "expected-api-store-17.json",
+      "product_count": 1
+    }
+  ]
+}

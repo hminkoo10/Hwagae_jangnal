@@ -1,4 +1,4 @@
-"""Reproduce the committed 7 x 5 CPU reference; never writes golden outputs."""
+"""Reproduce all ten committed 7 x 5 CPU references; never writes goldens."""
 
 from __future__ import annotations
 
@@ -52,32 +52,46 @@ def validate_points(result, dates, keys):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, help="or set TFT_CHECKPOINT_PATH")
-    parser.add_argument("--input", type=Path, default=EXAMPLES / "input.json")
-    parser.add_argument("--expected", type=Path, default=EXAMPLES / "expected-quantiles.json")
+    parser.add_argument("--input", type=Path, help="override the default three-store / ten-product manifest")
+    parser.add_argument("--expected", type=Path, help="five-quantile reference for --input")
     parser.add_argument("--report", type=Path, help="optional timing/report JSON destination")
     args = parser.parse_args()
     if args.checkpoint:
         os.environ["TFT_CHECKPOINT_PATH"] = str(args.checkpoint.resolve(strict=True))
-    context = json.loads(args.input.read_text(encoding="utf-8"))
-    original = deepcopy(context)
-    expected = json.loads(args.expected.read_text(encoding="utf-8"))
+    if args.expected and not args.input:
+        parser.error("--expected requires --input")
+    if args.input:
+        sources = [(args.input, args.expected or EXAMPLES / "expected-quantiles.json", None)]
+    else:
+        manifest = json.loads((EXAMPLES / "demo-manifest.json").read_text(encoding="utf-8"))
+        sources = [(EXAMPLES / entry["input"], EXAMPLES / entry["expected_quantiles"], EXAMPLES / entry["expected_api"])
+                   for entry in manifest["samples"]]
+    samples = [(json.loads(path.read_text(encoding="utf-8")),
+                json.loads(reference.read_text(encoding="utf-8")),
+                json.loads(api_reference.read_text(encoding="utf-8")) if api_reference else None)
+               for path, reference, api_reference in sources]
+    originals = deepcopy(samples)
     start = time.perf_counter()
     from ml.predict import predict, predict_quantiles
     import torch
     imported = time.perf_counter()
-    actual = predict_quantiles(context)
+    actuals = [predict_quantiles(context) for context, _, _ in samples]
     cold_done = time.perf_counter()
-    compare(actual, expected)
-    validate_points(actual, context["dates"], ["p10", "p25", "p50", "p75", "p90"])
-    api = predict(context)
+    for (context, expected, _), actual in zip(samples, actuals, strict=True):
+        compare(actual, expected, context["store_id"])
+        validate_points(actual, context["dates"], ["p10", "p25", "p50", "p75", "p90"])
+    responses = [predict(context) for context, _, _ in samples]
     warm_done = time.perf_counter()
-    validate_points(api, context["dates"], ["p10", "p50", "p90"])
-    projected = deepcopy(expected)
-    for product in projected["products"]:
-        product["points"] = [{key: point[key] for key in ("date", "p10", "p50", "p90")}
-                             for point in product["points"]]
-    compare(api, projected)
-    if context != original:
+    for (context, expected, expected_api), response in zip(samples, responses, strict=True):
+        validate_points(response, context["dates"], ["p10", "p50", "p90"])
+        projected = deepcopy(expected)
+        for product in projected["products"]:
+            product["points"] = [{key: point[key] for key in ("date", "p10", "p50", "p90")}
+                                 for point in product["points"]]
+        compare(response, projected, context["store_id"])
+        if expected_api is not None:
+            compare(response, expected_api, context["store_id"] + ".api")
+    if samples != originals:
         raise AssertionError("predict mutated the request")
     insufficient = json.loads((EXAMPLES / "insufficient-history.json").read_text(encoding="utf-8"))
     insufficient_expected = json.loads((EXAMPLES / "expected-insufficient-history.json").read_text(encoding="utf-8"))
@@ -88,7 +102,10 @@ def main():
         "status": "passed", "python": platform.python_version(),
         "platform": platform.platform(), "torch": torch.__version__,
         "cuda_available": torch.cuda.is_available(), "cpu_threads": torch.get_num_threads(),
-        "products": len(context["products"]), "days": 7, "quantiles": 5,
+        "products": sum(len(context["products"]) for context, _, _ in samples),
+        "sample_requests": len(samples), "days": 7, "quantiles": 5,
+        "samples": [{"store_id": context["store_id"], "as_of": context["as_of"], "products": len(context["products"])}
+                    for context, _, _ in samples],
         "insufficient_history_case": "passed",
         "atol": ATOL, "rtol": RTOL,
         "import_seconds": round(imported - start, 4),
