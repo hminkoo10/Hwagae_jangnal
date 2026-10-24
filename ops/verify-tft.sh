@@ -8,6 +8,8 @@ revision="${1:?Usage: verify-tft.sh COMMIT_SHA --checkpoint ABSOLUTE_PATH}"
 shift
 [[ "$revision" =~ ^[a-f0-9]{40}$ && "${1:-}" == --checkpoint && $# == 2 ]] || exit 2
 checkpoint="$2"
+verification_id="${TFT_VERIFICATION_ID:-manual-$(date -u +%Y%m%dT%H%M%S)-$$}"
+[[ "$verification_id" =~ ^[A-Za-z0-9_-]+$ ]] || exit 2
 [[ "$checkpoint" =~ ^/srv/hwagae/shared/[A-Za-z0-9_./=+-]+$ ]] || exit 2
 verification_root=/srv/hwagae/shared/tft-verification
 workdir="$verification_root/$revision"
@@ -27,11 +29,12 @@ status=failed
 finish() {
   result=$?
   trap - EXIT
-  python3 - "$reports/status.json" "$revision" "$stage" "$status" "$result" <<'PY'
+  python3 - "$reports/status.json" "$revision" "$stage" "$status" "$result" "$verification_id" <<'PY'
 import datetime, json, pathlib, sys
-path, revision, stage, status, code = sys.argv[1:]
+path, revision, stage, status, code, verification_id = sys.argv[1:]
 pathlib.Path(path).write_text(json.dumps({
     "revision": revision, "status": status, "stage": stage, "exit_code": int(code),
+    "verification_id": verification_id,
     "finished_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "production_activated": False,
 }, indent=2) + "\n")
