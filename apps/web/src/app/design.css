@@ -151,6 +151,9 @@ summary {
   width: 100%;
   min-width: 0;
 }
+.merchant-filters > .custom-control {
+  align-self: stretch;
+}
 .merchant-filters .text-button {
   min-height: 46px;
   padding: 8px;

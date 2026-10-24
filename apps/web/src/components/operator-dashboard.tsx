@@ -201,7 +201,7 @@ export function OperatorDashboard({
                     onChange={(e) => setSort(e.target.value)}
                   >
                     <option value="name">이름순</option>
-                    <option value="expiry">계약 종료일순</option>
+                    <option value="expiry">종료일순</option>
                     <option value="sales">최근 판매순</option>
                   </Select>
                   {(query || filter !== "all" || sort !== "name") && (
