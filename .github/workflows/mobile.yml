@@ -75,7 +75,7 @@ jobs:
           retention-days: 7
 
   ios:
-    name: iOS simulator build
+    name: iOS simulator and unsigned device builds
     runs-on: macos-26
     timeout-minutes: 35
     steps:
@@ -111,5 +111,50 @@ jobs:
         with:
           name: hwagae-ios-simulator
           path: build/hwagae-ios-simulator.zip
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build unsigned iPhone and iPad app
+        run: |
+          xcodebuild \
+            -project apps/mobile/ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/ios-device \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+      - name: Package unsigned device IPA for local signing
+        run: |
+          app="build/ios-device/Build/Products/Release-iphoneos/App.app"
+          xcrun lipo -verify_arch arm64 "$app/App"
+          python3 - <<'PY'
+          import plistlib
+          from pathlib import Path
+
+          app = Path("build/ios-device/Build/Products/Release-iphoneos/App.app")
+          info = plistlib.loads((app / "Info.plist").read_bytes())
+          assert info["CFBundleSupportedPlatforms"] == ["iPhoneOS"], "Device build required"
+          assert info["CFBundleIdentifier"] == "kr.milky.hwagae"
+          assert set(info["UIDeviceFamily"]) == {1, 2}, "Both iPhone and iPad must be supported"
+          assert info["MinimumOSVersion"] == "16.4"
+          assert (app / "public/index.html").is_file(), "Bundled frontend missing"
+          assert not (app / "embedded.mobileprovision").exists(), "CI must not embed an account profile"
+          PY
+          mkdir -p build/ios-device-package/Payload
+          ditto "$app" build/ios-device-package/Payload/App.app
+          ditto -c -k --norsrc --keepParent \
+            build/ios-device-package/Payload \
+            build/hwagae-ios-unsigned.ipa
+          unzip -t build/hwagae-ios-unsigned.ipa
+      - name: Save unsigned iOS device IPA
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hwagae-ios-unsigned
+          path: build/hwagae-ios-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
