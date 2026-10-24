@@ -150,14 +150,18 @@ def mount_platform_routes(application, database, authenticated):
     @router.get("/admin/overview")
     def overview(user=Depends(operator)):
         with database.connect() as db:
+            def merchant_stores(user_id):
+                return [dict(s) for s in db.execute("SELECT s.id,s.name,s.city,(SELECT MAX(date) FROM sales WHERE store_id=s.id) last_sales_date,(SELECT COUNT(*) FROM products WHERE store_id=s.id) product_count FROM stores s JOIN memberships m ON m.store_id=s.id WHERE m.user_id=? AND m.role='owner' ORDER BY s.name", (user_id,))]
             contracts = []
             for row in db.execute("SELECT c.*,COALESCE(a.enabled,1) enabled FROM merchant_contracts c LEFT JOIN account_controls a ON a.user_id=c.user_id ORDER BY c.created_at DESC"):
                 item = dict(row)
                 item["enabled"] = bool(item["enabled"])
                 item["access_status"] = "suspended" if not row["enabled"] or row["status"] == "suspended" else "scheduled" if row["starts_on"] > today().isoformat() else "expired" if row["ends_on"] < today().isoformat() else "invited" if not row["user_id"] else "active"
-                item["stores"] = [dict(s) for s in db.execute("SELECT s.id,s.name,s.city,(SELECT MAX(date) FROM sales WHERE store_id=s.id) last_sales_date,(SELECT COUNT(*) FROM products WHERE store_id=s.id) product_count FROM stores s JOIN memberships m ON m.store_id=s.id WHERE m.user_id=? AND m.role='owner' ORDER BY s.name", (row["user_id"],))]
+                item["stores"] = merchant_stores(row["user_id"])
                 contracts.append(item)
             legacy = [dict(r) for r in db.execute("SELECT DISTINCT u.id,u.name,u.email FROM users u JOIN memberships m ON m.user_id=u.id AND m.role='owner' LEFT JOIN merchant_contracts c ON c.user_id=u.id WHERE c.id IS NULL AND u.id NOT IN (SELECT user_id FROM platform_operators)")]
+            for merchant in legacy:
+                merchant["stores"] = merchant_stores(merchant["id"])
             counts = {name: db.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0] for name in ("stores", "products", "sales", "orders")}
         return {"contracts": contracts, "existing_merchants": legacy, "counts": counts, "today": today().isoformat()}
 

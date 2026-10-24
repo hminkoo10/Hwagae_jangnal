@@ -329,42 +329,256 @@ summary:focus-visible,
 .operator-toolbar h1 {
   margin: 0 0 8px;
 }
-.operator-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-  gap: 20px;
+.operator-table-wrap {
+  width: 100%;
+  min-width: 0;
 }
-.operator-grid .panel {
-  margin-bottom: 0;
+table.operator-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  font-size: 13px;
 }
-.operator-contract h2,
-.operator-contract p {
-  overflow-wrap: anywhere;
-}
-.operator-contract dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.operator-contract dd {
-  margin: 0;
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-.operator-contract dt {
-  color: var(--muted);
-}
-.operator-stores {
-  list-style: none;
+.operator-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.operator-table :is(th, td) {
+  padding: 14px 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+.operator-table thead th {
+  color: #526074;
+  background: #f4f7f6;
+  font-size: 12px;
+}
+.operator-table .merchant-name-col {
+  width: 25%;
+  text-align: left;
+}
+.operator-table .merchant-period-col {
+  width: 16%;
+}
+.operator-table .merchant-status-col {
+  width: 12%;
+}
+.operator-table .merchant-account-col {
+  width: 10%;
+}
+.operator-table .merchant-store-col {
+  width: 7%;
+  text-align: center;
+}
+.operator-table .merchant-sales-col {
+  width: 13%;
+}
+.operator-table .merchant-action-col {
+  width: 17%;
+}
+.operator-table tbody th {
+  border-bottom: 1px solid #f0f3ed;
+}
+.operator-table tbody tr:last-child th {
+  border-bottom: 0;
+}
+.operator-table .merchant-row:hover,
+.operator-table .merchant-row.expanded {
+  background: #f7fbf9;
+}
+.merchant-expand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #243c35;
+  text-align: left;
+  font: inherit;
+  max-width: 100%;
+}
+.merchant-expand > span {
+  color: #6c7f74;
+  flex-shrink: 0;
+}
+.merchant-expand strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.merchant-email {
+  display: block;
+  margin: 3px 0 0 17px;
+  color: #6c7f74;
+  font-size: 12px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.merchant-period-col > span {
+  display: block;
+  line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+}
+.merchant-store-count {
+  border: 0;
+  background: #edf7f2;
+  color: #126b58;
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 6px 8px;
+  font: inherit;
+}
+.operator-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.operator-table-actions :is(.button, .text-button) {
+  white-space: normal;
+  max-width: 100%;
+  min-height: 40px;
+}
+.operator-table .pill {
+  white-space: normal;
+  max-width: 100%;
+}
+.operator-table .merchant-detail-row > td {
+  padding: 0 10px 16px;
+}
+.merchant-detail {
+  background: #f2f7f4;
+  padding: 18px;
+  border-radius: 10px;
+}
+.merchant-detail h3 {
+  margin: 20px 0 12px;
+  font-size: 14px;
+}
+.merchant-detail-summary {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.merchant-detail-summary > div {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+.merchant-detail-summary span {
+  color: #6c7f74;
+  font-size: 12px;
+}
+.merchant-detail-summary strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.merchant-detail-stores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 10px;
 }
-.operator-stores li {
-  padding: 12px;
-  background: #f6f8f7;
-  border-radius: 9px;
+.merchant-detail-stores li {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  background: white;
+  border: 1px solid #e1e9e5;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.merchant-detail-stores span,
+.merchant-detail-stores small {
+  color: #6c7f74;
+  font-size: 12px;
+}
+.operator-table .merchant-table-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: #6c7f74;
+}
+@media (max-width: 1100px) {
+  .operator-table :is(.merchant-account-col, .merchant-sales-col) {
+    display: none;
+  }
+  .operator-table .merchant-name-col {
+    width: 30%;
+  }
+  .operator-table .merchant-period-col {
+    width: 22%;
+  }
+  .operator-table .merchant-status-col {
+    width: 17%;
+  }
+  .operator-table .merchant-store-col {
+    width: 9%;
+  }
+  .operator-table .merchant-action-col {
+    width: 22%;
+  }
+}
+@media (max-width: 600px) {
+  .operator-main > .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operator-main > .panel {
+    padding: 16px 12px;
+  }
+  .operator-table :is(.merchant-period-col, .merchant-store-col) {
+    display: none;
+  }
+  .operator-table .merchant-name-col {
+    width: 47%;
+  }
+  .operator-table .merchant-status-col {
+    width: 23%;
+  }
+  .operator-table .merchant-action-col {
+    width: 30%;
+  }
+  .operator-table :is(th, td) {
+    padding: 12px 5px;
+  }
+  .operator-table-actions {
+    gap: 4px;
+  }
+  .operator-table-actions .button {
+    padding: 8px;
+    font-size: 12px;
+  }
+  .operator-table .merchant-detail-row > td {
+    padding: 0 0 12px;
+  }
+  .merchant-detail {
+    padding: 14px;
+  }
+  .merchant-detail-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .operator-toolbar .table-tools {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operator-toolbar .table-tools > input {
+    grid-column: 1/-1;
+    width: 100%;
+  }
+  .operator-toolbar .table-tools > .custom-control {
+    width: 100%;
+    align-self: stretch;
+  }
 }
 .invite-link {
   width: 100%;
