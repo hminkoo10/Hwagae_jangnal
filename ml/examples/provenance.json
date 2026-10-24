@@ -12,9 +12,21 @@
   "demo_products": 10,
   "demo_requests": 3,
   "demo_as_of": "2014-09-12",
+  "demo_distinct_skus": 10,
   "benchmark_products": 50,
   "benchmark_requests": 10,
   "benchmark_as_of": "2014-10-17",
+  "benchmark_distinct_skus": 29,
+  "benchmark_selection": {
+    "history_start": "2014-08-23",
+    "history_end": "2014-10-17",
+    "eligible_trained_series_with_56_observed_days": 56,
+    "excluded_store_nbr": "35",
+    "excluded_series": 6,
+    "exclusion_reason": "Station 5 has M for all five weather fields on every history date; omit its six store-35 series to select exactly 50 supported pairs with observed weather.",
+    "ordering": "Ascending numeric store_nbr, then item_nbr; one sequential request per store.",
+    "scope": "50 distinct trained store/item pairs, 29 distinct item_nbr values, 10 requests; fixed performance workload, not an accuracy cohort."
+  },
   "history_policy": "56 consecutive observed sales days; no sales imputation. Minimal earlier weather observations seed exact full-history causal fill, verified during build.",
   "future_actuals": "actuals.json is a separate comparison fixture; all input sales and weather dates are <= as_of.",
   "expected_values": "CPU float32 checkpoint predictions, clipped at zero then sorted across all five quantiles; rtol=1e-5, atol=1e-4."

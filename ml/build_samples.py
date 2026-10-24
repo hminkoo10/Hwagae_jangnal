@@ -135,11 +135,13 @@ def main():
     insufficient["products"].append({"id": "new-product", "name": "Unregistered product example"})
     write(args.output_dir / "insufficient-history.json", insufficient)
     workloads = {10: contexts}
-    # Exactly 50 eligible series at this cutoff, excluding station 5's six
-    # entirely missing-weather series. Distinct store/item pairs, no replicas.
+    # The fixed sources contain 56 trained series with all 56 observed days.
+    # Exclude store 35's six series: all five station 5 weather fields are M
+    # throughout this window. The remaining 50 pairs are not replicas.
     day = pd.Timestamp(BENCHMARK_CUTOFF)
     counts = sales[sales.date.between(day - pd.Timedelta(days=55), day)].groupby(["store_nbr", "item_nbr"]).date.nunique()
     eligible = counts[counts == 56].reset_index()
+    eligible_count = len(eligible)
     eligible = eligible[eligible.store_nbr != 35]
     assert len(eligible) == 50
     workloads[50] = [build_context(sales, weather, selected, defaults, int(store), group.item_nbr.tolist(), BENCHMARK_CUTOFF, benchmark=True)[0]
@@ -156,7 +158,18 @@ def main():
         "local_source_directory": str(args.data_dir.resolve()), "source_zip_sha256": HASHES,
         "training_run": "walmart_20261024T020058Z", "max_trained_products_per_store": int(selected.groupby("store_nbr").size().max()),
         "demo_products": 10, "demo_requests": len(contexts), "demo_as_of": DEMO_CUTOFF,
+        "demo_distinct_skus": len({p["model_item_nbr"] for c in contexts for p in c["products"]}),
         "benchmark_products": 50, "benchmark_requests": len(workloads[50]), "benchmark_as_of": BENCHMARK_CUTOFF,
+        "benchmark_distinct_skus": int(eligible.item_nbr.nunique()),
+        "benchmark_selection": {
+            "history_start": (day - pd.Timedelta(days=55)).date().isoformat(),
+            "history_end": BENCHMARK_CUTOFF,
+            "eligible_trained_series_with_56_observed_days": eligible_count,
+            "excluded_store_nbr": "35", "excluded_series": eligible_count - len(eligible),
+            "exclusion_reason": "Station 5 has M for all five weather fields on every history date; omit its six store-35 series to select exactly 50 supported pairs with observed weather.",
+            "ordering": "Ascending numeric store_nbr, then item_nbr; one sequential request per store.",
+            "scope": "50 distinct trained store/item pairs, 29 distinct item_nbr values, 10 requests; fixed performance workload, not an accuracy cohort.",
+        },
         "history_policy": "56 consecutive observed sales days; no sales imputation. Minimal earlier weather observations seed exact full-history causal fill, verified during build.",
         "future_actuals": "actuals.json is a separate comparison fixture; all input sales and weather dates are <= as_of.",
         "expected_values": "CPU float32 checkpoint predictions, clipped at zero then sorted across all five quantiles; rtol=1e-5, atol=1e-4.",
