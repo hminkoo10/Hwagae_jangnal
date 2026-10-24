@@ -1,6 +1,6 @@
 # TFT 평가 기록
 
-이 문서는 기존 학습 실행 `walmart_20261024T020058Z`의 저장된 평가 결과를 인수 시점에 확인한 기록이다. 새 학습이나 새 테스트를 수행한 결과로 해석하지 않는다. CPU 샘플 재현 결과와 설치 환경은 `README.md`를 따른다.
+이 문서는 기존 학습 실행 `walmart_20261024T020058Z`의 저장된 TFT 예측을 검산하고, 같은 관측 행에 현재 API 요일 기준선을 다시 계산한 기록이다. 전체 TFT 테스트를 재학습하거나 다시 추론한 결과는 아니다. CPU 샘플 재현 결과와 설치 환경은 `README.md`를 따른다.
 
 ## 근거와 평가 범위
 
@@ -16,7 +16,7 @@
 
 저장된 CSV로 MAE, RMSE, WAPE, 평균 pinball loss, 구간 포함률 및 구간 폭을 다시 계산했다. 원본 표와의 차이는 부동소수점 직렬화/집계 정밀도 수준이다(구간 폭까지 포함한 최대 절대 차이 약 `1.6e-6`). 저장된 예측의 수치적 일관성을 확인한 것이며, 전체 평가 데이터에 대해 체크포인트를 다시 실행한 검증은 아니다.
 
-전달용 CPU 샘플은 매장 `4`, 상품 `9`와 `27`, 기준일 `2014-09-12`, 예측일 `2014-09-13~2014-09-19`다. 동일한 매장·상품·기준일에 해당하는 원본 테스트 CSV의 70개 분위수 값과 CPU 예상 출력을 비교했을 때 최대 절대 차이는 `0.02351691894531882`였다. CPU smoke test의 작은 허용 오차는 `expected-quantiles.json`의 CPU 기준값에 적용하며, 원본 GPU 평가 CSV와의 동일 오차 일치를 주장하지 않는다. 장치·연산 정밀도·배치 구성별 차이의 원인 분해는 미검증이다.
+초기 CPU 인수 샘플인 매장 `4`, 상품 `9`와 `27`, 기준일 `2014-09-12`의 원본 테스트 CSV 70개 분위수와 CPU 예상 출력을 비교했을 때 최대 절대 차이는 `0.02351691894531882`였다. 이후 전달 샘플은 [demo-manifest.json](examples/demo-manifest.json)의 세 매장·10개 상품으로 확장했다. CPU smoke test의 작은 허용 오차는 CPU 기준값에 적용하며, 원본 GPU 평가 CSV와의 동일 오차 일치를 주장하지 않는다. 장치·연산 정밀도·배치 구성별 차이의 원인 분해는 미검증이다.
 
 ## 시간순 분할
 
@@ -36,7 +36,34 @@
 
 두 예측 CSV에서 `time_idx = (date - 2012-01-01).days`가 모든 행에 일치함을 확인했다. 학습 구간의 시작일은 데이터 범위의 시작이며, 56일 문맥 확보 전부터 예측 window가 존재한다는 의미는 아니다.
 
-## 기준선 대비 테스트 성능
+## 현재 API 기준선과 동일 행 비교
+
+[재계산 표](evaluation/api-comparison/metrics.csv)와 [입력/행 집합 manifest](evaluation/api-comparison/manifest.json)는 원본 테스트의 매장·상품·기준일·예측일을 그대로 맞춰 계산했다. API 기준선은 `apps/api/app/forecasting.py`의 실제 `percentile` 및 `baseline` 함수 본문을 실행한다. 함수를 다시 구현해 근사하지 않는다. 기준일까지의 최근 84일만 전달하며, 요일별 최소 4개 관측·선형 보간·소수 둘째 자리 반올림을 현재 API와 같게 적용한다. 미래 실제 판매량은 점수 계산에만 사용하고 기준선의 이력에는 들어가지 않는다.
+
+두 모델에서 공통으로 제공하는 **P10/P50/P90 세 분위수**만 사용한다. 따라서 아래 `mean_pinball_3`는 뒤의 원본 5분위수 pinball 수치와 직접 비교하면 안 된다. MAE/WAPE는 P50 기준, 구간 포함률은 양 끝을 포함한 P10~P90 구간 기준이다.
+
+| 평가 행 집합 | 모델 | 상품·일 행 / window | MAE | WAPE | 평균 pinball(3개) | 구간 포함률 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 원본 테스트 전체 | TFT persistence 후처리 | 7,973 / 1,139 | 5.522091 | 30.9444% | 1.792181 | 84.5855% |
+| 원본 테스트 전체 | 현재 API 요일 기준선 | 7,973 / 1,139 | 5.936348 | 33.2657% | 1.959073 | 81.4374% |
+| 최근 56일 전부 실제 관측 | TFT persistence 후처리 | 1,701 / 243 | 5.248639 | 32.6540% | 1.738628 | 85.0676% |
+| 최근 56일 전부 실제 관측 | 현재 API 요일 기준선 | 1,701 / 243 | 5.878013 | 36.5696% | 1.892789 | 83.9506% |
+
+전체 행에서 TFT의 MAE/WAPE는 현재 API 대비 **6.98%**, 공통 3분위수 pinball은 **8.52%** 작다. 최근 56일 전부 관측된 부분집합에서는 각각 **10.71%**, **8.14%** 작다. 원본 전체 지표와 현재 서버 추론의 입력 정책을 구분하기 위해 두 집합을 모두 제시했다. 현재 어댑터는 56일 중 하루라도 판매 관측이 없으면 `insufficient_history`를 반환하므로 원본 1,139개 window를 모두 현재 어댑터로 제공할 수 있다는 뜻은 아니다.
+
+현재 API 기준선은 원본 테스트의 1,139개 window에서 모두 `ready`였다. 누락 판매일을 0으로 채우지 않았으며 원본 CSV의 모든 정답을 `train.csv.zip`의 실제 판매량과 대조했다. 날짜/상품이 달라지거나 추가적인 제외 조건을 적용한 지표를 같은 표에 섞지 않았다.
+
+저장소 루트에서 다음 한 명령으로 작은 표와 manifest를 다시 만든다. Python 표준 라이브러리만 사용하며 큰 원본 CSV/ZIP은 Git 밖에 둔다.
+
+```powershell
+python -m ml.evaluate --predictions 'G:\내 드라이브\weather_order_tft\runs\walmart_20261024T020058Z\test_predictions.csv' --sales 'G:\내 드라이브\weather_order_tft\train.csv.zip'
+```
+
+다른 환경에서는 두 외부 파일 경로만 바꾼다. manifest에는 실제 입력 경로·SHA-256, 실행한 API 함수의 해시 및 전체/56일 집합의 행 키 해시를 기록한다. 같은 입력과 코드로 재생성한 결과 파일은 바이트 단위로 같아야 한다. 소스 경로가 달라지면 manifest의 경로 표기만 달라질 수 있다.
+
+날씨 제거 모델의 예측 CSV가 준비되면 같은 명령에 `--no-weather-predictions PATH`를 추가한다. CSV는 `store_nbr,item_nbr,origin_date,date,actual,q10,q50,q90` 열을 포함하고 **원본 테스트와 모든 키 및 정답이 정확히 일치**해야 한다. 하나라도 다르면 비교를 중단한다. 현재는 파일이 전달되지 않아 manifest에 `not_supplied`로 표시했다. 이 옵션의 존재나 CSV 행 정렬 성공만으로 동일한 학습 조건의 날씨 제거 실험을 검증했다고 주장하지 않는다.
+
+## 원본 seasonal naive 기준선 비교
 
 아래 수치는 원본 `test_metrics.csv` 기준이다. MAE/RMSE는 중앙값(P50)과 실제 판매량을 비교한다. WAPE는 `sum(abs(actual - p50)) / sum(actual)`이며 아래 표에서는 백분율로 표시했다. 평균 pinball loss는 5개 분위수 `[0.10, 0.25, 0.50, 0.75, 0.90]`의 손실 평균이다. 구간 포함률은 `P10 <= actual <= P90`의 비율이고 구간 폭은 `P90 - P10`의 평균이다.
 
@@ -48,7 +75,7 @@
 
 후처리 TFT의 상대 오차 감소율은 기준선 대비 MAE/WAPE 26.99%, RMSE 26.54%, 평균 pinball loss 39.66%다. 검증/테스트에 선택된 미국 Walmart 상품 집합에서의 결과이며 한국 매장·상품 성능을 입증하지 않는다.
 
-비교 기준선은 CSV에 저장된 `seasonal_naive` 예측에 검증 잔차의 horizon별 분위수를 더하고 0 미만을 자른 방식이다. 저장된 보정값과 테스트 예측으로 위 기준선 지표를 재현했다. **현재 API의 요일별 경험적 분위수 기준선(`apps/api/app/forecasting.py`)과는 다른 기준선**이므로, 위 개선율을 현재 API 대비 개선율로 표현하면 안 된다. 현재 API 기준선과 동일한 자료/기간을 사용한 직접 비교는 미검증이다.
+비교 기준선은 CSV에 저장된 `seasonal_naive` 예측에 검증 잔차의 horizon별 분위수를 더하고 0 미만을 자른 방식이다. 저장된 보정값과 테스트 예측으로 위 기준선 지표를 재현했다. **26.99% 개선은 이 seasonal naive 기준선 대비 수치**다. 현재 API 대비 개선율은 앞의 동일 행 비교에 제시한 6.98% 또는 56일 부분집합의 10.71%이며 두 기준선을 혼용하지 않는다.
 
 | 예측일 | 후처리 TFT MAE | WAPE | 평균 pinball | P10~P90 포함률 |
 | --- | ---: | ---: | ---: | ---: |
@@ -86,9 +113,29 @@ postprocessed = sorted(max(0.0, value) for value in raw_five_quantiles)
 
 `RUN_NO_WEATHER_ABLATION=false`이므로 같은 TFT에서 날씨 특징만 제거한 대조 실험은 실행되지 않았다. 주간 기준선보다 성능이 좋다는 사실에서 날씨 특징의 기여도를 분리해 추정할 수 없다.
 
-현재 API는 `uses_weather=True` 모델에 대해 `weather.status="ok"` 및 `weather.mode="live_forecast"`를 요구한다. 과거 관측 기반 CPU 샘플 재현은 이 live API 조건을 충족했다는 뜻이 아니다. 입력 계약이 확장되기 전에는 persistence를 실제 예보로 표시하거나 과거 관측을 당시 예보로 표시해 검사를 통과시키지 않는다.
+일반 API 경로는 `uses_weather=True` 모델에 대해 `weather.status="ok"` 및 `weather.mode="live_forecast"`를 요구한다. 별도의 허용된 Walmart 데모 경로는 고정된 과거 샘플을 `historical_persistence_demo`로 명시해 재생한다. 이 데모를 당시 발급 예보 또는 실제 한국 매장 성능으로 해석하지 않는다.
 
 ## 환경 및 일반화의 한계
+
+10/50상품 성능 측정은 [benchmark-10.json](examples/benchmark-10.json)과 [benchmark-50.json](examples/benchmark-50.json)을 사용한다. 학습된 한 매장에 10/50개 상품이 없으므로 각각 **세 매장 3회 요청**, **열 매장 10회 요청**을 순차 처리하는 workload다. 단일 매장의 한 번 호출 성능으로 표현하지 않는다. 각 상품은 등록된 매장·상품 조합이고 직전 56일 관측이 모두 있다. 보고서에는 매장·상품 조합 수(`distinct_series`)와 매장 간 중복을 제외한 상품 번호 수(`distinct_skus`)를 구분한다.
+
+`ops/verify-tft.sh`는 각각 새 Python 3.11 프로세스에서 import+최초 전체 요청의 cold 시간을 측정하고, 같은 프로세스의 모델을 재사용해 전체 요청을 3번 반복한 warm 시간/중앙값을 기록한다. 매번 예상 출력과 비교하며 프로세스 전체의 최고 RSS를 기록한다. Linux에서는 `getrusage(RUSAGE_SELF).ru_maxrss`를 바이트로 변환한다. 이 수치는 import와 모델 로드를 포함한 전체 프로세스의 최고 메모리이며 상품당 메모리나 추가 할당량이 아니다. 실제 서버 보고서 `benchmark-10.json`, `benchmark-50.json`이 나오기 전에는 로컬 Windows 수치를 ARM64 성능으로 표기하지 않는다.
+
+로컬 Windows AMD64 / Python 3.11.0 / torch 2.11.0+cpu / CPU thread 1의 실제 측정은 다음과 같다. cold 시간은 Python 프로세스 생성 시간과 JSON 읽기를 제외한 모델 라이브러리 import부터 전체 요청 완료까지다. 각 warm 반복은 전체 workload를 한 번 처리하며, 3회 중앙값을 표시한다. 입력·예상 출력·체크포인트 SHA-256과 개별 반복값은 연결한 JSON에 기록했다. 하드웨어 간 속도나 동시 사용자 부하에 대한 보장은 아니다.
+
+| 로컬 workload | 매장·상품 조합 / 서로 다른 SKU / 요청 | Cold(import 포함) | Warm 중앙값 | 최고 RSS(bytes) |
+| --- | ---: | ---: | ---: | ---: |
+| [10상품](evaluation/benchmarks/windows-10.json) | 10 / 10 / 3 | 8.338286초 | 0.211475초 | 415,375,360 |
+| [50상품](evaluation/benchmarks/windows-50.json) | 50 / 29 / 10 | 10.243814초 | 0.955546초 | 411,811,840 |
+
+최종 10상품 smoke와 Python 3.11 전체 `unittest discover -s ml/tests -v` 33개가 통과했다. 같은 환경에서 Python 3.14 API → Python 3.11 CPU worker의 기본 6상품 및 이력 부족 결과도 예상값과 일치했다. Ubuntu ARM64 실행 결과는 서버 검증 보고서가 생성되기 전까지 미검증이다.
+
+모델 환경에서 개별 측정을 재현하는 명령은 다음과 같다(`TFT_CHECKPOINT_PATH` 설정 필요).
+
+```bash
+python -m ml.verify_runtime --benchmark-input ml/examples/benchmark-10.json --benchmark-expected ml/examples/benchmark-10-expected.json --report benchmark-10.json
+python -m ml.verify_runtime --benchmark-input ml/examples/benchmark-50.json --benchmark-expected ml/examples/benchmark-50-expected.json --report benchmark-50.json
+```
 
 - 원본 설정상 학습 장치: NVIDIA A100-SXM4-80GB, `bf16-mixed`.
 - 원본 패키지: torch `2.11.0+cu130`, pytorch-forecasting `1.5.0`, lightning/pytorch-lightning `2.5.5`, torchmetrics `1.7.4`, pandas `2.2.3`, numpy `2.1.3`, scikit-learn `1.6.1`.

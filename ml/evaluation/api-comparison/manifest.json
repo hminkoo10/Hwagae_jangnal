@@ -1,0 +1,51 @@
+{
+  "inputs": {
+    "predictions": {
+      "path": "G:\\내 드라이브\\weather_order_tft\\runs\\walmart_20261024T020058Z\\test_predictions.csv",
+      "sha256": "fcea87f0c38a7046d73f2b29091ae638b49d6e9f5cc2a1d35fbf415aadd534ef"
+    },
+    "sales": {
+      "path": "G:\\내 드라이브\\weather_order_tft\\train.csv.zip",
+      "sha256": "70d7b0c7f24a55369ac22f092148e8cced5991623645d1f136ea1977c9d7eadf"
+    },
+    "api_baseline": {
+      "path": "C:\\Users\\User\\Documents\\Codex\\2026-10-24\\tft-cpu-1-main-feat-tft-3\\work\\hwagae-integration\\apps\\api\\app\\forecasting.py",
+      "sha256": "e4a0080bbb1e0aea78bc1d64553e78c1bb8523ac8cc6dc00bc2de8926f66d4f2",
+      "functions_sha256": "9ed2258e46bdd044203414cdb5a7aa2216f8d2248e0f4d0d9e3f126576c01738",
+      "functions": [
+        "percentile",
+        "baseline"
+      ]
+    }
+  },
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "forecast_days": 7,
+  "baseline_lookback_days": 84,
+  "weather_strategy": "historical observations with decoder persistence; not archived issued forecasts",
+  "full_original_test_rows": 7973,
+  "full_original_test_windows": 1139,
+  "full_original_test_series": 200,
+  "strict_56_observed_history_rows": 1701,
+  "strict_56_observed_history_windows": 243,
+  "strict_56_observed_history_series": 55,
+  "full_keys_sha256": "788b16d858df29a22f248950c84361f6c68cc0762a35e5bf650dbc5ca55868cc",
+  "strict_56_keys_sha256": "9d9dddbfd163f4812794de01c37738086a6c7c9217e8b268ffeaaf33f5f21891",
+  "api_baseline_ready_rows": 7973,
+  "api_baseline_unavailable_windows": [],
+  "no_weather": {
+    "status": "not_supplied",
+    "reason": "No aligned no-weather prediction CSV supplied; weather contribution remains unverified."
+  },
+  "row_order": "sorted store_nbr,item_nbr,origin_date,date",
+  "notes": [
+    "No missing observed sales are filled with zero.",
+    "Every baseline input date is between origin-83 days and origin, inclusive.",
+    "Strict subset additionally requires each of origin-55 through origin to have an observed sale.",
+    "Mean pinball uses only common q10/q50/q90, not the original five-quantile aggregate.",
+    "If the API baseline lacks required history, no full-test baseline score is fabricated; matched ready rows are scored separately."
+  ]
+}

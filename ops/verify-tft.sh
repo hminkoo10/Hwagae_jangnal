@@ -90,12 +90,19 @@ stage=model_environment
 command -v uv >/dev/null
 uv --version > "$reports/uv-version.txt"
 uv venv --no-project --allow-existing --python 3.11 "$workdir/model-env" 2>&1 | tee "$reports/model-install.log"
-uv pip install --python "$workdir/model-env/bin/python" -r ml/requirements-inference.txt 2>&1 | tee -a "$reports/model-install.log"
+uv pip install --index-strategy unsafe-best-match --python "$workdir/model-env/bin/python" -r ml/requirements-inference.txt 2>&1 | tee -a "$reports/model-install.log"
 uv pip freeze --python "$workdir/model-env/bin/python" > "$reports/model-packages.txt"
 stage=model_smoke
 "$workdir/model-env/bin/python" -m ml.smoke_test --report "$reports/model-smoke.json" 2>&1 | tee "$reports/model-smoke.log"
 stage=model_tests
 "$workdir/model-env/bin/python" -m unittest discover -s ml/tests -v 2>&1 | tee "$reports/model-tests.log"
+for count in 10 50; do
+  stage="benchmark_${count}"
+  "$workdir/model-env/bin/python" -m ml.verify_runtime \
+    --benchmark-input "ml/examples/benchmark-$count.json" \
+    --benchmark-expected "ml/examples/benchmark-$count-expected.json" \
+    --report "$reports/benchmark-$count.json" 2>&1 | tee "$reports/benchmark-$count.log"
+done
 stage=api_environment
 uv sync --locked --python 3.14 2>&1 | tee "$reports/api-install.log"
 uv pip freeze --python "$workdir/api-env/bin/python" > "$reports/api-packages.txt"
