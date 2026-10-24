@@ -53,13 +53,15 @@
 
 현재 API 기준선은 원본 테스트의 1,139개 window에서 모두 `ready`였다. 누락 판매일을 0으로 채우지 않았으며 원본 CSV의 모든 정답을 `train.csv.zip`의 실제 판매량과 대조했다. 날짜/상품이 달라지거나 추가적인 제외 조건을 적용한 지표를 같은 표에 섞지 않았다.
 
-저장소 루트에서 다음 한 명령으로 작은 표와 manifest를 다시 만든다. Python 표준 라이브러리만 사용하며 큰 원본 CSV/ZIP은 Git 밖에 둔다.
+저장소 루트에서 다음 한 명령으로 별도 임시 폴더에 작은 표와 manifest를 다시 만들고, 커밋된 평가표와 같은 결과인지 자동 확인한다. Python 표준 라이브러리만 사용하며 큰 원본 CSV/ZIP은 Git 밖에 둔다.
 
 ```powershell
-python -m ml.evaluate --predictions 'G:\내 드라이브\weather_order_tft\runs\walmart_20261024T020058Z\test_predictions.csv' --sales 'G:\내 드라이브\weather_order_tft\train.csv.zip'
+python -m ml.evaluate --predictions 'G:\내 드라이브\weather_order_tft\runs\walmart_20261024T020058Z\test_predictions.csv' --sales 'G:\내 드라이브\weather_order_tft\train.csv.zip' --output-dir "$env:TEMP/tft-evaluation-check" --check-against ml/evaluation/api-comparison/metrics.csv
 ```
 
-다른 환경에서는 두 외부 파일 경로만 바꾼다. manifest에는 실제 입력 경로·SHA-256, 실행한 API 함수의 해시 및 전체/56일 집합의 행 키 해시를 기록한다. 같은 입력과 코드로 재생성한 결과 파일은 바이트 단위로 같아야 한다. 소스 경로가 달라지면 manifest의 경로 표기만 달라질 수 있다.
+다른 환경에서는 두 외부 파일 경로를 바꾸고, Linux 출력 경로는 `--output-dir /tmp/tft-evaluation-check` 등으로 지정한다. `--check-against`는 subset/model 행 키·행 수·`n`/`windows`를 정확히 비교하고, 수치 지표에는 절대·상대 허용 오차 각각 `1e-12`를 적용한다. 불일치하면 종료 코드 1을 반환한다. 비교 기준은 실행 전에 읽으며 결과 쓰기 전에 검증하므로 동일 출력 경로를 실수로 지정해도 실패한 기준 파일을 덮어써 통과시키지 않는다.
+
+manifest에는 실제 입력 경로·SHA-256, 실행한 API 함수의 해시 및 전체/56일 집합의 행 키 해시를 기록한다. 동일 환경·입력·코드의 재생성 파일은 바이트 단위로 같다. 다른 환경에서 경로가 달라진 manifest도 지표 비교에는 영향을 주지 않는다.
 
 날씨 제거 모델의 예측 CSV가 준비되면 같은 명령에 `--no-weather-predictions PATH`를 추가한다. CSV는 `store_nbr,item_nbr,origin_date,date,actual,q10,q50,q90` 열을 포함하고 **원본 테스트와 모든 키 및 정답이 정확히 일치**해야 한다. 하나라도 다르면 비교를 중단한다. 현재는 파일이 전달되지 않아 manifest에 `not_supplied`로 표시했다. 이 옵션의 존재나 CSV 행 정렬 성공만으로 동일한 학습 조건의 날씨 제거 실험을 검증했다고 주장하지 않는다.
 

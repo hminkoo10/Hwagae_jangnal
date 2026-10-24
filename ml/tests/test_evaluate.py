@@ -2,11 +2,14 @@
 
 import csv
 from datetime import date, timedelta
+import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
-from ml.evaluate import evaluate
+from ml.evaluate import ROOT, evaluate
 
 
 class EvaluationTests(unittest.TestCase):
@@ -82,6 +85,32 @@ class EvaluationTests(unittest.TestCase):
         matched = [row for row in table if row["subset"] == "API_ready_matched"]
         self.assertEqual(len(matched), 2)
         self.assertTrue(all(row["n"] == 7 for row in matched))
+
+    def check_cli(self, reference, output):
+        return subprocess.run([sys.executable, "-m", "ml.evaluate", "--predictions", str(self.predictions),
+                               "--sales", str(self.sales), "--output-dir", str(output),
+                               "--check-against", str(reference)], cwd=ROOT, capture_output=True, text=True)
+
+    def test_check_against_accepts_identical_metrics_in_a_different_directory(self):
+        table, _ = evaluate(self.predictions, self.sales)
+        reference = self.root / "reference.csv"
+        self.write(reference, table)
+        output = self.root / "regenerated"
+        completed = self.check_cli(reference, output)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["comparison"], "passed")
+        self.assertTrue((output / "metrics.csv").is_file())
+
+    def test_check_against_rejects_changed_metric_before_same_path_overwrite(self):
+        table, _ = evaluate(self.predictions, self.sales)
+        table[0]["MAE"] += 0.1
+        reference = self.root / "metrics.csv"
+        self.write(reference, table)
+        before = reference.read_bytes()
+        completed = self.check_cli(reference, self.root)
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("MAE", completed.stderr)
+        self.assertEqual(reference.read_bytes(), before)
 
 
 if __name__ == "__main__":

@@ -196,14 +196,55 @@ def evaluate(prediction_path, sales_path, no_weather_path=None):
     return table, manifest
 
 
+def compare_metrics(actual, expected):
+    """Compare saved table identities/counts exactly and metrics to 1e-12."""
+    if len(actual) != len(expected):
+        raise ValueError(f"Table row count differs: expected {len(expected)}, got {len(actual)}")
+    if not actual:
+        raise ValueError("Cannot compare empty metric tables.")
+    columns = set(actual[0])
+    if any(set(row) != columns for row in expected):
+        raise ValueError("Metric table columns differ.")
+    indexed = {(row["subset"], row["model"]): row for row in expected}
+    actual_keys = {(row["subset"], row["model"]) for row in actual}
+    if len(indexed) != len(expected) or set(indexed) != actual_keys:
+        raise ValueError("Metric table subset/model row keys differ or are duplicated.")
+    for row in actual:
+        key = (row["subset"], row["model"])
+        reference = indexed[key]
+        for column in columns - {"subset", "model"}:
+            got, raw_expected = row[column], reference[column]
+            if column in {"n", "windows"}:
+                same = got == int(raw_expected)
+            elif got is None:
+                same = raw_expected in (None, "")
+            else:
+                want = float(raw_expected)
+                same = math.isfinite(want) and math.isclose(got, want, abs_tol=1e-12, rel_tol=1e-12)
+            if not same:
+                raise ValueError(f"{key}, {column}: expected {raw_expected}, got {got}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--sales", type=Path, required=True, help="Original train.csv or ZIP containing it")
     parser.add_argument("--no-weather-predictions", type=Path)
     parser.add_argument("--output-dir", type=Path, default=ROOT / "ml" / "evaluation" / "api-comparison")
+    parser.add_argument("--check-against", type=Path, help="Existing metrics.csv to compare; absolute/relative tolerance 1e-12")
     args = parser.parse_args()
+    # Snapshot the reference before evaluation or any output writes. Comparing
+    # before writing also preserves a same-path reference when a check fails.
+    expected = None
+    if args.check_against:
+        with args.check_against.open(encoding="utf-8-sig", newline="") as stream:
+            expected = list(csv.DictReader(stream))
     table, manifest = evaluate(args.predictions, args.sales, args.no_weather_predictions)
+    if expected is not None:
+        try:
+            compare_metrics(table, expected)
+        except (ValueError, TypeError) as error:
+            parser.exit(1, f"Evaluation comparison failed: {error}\n")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with (args.output_dir / "metrics.csv").open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(table[0]), lineterminator="\n")
@@ -213,6 +254,7 @@ def main():
     print(json.dumps({"status": "recomputed", "tables": len(table),
                       "original_rows": manifest["full_original_test_rows"],
                       "strict_rows": manifest["strict_56_observed_history_rows"],
+                      "comparison": "passed" if expected is not None else "not_requested",
                       "no_weather": manifest["no_weather"]["status"]}, indent=2))
 
 
