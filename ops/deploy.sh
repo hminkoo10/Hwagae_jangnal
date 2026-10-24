@@ -66,13 +66,17 @@ tar -xzf "$archive" --no-same-owner -C "$release"
 cd "$release"
 printf '%s\n' "$revision" > REVISION
 uv sync --locked --no-dev --python 3.14
-# The API keeps its Python 3.14 environment; the optional model runs separately.
+# The API keeps Python 3.14; both TFT models run in separate Python 3.11 workers.
 model_checkpoint="$app_root/shared/models/best-epoch=02-val_loss=3.9847.ckpt"
-if [[ -f "$model_checkpoint" ]]; then
-  [[ -r "$model_checkpoint" ]] || { echo 'The model checkpoint is not readable.' >&2; exit 2; }
+merchant_checkpoint="$release/ml/merchant_tft/model.ckpt"
+[[ -r "$merchant_checkpoint" ]] || { echo 'The bundled merchant TFT checkpoint is missing.' >&2; exit 2; }
+if [[ -f "$model_checkpoint" || -f "$merchant_checkpoint" ]]; then
   uv venv --no-project --allow-existing --python 3.11 .model-venv
   uv pip install --python .model-venv/bin/python --index-strategy unsafe-best-match \
     --default-index https://pypi.org/simple -r ml/requirements-inference.txt
+fi
+if [[ -f "$model_checkpoint" ]]; then
+  [[ -r "$model_checkpoint" ]] || { echo 'The model checkpoint is not readable.' >&2; exit 2; }
   TFT_CHECKPOINT_PATH="$model_checkpoint" .model-venv/bin/python -m ml.smoke_test
   TFT_CHECKPOINT_PATH="$model_checkpoint" .model-venv/bin/python - <<'PY'
 import sys
@@ -85,7 +89,8 @@ if result.skipped:
 sys.exit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun == 0)
 PY
 else
-  echo 'No shared TFT checkpoint; deploying the app without the model demo.'
+  .model-venv/bin/python -m unittest discover -s ml/tests -p test_merchant_tft.py -v
+  echo 'No shared Walmart checkpoint; the bundled live-weather test TFT remains available.'
 fi
 npm ci --include=dev
 export NEXT_PUBLIC_API_BASE_URL=/api

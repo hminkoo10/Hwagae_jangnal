@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { Icon } from "./ui";
 import { ModelEvaluationPanel } from "./model-evaluation";
+import { ModelOrdering } from "./model-ordering";
 import styles from "./model-demo.module.css";
 
 const statusLabels: Record<ModelDemoStatus["runtime"]["status"], string> = {
@@ -79,72 +80,75 @@ function ComparisonChart({
     .join(" ");
   return (
     <div className={styles.chartWrap}>
-      <svg
-        className={styles.chart}
-        viewBox="0 0 650 240"
-        role="img"
-        aria-label={`${forecast.name}, TFT의 7일 P10~P90 범위와 P50, 요일 기준선 P50, 실제 판매량 비교. 정확한 수량은 아래 표에 있습니다.`}
-      >
-        {[0, 1, 2, 3].map((level) => (
-          <g key={level}>
-            <line
-              x1="47"
-              x2="607"
-              y1={y((max * level) / 3)}
-              y2={y((max * level) / 3)}
-              className={styles.gridLine}
-            />
-            <text
-              x="36"
-              y={y((max * level) / 3) + 4}
-              textAnchor="end"
-              className={styles.chartText}
-            >
-              {units((max * level) / 3)}
-            </text>
-          </g>
-        ))}
-        <path d={band} className={styles.band} />
-        {baselinePath && (
-          <path d={baselinePath} className={styles.baselineLine} />
-        )}
-        <path d={path("p50")} className={styles.modelLine} />
-        {hasActual && <path d={actualPath} className={styles.actualLine} />}
-        {points.map((point, index) => (
-          <g key={point.date}>
-            {point.actual !== null && (
+      <p className="chart-scroll-hint">좌우로 밀어 7일 예측을 확인하세요.</p>
+      <div className={styles.plotScroll} tabIndex={0} role="region" aria-label="TFT 7일 예측 비교 그래프">
+        <svg
+          className={styles.chart}
+          viewBox="0 0 650 240"
+          role="img"
+          aria-label={`${forecast.name}, TFT의 7일 P10~P90 범위와 P50, 요일 기준선 P50, 실제 판매량 비교. 정확한 수량은 아래 표에 있습니다.`}
+        >
+          {[0, 1, 2, 3].map((level) => (
+            <g key={level}>
+              <line
+                x1="47"
+                x2="607"
+                y1={y((max * level) / 3)}
+                y2={y((max * level) / 3)}
+                className={styles.gridLine}
+              />
+              <text
+                x="36"
+                y={y((max * level) / 3) + 4}
+                textAnchor="end"
+                className={styles.chartText}
+              >
+                {units((max * level) / 3)}
+              </text>
+            </g>
+          ))}
+          <path d={band} className={styles.band} />
+          {baselinePath && (
+            <path d={baselinePath} className={styles.baselineLine} />
+          )}
+          <path d={path("p50")} className={styles.modelLine} />
+          {hasActual && <path d={actualPath} className={styles.actualLine} />}
+          {points.map((point, index) => (
+            <g key={point.date}>
+              {point.actual !== null && (
+                <circle
+                  cx={x(index)}
+                  cy={y(point.actual)}
+                  r="3"
+                  className={styles.actualPoint}
+                >
+                  <title>
+                    {point.date} 실제 판매 {units(point.actual)}개
+                  </title>
+                </circle>
+              )}
               <circle
                 cx={x(index)}
-                cy={y(point.actual)}
-                r="3"
-                className={styles.actualPoint}
+                cy={y(point.p50)}
+                r="3.5"
+                className={styles.chartPoint}
               >
                 <title>
-                  {point.date} 실제 판매 {units(point.actual)}개
+                  {point.date} TFT P50 {units(point.p50)}개
                 </title>
               </circle>
-            )}
-            <circle
-              cx={x(index)}
-              cy={y(point.p50)}
-              r="3.5"
-              className={styles.chartPoint}
-            >
-              <title>
-                {point.date} TFT P50 {units(point.p50)}개
-              </title>
-            </circle>
-            <text
-              x={x(index)}
-              y="226"
-              textAnchor="middle"
-              className={styles.chartText}
-            >
-              {shortDate(point.date)}
-            </text>
-          </g>
-        ))}
-      </svg>
+              <text
+                x={x(index)}
+                y="226"
+                textAnchor="middle"
+                className={styles.chartText}
+              >
+                {shortDate(point.date)}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
       <div className={styles.legend}>
         <span>
           <i className={styles.modelKey} />
@@ -180,7 +184,10 @@ export function ModelDemo({
 }) {
   const [metadata, setMetadata] = useState<ModelDemoStatus | null>(null);
   const [result, setResult] = useState<ModelDemoForecast | null>(null);
-  const [section, setSection] = useState<"predict" | "evaluation">("predict");
+  const [section, setSection] = useState<"predict" | "ordering" | "evaluation">(
+    "predict",
+  );
+  const [orderingBusy, setOrderingBusy] = useState(false);
   const [sampleId, setSampleId] = useState("walmart-demo-4");
   const [selectedId, setSelectedId] = useState("");
   const [checking, setChecking] = useState(false);
@@ -322,6 +329,7 @@ export function ModelDemo({
       <nav className={styles.sectionTabs} aria-label="TFT 체험 화면">
         <button
           aria-pressed={section === "predict"}
+          disabled={orderingBusy}
           onClick={() => setSection("predict")}
         >
           <Icon name="forecast" size={18} />
@@ -329,7 +337,17 @@ export function ModelDemo({
           <span>과거 표본으로 실행</span>
         </button>
         <button
+          aria-pressed={section === "ordering"}
+          disabled={orderingBusy || running}
+          onClick={() => setSection("ordering")}
+        >
+          <Icon name="orders" size={18} />
+          발주 준비
+          <span>재고 확인부터 파일까지</span>
+        </button>
+        <button
           aria-pressed={section === "evaluation"}
+          disabled={orderingBusy}
           onClick={() => setSection("evaluation")}
         >
           <Icon name="check" size={18} />
@@ -337,6 +355,29 @@ export function ModelDemo({
           <span>기준선과 성능 비교</span>
         </button>
       </nav>
+
+      {section !== "evaluation" && !!metadata?.samples.length && (
+        <div className={styles.sampleSelector}>
+          <label>
+            체험 매장
+            <select
+              value={sampleId}
+              disabled={orderingBusy}
+              onChange={(event) => chooseSample(event.target.value)}
+            >
+              {metadata.samples.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label} · {item.product_count}개 상품
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            {metadata.samples.length}개 매장 · 총 {metadata.total_products}개
+            상품 중 선택한 매장을 체험해요.
+          </p>
+        </div>
+      )}
 
       <div
         className={styles.evaluationSection}
@@ -348,29 +389,19 @@ export function ModelDemo({
         />
       </div>
 
-      <div className={styles.predictionSection} hidden={section !== "predict"}>
-        {!!metadata?.samples.length && (
-          <div className={styles.sampleSelector}>
-            <label>
-              체험 매장
-              <select
-                value={sampleId}
-                onChange={(event) => chooseSample(event.target.value)}
-              >
-                {metadata.samples.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label} · {item.product_count}개 상품
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p>
-              {metadata.samples.length}개 매장 · 총 {metadata.total_products}개
-              상품 중 선택한 매장을 실행해요.
-            </p>
-          </div>
-        )}
+      <div className={styles.evaluationSection} hidden={section !== "ordering"}>
+        <ModelOrdering
+          key={sampleId}
+          token={token}
+          sampleId={sampleId}
+          forecastId={result?.sample_id === sampleId ? result.id : null}
+          onPredict={() => setSection("predict")}
+          onSessionExpired={onSessionExpired}
+          onBusyChange={setOrderingBusy}
+        />
+      </div>
 
+      <div className={styles.predictionSection} hidden={section !== "predict"}>
         <section className={styles.runPanel} aria-label="TFT 실행 상태">
           <div className={styles.runtimeCopy}>
             <span
@@ -393,7 +424,7 @@ export function ModelDemo({
           <div className={styles.runActions}>
             <button
               className="button secondary"
-              disabled={checking || running}
+              disabled={checking || running || orderingBusy}
               onClick={() => void checkStatus()}
             >
               <Icon name="refresh" size={16} />
@@ -401,7 +432,7 @@ export function ModelDemo({
             </button>
             <button
               className="button primary"
-              disabled={!ready || checking || running}
+              disabled={!ready || checking || running || orderingBusy}
               onClick={() => void runForecast()}
             >
               {running ? (
@@ -593,12 +624,26 @@ export function ModelDemo({
                 })}
               </span>
             </div>
+            <div className={styles.nextStep}>
+              <span>
+                이 TFT 예측으로 재고를 확인하고 시연 발주안을 만들 수 있어요.
+              </span>
+              <button
+                className="button primary"
+                disabled={orderingBusy}
+                onClick={() => setSection("ordering")}
+              >
+                재고 확인·발주 준비
+                <Icon name="arrow" size={16} />
+              </button>
+            </div>
             <div className={styles.resultNote}>
               <p>{result.provenance}</p>
               <p>{result.note}</p>
               <p>
-                P10~P90은 모델이 예측한 범위이며 정확도를 보장하지 않아요. 이
-                과거 표본 결과는 현재 매장의 발주 계산에 사용하지 않아요.
+                P10~P90은 모델이 예측한 범위이며 정확도를 보장하지 않아요. ‘발주
+                준비’에서 이 과거 예측으로 개인 시연을 할 수 있어요. 실제 한국
+                매장의 발주 성능은 검증하지 않았어요.
               </p>
             </div>
           </section>

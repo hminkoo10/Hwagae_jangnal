@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">화개장날</string>
+    <string name="title_activity_main">화개장날</string>
+    <string name="package_name">kr.milky.hwagae</string>
+    <string name="custom_url_scheme">kr.milky.hwagae</string>
+</resources>

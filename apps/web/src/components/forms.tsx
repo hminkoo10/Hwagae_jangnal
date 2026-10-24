@@ -122,17 +122,26 @@ export function SalesPanel({
               <button
                 type="button"
                 className="text-button"
-                onClick={() =>
-                  saveBlob(
-                    new Blob(
-                      [
-                        `\uFEFFdate,product_id,units_sold\r\n${today},${products[0]?.id ?? "P001"},10\r\n`,
-                      ],
-                      { type: "text/csv;charset=utf-8" },
-                    ),
-                    "hwagae-sales-template.csv",
-                  )
-                }
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    await saveBlob(
+                      new Blob(
+                        [
+                          `\uFEFFdate,product_id,units_sold\r\n${today},${products[0]?.id ?? "P001"},10\r\n`,
+                        ],
+                        { type: "text/csv;charset=utf-8" },
+                      ),
+                      "hwagae-sales-template.csv",
+                    );
+                  } catch (error) {
+                    setError(message(error));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
               >
                 CSV 양식 다운로드 ↓
               </button>

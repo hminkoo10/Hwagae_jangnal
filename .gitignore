@@ -228,6 +228,23 @@ node_modules/
 out/
 *.tsbuildinfo
 next-env.d.ts
+apps/mobile/www/
+apps/mobile/.web-build-*/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/android/capacitor-cordova-android-plugins/
+apps/mobile/android/app/src/main/assets/public/
+apps/mobile/android/app/src/main/assets/capacitor.config.json
+apps/mobile/android/app/src/main/assets/capacitor.plugins.json
+apps/mobile/ios/App/App/public/
+apps/mobile/ios/App/App/capacitor.config.json
+apps/mobile/ios/App/Pods/
+apps/mobile/ios/DerivedData/
+**/xcuserdata/
+*.keystore
+*.jks
+*.mobileprovision
+*.p12
 
 # Local environment files (commit templates only)
 .env.*
@@ -242,6 +259,10 @@ artifacts/
 *.pt
 *.pth
 *.joblib
+
+# Small, reproducible synthetic TFT used by the live-weather test flow.
+# Its checksum, training recipe and scope are committed beside the weights.
+!ml/merchant_tft/model.ckpt
 
 # Local editor and operating-system files
 .DS_Store

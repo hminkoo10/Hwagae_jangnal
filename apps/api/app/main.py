@@ -21,6 +21,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from pydantic import BaseModel
 
+from app import forecasting
 from app.database import Database, encode, now_iso, password_matches, today
 from app.evaluation_report import evaluation_report
 from app.forecasting import run_forecast
@@ -34,9 +35,12 @@ from app.model_demo import (
     sample_options,
 )
 from app.model_runtime import ModelRuntime, ModelUnavailable
+from app.model_orders import mount_model_order_routes, save_forecast_run
+from app.merchant_test_store import create_test_store
 from app.ordering import recommend
 from app.schemas import (
     Inventory,
+    ForecastSettings,
     Login,
     OrderRequest,
     ProductInput,
@@ -45,7 +49,7 @@ from app.schemas import (
     SalesBatch,
     StoreInput,
 )
-from app.weather import get_weather
+from app.weather import get_weather, require_live_forecast
 
 logger = logging.getLogger(__name__)
 
@@ -90,10 +94,12 @@ def create_app(db_path=None, seed=True):
             seed=seed and os.getenv("SEED_DEMO", "true").lower() == "true"
         )
         application.state.model_runtime.start()
+        application.state.merchant_model_runtime.start()
         try:
             yield
         finally:
             application.state.model_runtime.close()
+            application.state.merchant_model_runtime.close()
 
     application = FastAPI(
         title="화개장날 API",
@@ -104,6 +110,7 @@ def create_app(db_path=None, seed=True):
     application.state.database = database
     application.state.weather_reader = get_weather
     application.state.model_runtime = ModelRuntime()
+    application.state.merchant_model_runtime = ModelRuntime(profile="merchant")
     origins = [
         item.strip()
         for item in os.getenv(
@@ -111,6 +118,9 @@ def create_app(db_path=None, seed=True):
         ).split(",")
         if item.strip()
     ]
+    # Bundled Capacitor apps use these fixed local WebView origins. Every API
+    # request still requires the same bearer token; cookies stay disabled.
+    origins.extend(["capacitor://localhost", "https://localhost"])
     application.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -162,6 +172,69 @@ def create_app(db_path=None, seed=True):
         if not row:
             raise HTTPException(404, "저장된 결과를 찾을 수 없습니다.")
         return dict(row), json.loads(row["payload"])
+
+    def forecast_provider(store_id):
+        with database.connect() as db:
+            row = db.execute(
+                "SELECT provider FROM store_forecast_settings WHERE store_id=?",
+                (store_id,),
+            ).fetchone()
+        return row[0] if row else "weekday"
+
+    def forecast_settings_response(store):
+        provider = forecast_provider(store["id"])
+        if provider == "merchant_tft":
+            runtime = application.state.merchant_model_runtime.status()
+            model = None
+            try:
+                manifest = json.loads(
+                    (
+                        Path(__file__).resolve().parents[3]
+                        / "ml/merchant_tft/manifest.json"
+                    ).read_text(encoding="utf-8")
+                )
+                source = manifest["model"]
+                if (
+                    source["uses_weather"] is True
+                    and source["training_data"] == "synthetic"
+                    and all(
+                        isinstance(source[key], str) and source[key]
+                        for key in ("name", "version", "note")
+                    )
+                ):
+                    model = {
+                        key: source[key]
+                        for key in (
+                            "name",
+                            "version",
+                            "uses_weather",
+                            "training_data",
+                            "note",
+                        )
+                    }
+            except OSError, ValueError, KeyError, TypeError:
+                pass
+        else:
+            runtime = {"status": "ready", "message": "요일 기준선을 사용할 수 있어요."}
+            model = {
+                "name": "요일 기준선",
+                "version": "weekday-empirical-v1",
+                "uses_weather": False,
+            }
+        return {
+            "provider": provider,
+            "runtime": runtime,
+            "model": model,
+            "requirements": {
+                "history_days": 56 if provider == "merchant_tft" else 28,
+                "horizon_days": 7,
+                "weather_fields": ["temp_max", "temp_min", "rain_mm"]
+                if provider == "merchant_tft"
+                else [],
+                "live_forecast_required": provider == "merchant_tft",
+            },
+            "data_note": store["provenance"],
+        }
 
     @application.get("/health", response_model=HealthResponse, tags=["system"])
     def health():
@@ -216,16 +289,16 @@ def create_app(db_path=None, seed=True):
             return evaluation_report()
         except Exception:
             logger.exception("TFT evaluation report could not be read")
-            raise HTTPException(
-                503, "모델 평가 자료를 준비하지 못했습니다."
-            ) from None
+            raise HTTPException(503, "모델 평가 자료를 준비하지 못했습니다.") from None
 
     @application.post("/model-demo/forecast", tags=["model demo"])
     def model_demo_forecast(
         sample_id: SampleId = DEFAULT_SAMPLE_ID, user=Depends(authenticated)
     ):
         try:
-            return replay(application.state.model_runtime, sample_id)
+            result = replay(application.state.model_runtime, sample_id)
+            result["id"] = save_forecast_run(database, user, result)
+            return result
         except ModelUnavailable as exc:
             raise HTTPException(503, str(exc)) from None
         except Exception:
@@ -234,6 +307,8 @@ def create_app(db_path=None, seed=True):
                 503,
                 "TFT 실행 또는 출력 검사에 실패했습니다. 잠시 후 다시 시도해주세요.",
             ) from None
+
+    mount_model_order_routes(application, database, authenticated)
 
     @application.get("/auth/me", tags=["accounts"])
     def me(user=Depends(authenticated)):
@@ -282,6 +357,42 @@ def create_app(db_path=None, seed=True):
                 (user["id"], store_id, "owner"),
             )
         return {"id": store_id}
+
+    @application.post("/stores/test-weather", status_code=201, tags=["stores"])
+    def test_weather_store(payload: StoreInput, user=Depends(authenticated)):
+        with database.connect() as db:
+            if not db.execute(
+                "SELECT 1 FROM memberships WHERE user_id=? AND role='owner' LIMIT 1",
+                (user["id"],),
+            ).fetchone():
+                raise HTTPException(403, "점주만 테스트 매장을 만들 수 있습니다.")
+        return create_test_store(database, user["id"], payload)
+
+    @application.get("/stores/{store_id}/forecast-settings", tags=["forecast"])
+    def get_forecast_settings(store_id: str, user=Depends(authenticated)):
+        return forecast_settings_response(access(store_id, user))
+
+    @application.put("/stores/{store_id}/forecast-settings", tags=["forecast"])
+    def update_forecast_settings(
+        store_id: str, payload: ForecastSettings, user=Depends(authenticated)
+    ):
+        store = access(store_id, user, owner=True)
+        with database.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute(
+                "SELECT provider FROM store_forecast_settings WHERE store_id=?",
+                (store_id,),
+            ).fetchone()
+            if (current[0] if current else "weekday") != payload.provider:
+                db.execute(
+                    "INSERT INTO store_forecast_settings VALUES (?,?,?) ON CONFLICT(store_id) DO UPDATE SET provider=excluded.provider,updated_at=excluded.updated_at",
+                    (store_id, payload.provider, now_iso()),
+                )
+                db.execute(
+                    "UPDATE stores SET revision=revision+1,sales_revision=sales_revision+1 WHERE id=?",
+                    (store_id,),
+                )
+        return forecast_settings_response(store)
 
     @application.get("/stores/{store_id}/products", tags=["products"])
     def products(store_id: str, user=Depends(authenticated)):
@@ -511,9 +622,56 @@ def create_app(db_path=None, seed=True):
         cutoff = as_of or today()
         if cutoff > today():
             raise HTTPException(422, "기준일은 오늘 또는 과거 날짜여야 합니다.")
+        provider = forecast_provider(store_id)
+        if provider == "merchant_tft" and cutoff != today():
+            raise HTTPException(
+                422,
+                "실시간 예보 TFT는 오늘 기준으로만 실행합니다. 과거 비교는 요일 기준선을 선택하세요.",
+            )
+        if (
+            provider == "merchant_tft"
+            and not 1 <= len(database.products(store_id)) <= 50
+        ):
+            raise HTTPException(
+                422,
+                "실시간 예보 TFT에는 등록한 상품 1~50개가 필요합니다. 상품을 먼저 추가하세요.",
+            )
         weather_data = application.state.weather_reader(database, store, cutoff)
+        if provider == "merchant_tft":
+            try:
+                require_live_forecast(weather_data, cutoff)
+            except ValueError as exc:
+                raise HTTPException(503, str(exc)) from None
         try:
-            return run_forecast(database, store, cutoff, weather_data)
+            if provider == "merchant_tft":
+
+                def predictor(context):
+                    result = application.state.merchant_model_runtime.predict(context)
+                    model = result.get("model", {})
+                    if (
+                        model.get("uses_weather") is not True
+                        or model.get("training_data") != "synthetic"
+                        or not isinstance(model.get("note"), str)
+                        or not model["note"]
+                    ):
+                        raise ValueError(
+                            "experimental merchant model metadata is missing"
+                        )
+                    return result
+            else:
+                predictor = forecasting.baseline
+            return run_forecast(
+                database, store, cutoff, weather_data, predictor=predictor
+            )
+        except (ModelUnavailable, ValueError) as exc:
+            # Only our known weather/runtime errors are shown; adapter errors stay generic.
+            if isinstance(exc, ModelUnavailable):
+                raise HTTPException(503, str(exc)) from None
+            logger.exception("Forecast validation failed for store %s", store_id)
+            raise HTTPException(
+                503,
+                "예보 또는 모델 입력·출력 조건을 확인하세요. 최신 날씨와 56일 판매 기록이 필요합니다.",
+            ) from None
         except Exception:
             logger.exception("Forecast provider failed for store %s", store_id)
             raise HTTPException(

@@ -24,7 +24,7 @@ type Props = {
   products: Product[];
   inventory: Record<string, Stock>;
   sales: SalesData;
-  forecast: Forecast;
+  forecast: Forecast | null;
   orders: Order[];
   selectedForecast?: ProductForecast;
   onSelectProduct: (id: string) => void;
@@ -55,13 +55,14 @@ export function MerchantOverview({
   onNavigate,
   onInventory,
 }: Props) {
-  const ready = forecast.products.filter((item) => item.status === "ready");
+  const ready =
+    forecast?.products.filter((item) => item.status === "ready") ?? [];
   const checked = products.filter(
     (product) => inventory[product.id]?.measured_on === today,
   ).length;
   const missing = products.length - checked;
   const drafts = orders.filter((order) => order.status === "draft");
-  const nextDay = forecast.dates[0];
+  const nextDay = forecast?.dates[0];
   const nextDemand = ready.reduce(
     (sum, item) =>
       sum + (item.points.find((point) => point.date === nextDay)?.p50 ?? 0),
@@ -70,8 +71,8 @@ export function MerchantOverview({
   const coverage = products.length
     ? Math.round((checked / products.length) * 100)
     : 0;
-  const firstWeather = forecast.weather.days[0];
-  const weatherCurrent = forecast.weather.status === "ok";
+  const firstWeather = forecast?.weather.days[0];
+  const weatherCurrent = forecast?.weather.status === "ok";
   const todayLabel = new Intl.DateTimeFormat("ko-KR", {
     month: "long",
     day: "numeric",
@@ -147,7 +148,7 @@ export function MerchantOverview({
         <div className="merchant-metrics">
           <article className="metric-card">
             <span className="metric-label">
-              {shortDate(nextDay)} 예상 판매량{" "}
+              {nextDay ? shortDate(nextDay) : "내일"} 예상 판매량{" "}
               <Icon name="forecast" size={17} />
             </span>
             <strong>
@@ -210,14 +211,23 @@ export function MerchantOverview({
             {selectedForecast ? (
               <ForecastChart forecast={selectedForecast} />
             ) : (
-              <Empty title="등록된 상품이 없어요">
-                상품을 등록하면 예측을 시작할 수 있어요.
+              <Empty
+                title={
+                  products.length
+                    ? "예측 결과를 기다리고 있어요"
+                    : "등록된 상품이 없어요"
+                }
+              >
+                {products.length
+                  ? "모델 연결과 판매 기록을 확인해주세요."
+                  : "상품을 등록하면 예측을 시작할 수 있어요."}
               </Empty>
             )}
             <div className="merchant-card-footer">
               <span>
-                {forecast.model.name} ·{" "}
-                {forecast.model.uses_weather ? "날씨 반영" : "날씨 미반영"}
+                {forecast
+                  ? `${forecast.model.name} · ${forecast.model.uses_weather ? "날씨 반영" : "날씨 미반영"}`
+                  : "아직 예측이 완료되지 않았어요"}
               </span>
               <button
                 className="text-button"
@@ -306,7 +316,9 @@ export function MerchantOverview({
                 <thead>
                   <tr>
                     <th>상품</th>
-                    <th className="number">{shortDate(nextDay)} 예측 P50</th>
+                    <th className="number">
+                      {nextDay ? shortDate(nextDay) : "내일"} 예측 P50
+                    </th>
                     <th className="number">내일 판매 가능한 재고</th>
                     <th>확인 상태</th>
                     <th>
@@ -318,7 +330,7 @@ export function MerchantOverview({
                   {products.slice(0, 5).map((product) => {
                     const stock = inventory[product.id];
                     const fresh = stock?.measured_on === today;
-                    const predicted = forecast.products
+                    const predicted = forecast?.products
                       .find((item) => item.product_id === product.id)
                       ?.points.find((point) => point.date === nextDay)?.p50;
                     const available = fresh
@@ -443,7 +455,7 @@ export function MerchantOverview({
                 </div>
               </dl>
               <div className="rail-weather-week">
-                {forecast.weather.days.map((day) => (
+                {forecast?.weather.days.map((day) => (
                   <div className="rail-weather-day" key={day.date}>
                     <span>{shortDate(day.date)}</span>
                     <Icon name={weatherIcon(day.code)} size={18} />
@@ -459,16 +471,23 @@ export function MerchantOverview({
           ) : (
             <p className="merchant-empty">지금은 날씨를 불러올 수 없어요.</p>
           )}
-          <p className="rail-note">
-            Open-Meteo ·{" "}
-            {new Intl.DateTimeFormat("ko-KR", {
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "Asia/Seoul",
-            }).format(new Date(forecast.weather.fetched_at))}{" "}
-            조회{forecast.weather.cached ? " · 저장된 자료" : ""}
-            {forecast.weather.message ? ` · ${forecast.weather.message}` : ""}
-          </p>
+          {forecast && (
+            <p className="rail-note">
+              {forecast.weather.source} ·{" "}
+              {new Intl.DateTimeFormat("ko-KR", {
+                month: "numeric",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Asia/Seoul",
+              }).format(new Date(forecast.weather.fetched_at))}{" "}
+              한국 시간 조회{forecast.weather.cached ? " · 저장된 자료" : ""}
+              {forecast.weather.message ? ` · ${forecast.weather.message}` : ""}
+              {forecast.model.uses_weather
+                ? " · 판매 예측에 사용"
+                : " · 참고용 날씨"}
+            </p>
+          )}
         </section>
         <section className="rail-tasks">
           <h2 className="rail-section-title">
@@ -556,10 +575,17 @@ export function MerchantOverview({
         <section className="rail-model">
           <h2 className="rail-section-title">예측은 이렇게 만들어요</h2>
           <p className="rail-note">
-            현재 {forecast.model.name} 모델로 예측해요.{" "}
-            {forecast.model.uses_weather
+            {forecast
+              ? `현재 ${forecast.model.name} 모델로 예측해요. `
+              : "판매 예측이 아직 완료되지 않았어요. "}
+            {forecast?.model.uses_weather
               ? "판매 기록과 날씨를 함께 사용해요."
-              : "날씨는 예측에 반영하지 않고 참고 정보로 제공해요."}{" "}
+              : forecast
+                ? "날씨는 예측에 반영하지 않고 참고 정보로 제공해요."
+                : "예측 화면에서 연결 상태를 확인해주세요."}{" "}
+            {forecast?.model.training_data === "synthetic"
+              ? "합성 자료로 학습한 실험 모델이에요. "
+              : ""}
             예측 범위는 정확도 보장이 아니에요.
           </p>
           <button
