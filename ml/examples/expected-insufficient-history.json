@@ -1,0 +1,70 @@
+{
+  "model": {
+    "name": "TFT Walmart persistence",
+    "version": "walmart_20261024T020058Z-cpu-v1",
+    "uses_weather": true
+  },
+  "products": [
+    {
+      "product_id": "walmart-9",
+      "status": "insufficient_history",
+      "reason": "requires 56 consecutive observed sales days through as_of; received 55/56",
+      "points": []
+    },
+    {
+      "product_id": "walmart-27",
+      "status": "ready",
+      "reason": null,
+      "points": [
+        {
+          "date": "2014-09-13",
+          "p10": 9.877473831176758,
+          "p50": 16.778335571289062,
+          "p90": 23.53830909729004
+        },
+        {
+          "date": "2014-09-14",
+          "p10": 10.610965728759766,
+          "p50": 18.380435943603516,
+          "p90": 25.472082138061523
+        },
+        {
+          "date": "2014-09-15",
+          "p10": 8.206275939941406,
+          "p50": 14.39047622680664,
+          "p90": 20.984350204467773
+        },
+        {
+          "date": "2014-09-16",
+          "p10": 6.938642501831055,
+          "p50": 12.896810531616211,
+          "p90": 19.445659637451172
+        },
+        {
+          "date": "2014-09-17",
+          "p10": 6.263410568237305,
+          "p50": 12.294519424438477,
+          "p90": 18.935728073120117
+        },
+        {
+          "date": "2014-09-18",
+          "p10": 5.735735893249512,
+          "p50": 11.968114852905273,
+          "p90": 18.96143341064453
+        },
+        {
+          "date": "2014-09-19",
+          "p10": 6.510631084442139,
+          "p50": 12.8885498046875,
+          "p90": 19.880687713623047
+        }
+      ]
+    },
+    {
+      "product_id": "new-product",
+      "status": "insufficient_history",
+      "reason": "missing_model_item_nbr: explicit trained product mapping is required",
+      "points": []
+    }
+  ]
+}
