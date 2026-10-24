@@ -4,7 +4,7 @@
 
 **API 담당자가 먼저 볼 파일:** [추가 입력 필드·단위·예시 JSON](examples/input-fields.json), [10상품 샘플 목록](examples/demo-manifest.json), [실행 가능한 매장 4의 6상품 입력](examples/input-store-4.json), [해당 API 예상 반환](examples/expected-api-store-4.json). 이번 전달은 `ml/`의 실제 자료·모델 비교·재현 코드다. API·웹·배포와 서버 검증은 팀원 담당 범위이며, 서버 연결·Ubuntu CPU 검증은 완료됐다고 전달받아 재실행하지 않는다.
 
-**발표 준비:** [발표 자료 안내](presentation/README.md)에 모델 설명 대본, 대표 상품 3개, 실패 사례와 심사 질문 답변을 모았다. 사례는 `python -m ml.analyze_cases --no-plots`로 재현한다. 기존 발표 수치와 구분한 [동일 환경 3개 seed 비교](ablation/multiseed/README.md)의 계획·실행 상태도 함께 확인한다.
+**발표 준비:** [발표 자료 안내](presentation/README.md)에 모델 설명 대본, 대표 상품 3개, 실패 사례와 심사 질문 답변을 모았다. 사례는 `python -m ml.analyze_cases --no-plots`로 재현한다. 기존 발표 수치와 구분한 [동일 환경 3개 seed 비교](ablation/multiseed/README.md)의 계획·실행 상태도 함께 확인한다. [Colab A100 실행 안내](ablation/multiseed/colab.md)와 [전용 노트북](notebooks/paired_tft_a100.ipynb)은 A100에서 6개 모델을 새로 학습하기 위한 준비본이며 실제 Colab 실행은 아직 미검증이다.
 
 ## 검증 환경과 설치
 
@@ -135,4 +135,4 @@ python -m ml.verify_runtime --benchmark-input ml/examples/benchmark-10.json --be
 
 [이력 부족 입력](examples/insufficient-history.json)과 [예상 결과](examples/expected-insufficient-history.json): walmart-9는 55/56일로 부족, 나머지 기존 5상품은 정상, new-product는 미등록이다. 정상 상품은 계속 예측한다.
 
-최종 Python 3.11 CPU 전체 unittest **44개 통과**를 확인했다. 원본 특징 일치, SI/결측/trace, 학습·CUDA 차단, 상태 불변, 동시 요청, 상품·날짜 대응, 비정상 출력 거절, 사례 선정과 평가 재현을 검사한다. 기본 10상품 smoke, 호환 2상품 smoke, 기존 전달 ZIP의 평가표 6행 재생성 비교도 통과했다. 추가 3개 seed 실험의 실제 평가표 재현은 모든 학습이 끝난 뒤 별도로 확인한다. 현재 날씨 TFT의 전체 테스트셋 CPU 재평가는 수행하지 않았다. 별도 날씨 제외 학습·시간순 평가·기준선 수치·미검증 항목은 [evaluation.md](evaluation.md)를 따른다.
+최종 Python 3.11 CPU 전체 unittest **45개 통과**를 확인했다. 원본 특징 일치, SI/결측/trace, 학습·CUDA 차단, 상태 불변, 동시 요청, 상품·날짜 대응, 비정상 출력 거절, 사례 선정과 평가 재현을 검사한다. 기본 10상품 smoke, 호환 2상품 smoke, 기존 전달 ZIP의 평가표 6행 재생성 비교도 통과했다. 추가 3개 seed 실험의 실제 평가표 재현은 모든 학습이 끝난 뒤 별도로 확인한다. 현재 날씨 TFT의 전체 테스트셋 CPU 재평가는 수행하지 않았다. 별도 날씨 제외 학습·시간순 평가·기준선 수치·미검증 항목은 [evaluation.md](evaluation.md)를 따른다.
