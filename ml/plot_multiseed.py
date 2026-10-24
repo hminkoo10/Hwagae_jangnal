@@ -94,8 +94,8 @@ def plot(directory, output_dir):
     markers = {"weather": "o", "no-weather": "D"}
     titles = {"full_original_test": "Full original test | 7,973 matched rows",
               "strict_56_observed_history": "Strict 56-day observed history | 1,701 matched rows"}
-    figure, axes = plt.subplots(1, 2, figsize=(11.4, 5.4), sharey=True)
-    figure.subplots_adjust(left=.08, right=.98, bottom=.22, top=.71, wspace=.15)
+    figure, axes = plt.subplots(1, 2, figsize=(11.4, 6.2), sharey=True)
+    figure.subplots_adjust(left=.08, right=.98, bottom=.32, top=.73, wspace=.15)
     for axis, subset in zip(axes, SUBSETS, strict=True):
         axis.axhline(baseline_values[subset], color="#475569", linestyle="--", linewidth=1.6, zorder=1)
         for index, seed in enumerate(SEEDS):
@@ -119,12 +119,14 @@ def plot(directory, output_dir):
     legend = [Line2D([], [], color=colors[variant], marker=markers[variant], linestyle="None", markersize=7,
                      label="Weather TFT" if variant == "weather" else "No-weather TFT") for variant in VARIANTS]
     legend.append(Line2D([], [], color="#475569", linestyle="--", label="API weekday baseline (84-day history)"))
-    figure.suptitle("Weather vs no-weather: three paired training seeds", fontsize=16, fontweight="bold", y=.97)
+    figure.suptitle("Same-environment TFT controls: three paired seeds", fontsize=16, fontweight="bold", y=.97)
     figure.legend(handles=legend, loc="upper center", bbox_to_anchor=(.5, .9), ncol=3, frameon=False, fontsize=10)
     axis_note = "Same zoomed y-axis in both panels; it does not start at zero." if limits[0] > 0 else "Same y-axis in both panels; zero is included."
-    figure.text(.5, .11, axis_note + "\nPoints are individual runs; means and sample SD across 3 seeds: summary.csv.",
+    figure.text(.5, .18, axis_note + "\nMatched test dates: 2014-09-06 to 2014-10-31 | n = 3 seeds (42, 43, 44)."
+                "\nHistorical-weather persistence; individual points here, means and sample SD in summary.csv.",
                 ha="center", va="center", fontsize=10, color="#334155")
-    figure.text(.5, .035, "Historical-weather persistence; input dimensions differ. Three seeds do not establish a causal weather effect.",
+    figure.text(.5, .045, "Same-environment control models; production-model 6.98% / 10.71% comparisons are separate."
+                "\nInput dimensions differ; three seeds do not establish a causal weather effect.",
                 ha="center", fontsize=9, color="#475569")
     provenance = json.dumps({"input_sha256": evidence, "script_sha256": digest(Path(__file__)),
                              "matplotlib": matplotlib.__version__, "y_limits": limits}, sort_keys=True)
