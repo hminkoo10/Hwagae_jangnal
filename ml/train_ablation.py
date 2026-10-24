@@ -61,11 +61,30 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
-def load_csv(root, name):
+def csv_path(root, name):
     matches = [path for path in (root / name, root / (name + ".zip")) if path.is_file()]
     if len(matches) != 1:
         raise ValueError(f"provide exactly one of {name} and {name}.zip under {root}")
-    return pd.read_csv(matches[0], low_memory=False)
+    return matches[0]
+
+
+def load_csv(root, name):
+    return pd.read_csv(csv_path(root, name), low_memory=False)
+
+
+def file_evidence(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return {"path": str(path.resolve()), "sha256": digest.hexdigest()}
+
+
+def input_evidence(data_dir, reference_run):
+    files = {name: csv_path(data_dir, name) for name in ["train.csv", "weather.csv", "key.csv"]}
+    files.update({"reference/" + name: reference_run / name for name in
+                  ["run_config.json", "selected_series.csv", "validation_predictions.csv", "test_predictions.csv"]})
+    return {name: file_evidence(path) for name, path in files.items()}
 
 
 def install_functions(namespace, source, names):
@@ -269,6 +288,8 @@ def main():
         "same_precision": args.precision == config["precision"],
         "hardware_changed": args.device != "cuda" or torch.cuda.get_device_name() != config["gpu"],
         "source_notebook_sha256": hashlib.sha256(NOTEBOOK.read_bytes()).hexdigest(),
+        "source_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "input_files": input_evidence(args.data_dir, args.reference_run),
         "packages": {name: version(name) for name in ["torch", "pytorch-forecasting", "lightning", "pandas", "numpy", "scikit-learn"]},
         "seed": config["SEED"], "batch_size": config["BATCH_SIZE"], "num_workers": namespace["NUM_WORKERS"],
         "max_epochs": config["MAX_EPOCHS"], "window_counts": [len(ds) for ds in datasets],

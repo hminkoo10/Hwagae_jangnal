@@ -54,7 +54,7 @@ python -m ml.train_ablation --data-dir /data/weather_order_tft \
 
 완료 시 `completion.json`의 `trained_and_evaluated` 상태와 `matched_reference_rows=true`를 확인합니다. 준비 또는 벤치마크만 끝난 경우 성능 평가가 완료된 것으로 주장하지 않습니다.
 
-- `protocol.json`: 원본 노트북 hash, 패키지·하드웨어·정밀도·seed·창 개수와 비교 한계.
+- `protocol.json`: 원본 노트북·실행 스크립트 및 원본 CSV/ZIP·참조 설정·시계열·예측 CSV의 경로와 SHA-256, 패키지·하드웨어·정밀도·seed·창 개수와 비교 한계.
 - `tft_no_weather/checkpoints/`: 해당 실행에서 검증 손실로 고른 체크포인트와 마지막 체크포인트.
 - `tft_no_weather_validation_predictions.csv`, `tft_no_weather_test_predictions.csv`: 원본과 같은 키·정답·날짜·5개 raw/후처리 분위수.
 - `metrics.csv`: 검증·테스트의 raw/후처리 MAE, RMSE, WAPE, 평균 pinball, 구간 포함률·너비, 분위수별 포함률.
