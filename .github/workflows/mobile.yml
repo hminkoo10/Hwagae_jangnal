@@ -131,7 +131,7 @@ jobs:
       - name: Package unsigned device IPA for local signing
         run: |
           app="build/ios-device/Build/Products/Release-iphoneos/App.app"
-          xcrun lipo -verify_arch arm64 "$app/App"
+          xcrun lipo "$app/App" -verify_arch arm64
           python3 - <<'PY'
           import plistlib
           from pathlib import Path
