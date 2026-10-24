@@ -3465,3 +3465,21 @@ input[type="checkbox"] {
 .merchant-shell { --green: #1761c7; }
 .merchant-shell .primary { background: #1965d2; }
 .merchant-shell .nav-item.active, .merchant-shell .text-button { color: #1556b0; }
+
+.ai-settings { max-width: 1100px; }
+.ai-chain, .ai-result { padding: 18px; border-radius: 10px; margin: 18px 0; background: #f0f6ff; }
+.ai-chain p { overflow-wrap: anywhere; color: #243149; }
+.ai-connections { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.ai-connections > li { padding: 20px; border: 1px solid #d9e2ef; border-radius: 12px; }
+.ai-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ai-card-heading h3 { display: inline; margin-left: 12px; font-size: 19px; }
+.ai-card-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.ai-gateway-url { overflow-wrap: anywhere; }
+.ai-card-heading > div { min-width: 0; }
+.ai-connections p, .ai-card-heading h3, .ai-result li { overflow-wrap: anywhere; }
+.ai-output { white-space: pre-wrap; overflow-wrap: anywhere; color: #243149; line-height: 1.8; }
+.ai-explanation { margin: 20px 0; padding: 18px; border: 1px solid #d9e2ef; border-radius: 10px; }
+.ai-explanation .panel-heading p { max-width: 600px; }
+.ai-settings details { margin-top: 18px; }
+.ai-settings summary { cursor: pointer; font-weight: 650; }
+@media (max-width: 600px) { .ai-card-heading { align-items: flex-start; } .ai-card-heading h3 { display: block; margin: 10px 0 0; } .ai-connections > li { padding: 16px; } }

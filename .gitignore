@@ -249,6 +249,7 @@ apps/mobile/ios/DerivedData/
 # Local environment files (commit templates only)
 .env.*
 !.env.example
+ai-master.key
 
 # Local datasets and trained model artifacts
 data/raw/

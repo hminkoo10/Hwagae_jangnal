@@ -96,3 +96,22 @@ test("already aborted request does not leave a pending operation", async (t) => 
   await assert.rejects(api("/stores", "", { signal: caller.signal }), { name: "AbortError" });
   assert.equal(hasPendingRequests(), false);
 });
+
+test("AI calls can wait for fallback without changing ordinary request deadlines", async (t) => {
+  const realTimer = globalThis.setTimeout;
+  const deadlines = [];
+  t.mock.method(globalThis, "setTimeout", (fn, delay) => { deadlines.push(delay); return realTimer(fn, delay); });
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    assert.equal(Object.hasOwn(options, "timeoutMs"), false);
+    return new Response(JSON.stringify({ ok: true }));
+  });
+  await api("/stores/gwangju/ai/test", "test-token", { method: "POST", timeoutMs: 80000 });
+  await api("/stores", "test-token");
+  assert.deepEqual(deadlines, [80000, 25000]);
+  assert.equal(hasPendingRequests(), false);
+});
+
+test("structured AI failure exposes the safe server message", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ detail: { message: "선택한 AI 연결을 확인하세요.", attempts: [] } }), { status: 503 }));
+  await assert.rejects(api("/stores/gwangju/ai/test"), e => e instanceof ApiError && e.status === 503 && e.message === "선택한 AI 연결을 확인하세요.");
+});
