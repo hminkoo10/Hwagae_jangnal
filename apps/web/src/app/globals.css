@@ -1167,7 +1167,7 @@ input[type="checkbox"] {
 .login-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 .login-story {
   padding: 48px 10%;
@@ -1264,6 +1264,7 @@ input[type="checkbox"] {
   transform: rotate(-3deg);
 }
 .login-form-wrap {
+  min-width: 0;
   background: white;
   display: flex;
   align-items: center;
@@ -1271,6 +1272,7 @@ input[type="checkbox"] {
   padding: 50px 40px;
 }
 .login-form {
+  min-width: 0;
   width: 360px;
   max-width: 100%;
 }
@@ -1710,7 +1712,7 @@ input[type="checkbox"] {
     justify-self: end;
   }
   .login-page {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .login-story {
     min-height: 0;
