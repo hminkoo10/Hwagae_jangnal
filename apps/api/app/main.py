@@ -23,6 +23,8 @@ from pydantic import BaseModel
 from app.database import Database, encode, now_iso, password_matches, today
 from app.forecasting import run_forecast
 from app.imports import MAX_BYTES, parse_file
+from app.model_demo import describe_sample, replay, sample_context
+from app.model_runtime import ModelRuntime, ModelUnavailable
 from app.ordering import recommend
 from app.schemas import (
     Inventory,
@@ -78,7 +80,11 @@ def create_app(db_path=None, seed=True):
         database.initialize(
             seed=seed and os.getenv("SEED_DEMO", "true").lower() == "true"
         )
-        yield
+        application.state.model_runtime.start()
+        try:
+            yield
+        finally:
+            application.state.model_runtime.close()
 
     application = FastAPI(
         title="화개장날 API",
@@ -88,6 +94,7 @@ def create_app(db_path=None, seed=True):
     )
     application.state.database = database
     application.state.weather_reader = get_weather
+    application.state.model_runtime = ModelRuntime()
     origins = [
         item.strip()
         for item in os.getenv(
@@ -173,6 +180,25 @@ def create_app(db_path=None, seed=True):
             "expires_at": expiry,
             "user": {"id": row["id"], "name": row["name"], "email": row["email"]},
         }
+
+    @application.get("/model-demo", tags=["model demo"])
+    def model_demo(user=Depends(authenticated)):
+        try:
+            sample = describe_sample(sample_context())
+        except Exception:
+            logger.exception("TFT demo sample could not be read")
+            raise HTTPException(503, "모델 체험용 자료를 준비하지 못했습니다.") from None
+        return {"runtime": application.state.model_runtime.status(), "sample": sample}
+
+    @application.post("/model-demo/forecast", tags=["model demo"])
+    def model_demo_forecast(user=Depends(authenticated)):
+        try:
+            return replay(application.state.model_runtime)
+        except ModelUnavailable as exc:
+            raise HTTPException(503, str(exc)) from None
+        except Exception:
+            logger.exception("TFT historical replay failed")
+            raise HTTPException(503, "TFT 실행 또는 출력 검사에 실패했습니다. 잠시 후 다시 시도해주세요.") from None
 
     @application.get("/auth/me", tags=["accounts"])
     def me(user=Depends(authenticated)):

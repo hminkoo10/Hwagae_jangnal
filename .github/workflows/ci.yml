@@ -58,9 +58,28 @@ jobs:
       - run: npm run check
       - run: npm run build
 
+  ml-preprocess:
+    name: ML preprocessing tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.10.6"
+          python-version: "3.11"
+          enable-cache: true
+      - run: uv venv --no-project --python 3.11 .model-venv
+      - run: uv pip install --python .model-venv/bin/python numpy==2.1.3 pandas==2.2.3
+      - run: .model-venv/bin/python -m py_compile ops/tft_worker.py
+      # CI has no checkpoint. Real CPU inference is checked before server activation.
+      - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_preprocess.py -v
+
   deploy:
     name: Deploy Ubuntu
-    needs: [api, web]
+    needs: [api, web, ml-preprocess]
     if: vars.DEPLOY_ENABLED == 'true' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.deploy))
     environment: production
     runs-on: ubuntu-latest
