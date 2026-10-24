@@ -75,6 +75,34 @@ repository variable DEPLOY_ENABLED=true는 **서버 준비와 첫 배포 확인 
 
 ## 배포 순서와 복구
 
+### TFT의 실제 Ubuntu ARM64 검증
+
+Actions의 **Verify and deploy → Run workflow**에서 검증할 브랜치를 선택하고
+`verify_tft=true`, `deploy=false`, `tft_checkpoint=<서버의 기존 체크포인트 절대 경로>`를 지정한다.
+기본 체크포인트 위치는 `/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt`이다.
+기존 production environment의 `DEPLOY_*` secrets로 접속하며 개인키나 서버 환경 파일을 출력하지 않는다.
+`verify_tft=true`이면 배포 job은 실행되지 않는다. API·웹 CI가 통과한 뒤 서버 검증이 시작된다.
+
+`ops/verify-tft.sh COMMIT_SHA --checkpoint ABSOLUTE_PATH`는 아래 과정을 수행한다.
+
+1. `/srv/hwagae/shared/tft-verification/<sha>/`에 해당 Git 소스와 검증 결과를 보관한다.
+2. 실제 OS가 Ubuntu/Linux이고 CPU가 aarch64/arm64인지 확인하고 메모리·디스크·CPU·커널 정보를 기록한다.
+3. 체크포인트가 없거나 읽을 수 없으면 `missing_checkpoint`로 실패한다. 이 경우 환경 보고서는 남기며 모델 성공을 주장하지 않는다.
+4. 검증 폴더 안에 Python 3.11 모델 환경과 Python 3.14 API 환경을 각각 설치한다. 모델은 `ml/requirements-inference.txt`, API는 기존 `uv.lock`을 사용한다.
+5. 모델의 7일×5분위수 smoke test와 unittest를 실행한다. Python 3.14에서 `ml.bridge`로 Python 3.11 worker를 호출하여 같은 샘플의 7일×3분위수 및 이력 부족 응답을 비교하고 API 테스트를 실행한다.
+6. 상태·설치 로그·패키지 버전·실행 시간·비교 결과를 Actions artifact `tft-arm64-<sha>-<attempt>`로 수집한다. 비교 오차는 기존 smoke test의 `atol=1e-4`, `rtol=1e-5`이며 다른 아키텍처에서 실패하면 실패한 그대로 기록한다.
+
+이 작업은 검증 폴더의 별도 DB와 별도 Python 환경을 사용한다. 운영 `current` 링크, 운영 DB,
+`/etc/hwagae/hwagae.env`, systemd 및 Nginx를 변경하지 않는다. 서비스 배포/활성화는 별도 작업이다.
+모델 체크포인트를 Git이나 검증 보고서 artifact에 포함하지 않는다. 서버에 필요한 파일을 안전하게 전달한 뒤 검증을 실행한다.
+보고서의 `status=passed`와 해당 커밋을 확인하기 전에는 ARM64 또는 Python 간 연결 검증이 완료되었다고 표기하지 않는다.
+
+공식 [PyTorch CPU wheel 목록](https://download.pytorch.org/whl/cpu/torch/)에서
+`torch-2.11.0+cpu-cp311-cp311-manylinux_2_28_aarch64.whl`의 존재를 확인했다.
+이는 패키지 후보가 존재한다는 근거이며 이 서버에서 설치와 추론을 통과했다는 근거는 아니다.
+
+### 운영 배포
+
 1. 동일 커밋의 API·웹 검사를 통과합니다.
 2. 검증된 Git 소스 아카이브를 SSH/SCP로 전달합니다.
 3. 새 release에서 uv sync --locked --no-dev, npm ci, 웹 빌드를 실행합니다.
