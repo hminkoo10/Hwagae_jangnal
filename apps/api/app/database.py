@@ -85,6 +85,10 @@ class Database:
                     provider TEXT NOT NULL CHECK(provider IN ('weekday','merchant_tft')),
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS ai_settings (
+                    store_id TEXT PRIMARY KEY REFERENCES stores(id), revision INTEGER NOT NULL,
+                    payload TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS store_locales (
                     store_id TEXT PRIMARY KEY REFERENCES stores(id),
                     timezone TEXT NOT NULL, weather_provider TEXT NOT NULL

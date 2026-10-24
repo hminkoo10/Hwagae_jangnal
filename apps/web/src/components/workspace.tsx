@@ -26,6 +26,7 @@ import { ModelDemo } from "./model-demo";
 import { NATIVE_BACK_EVENT } from "./native-shell";
 import { MerchantModelPanel } from "./merchant-model-panel";
 import { InitialData } from "./initial-data";
+import { AiSettings, AiExplanation } from "./ai-settings";
 
 type Tab =
   | "overview"
@@ -34,6 +35,7 @@ type Tab =
   | "inventory"
   | "products"
   | "orders"
+  | "ai-settings"
   | "model-demo";
 const tabs: { id: Tab; label: string; description: string }[] = [
   {
@@ -65,6 +67,12 @@ const tabs: { id: Tab; label: string; description: string }[] = [
     id: "orders",
     label: "발주 계획",
     description: "필요한 수량을 확인하고 수정한 뒤 발주서로 저장하세요.",
+  },
+  {
+    id: "ai-settings",
+    label: "AI 연결 설정",
+    description:
+      "AI 게이트웨이와 모델, 추론 강도와 자동 전환 순서를 관리하세요.",
   },
   {
     id: "model-demo",
@@ -839,7 +847,11 @@ export default function Workspace() {
         <div className="workspace-label">매장 운영</div>
         <nav aria-label="주 메뉴">
           {tabs
-            .filter((item) => item.id !== "model-demo")
+            .filter(
+              (item) =>
+                item.id !== "model-demo" &&
+                (item.id !== "ai-settings" || owner),
+            )
             .map((item) => (
               <button
                 key={item.id}
@@ -932,6 +944,8 @@ export default function Workspace() {
                     recommendationRequest.current?.abort();
                     setRecommendation(null);
                     setStoreId(event.target.value);
+                    if (tab === "ai-settings" && next?.role !== "owner")
+                      setTab("overview");
                     setSearch("");
                     setAsOf(next?.local_today ?? serverToday);
                     setInventoryProduct(null);
@@ -1060,12 +1074,20 @@ export default function Workspace() {
                 )}
               </div>
             )}
+          {tab === "ai-settings" && owner && store && (
+            <AiSettings
+              key={`${token}:${storeId}`}
+              token={token}
+              storeId={storeId}
+              onExpired={clearSession}
+            />
+          )}
           {!modelDemo && data && (
             <div
               className={loading ? "content-updating" : undefined}
               aria-busy={loading}
             >
-              {!data.products.length && owner && (
+              {!data.products.length && owner && tab !== "ai-settings" && (
                 <InitialData
                   key={storeId}
                   token={token}
@@ -1232,7 +1254,9 @@ export default function Workspace() {
                     <div className="panel-heading forecast-heading">
                       <div>
                         <h2>앞으로 7일, 얼마나 팔릴까요?</h2>
-                        <p>예상 판매량과 적게·많이 팔릴 때의 범위를 확인하세요.</p>
+                        <p>
+                          예상 판매량과 적게·많이 팔릴 때의 범위를 확인하세요.
+                        </p>
                       </div>
                       <div className="forecast-controls">
                         <select
@@ -1382,9 +1406,8 @@ export default function Workspace() {
                       <div>
                         <h2>새 발주 계획</h2>
                         <p>
-                          판매·재고 기준일 {asOf}
-                           · 매장 현지 날짜. 발주
-                          예정일과 입고까지 걸리는 기간을 함께 반영해요.
+                          판매·재고 기준일 {asOf} · 매장 현지 날짜. 발주 예정일과
+                          입고까지 걸리는 기간을 함께 반영해요.
                         </p>
                       </div>
                       <button
@@ -1545,6 +1568,15 @@ export default function Workspace() {
                           시나리오 비교용 근사 계획이며, 실제 폐기·품절 감소를
                           보장하지 않아요.
                         </p>
+                        {owner && (
+                          <AiExplanation
+                            key={recommendation.id}
+                            token={token}
+                            storeId={storeId}
+                            recommendationId={recommendation.id}
+                            onExpired={clearSession}
+                          />
+                        )}
                         <div className="panel-footer">
                           <span>미계산 상품은 저장 대상에서 제외돼요.</span>
                           <button

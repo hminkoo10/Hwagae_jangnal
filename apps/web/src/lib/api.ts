@@ -268,6 +268,7 @@ export class ApiError extends Error {
 }
 
 let pendingRequests = 0;
+type ApiRequestInit = RequestInit & { timeoutMs?: number };
 
 export function hasPendingRequests() {
   return pendingRequests > 0;
@@ -276,7 +277,7 @@ export function hasPendingRequests() {
 async function response<T>(
   path: string,
   token: string,
-  init: RequestInit,
+  init: ApiRequestInit,
   read: (result: Response) => Promise<T>,
 ): Promise<T> {
   const headers = new Headers(init.headers);
@@ -290,14 +291,18 @@ async function response<T>(
   const abort = () => controller.abort();
   if (init.signal?.aborted) abort();
   else init.signal?.addEventListener("abort", abort, { once: true });
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, 25000);
+  const timer = setTimeout(
+    () => {
+      timedOut = true;
+      controller.abort();
+    },
+    Math.min(init.timeoutMs ?? 25000, 80000),
+  );
   pendingRequests += 1;
   try {
+    const { timeoutMs: _timeoutMs, ...requestInit } = init;
     const result = await fetch(`${base}${path}`, {
-      ...init,
+      ...requestInit,
       headers,
       cache: "no-store",
       signal: controller.signal,
@@ -318,7 +323,9 @@ async function response<T>(
                     `${item.loc?.slice(1).join(" · ")}: ${item.msg}`,
                 )
                 .join(" / ")
-            : `요청에 실패했어요. (${result.status})`;
+            : typeof detail?.message === "string"
+              ? detail.message
+              : `요청에 실패했어요. (${result.status})`;
       throw new ApiError(message, result.status);
     }
     return await read(result);
@@ -347,7 +354,7 @@ async function response<T>(
 export async function api<T>(
   path: string,
   token = "",
-  init: RequestInit = {},
+  init: ApiRequestInit = {},
 ): Promise<T> {
   return response(path, token, init, (result) => result.json());
 }

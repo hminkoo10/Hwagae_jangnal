@@ -144,3 +144,5 @@ scripts/setup-env.mjs  로컬 환경 파일 초기화
 - [Android · iPhone 앱](docs/mobile-app.md): APK 설치·iOS 빌드·모바일 기능 확인
 
 직접 자료 업로드: [점주 시작 안내](docs/merchant-upload.md). `uv run python scripts/make-merchant-data.py --output <폴더>`로 전달용 자료를 만들 수 있습니다.
+
+점주가 매장별 AI 게이트웨이·모델·추론 강도와 자동 전환 순서를 설정할 수 있습니다. [AI 연결 설정](docs/ai-settings.md)을 참고하세요.

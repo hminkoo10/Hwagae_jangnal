@@ -4,6 +4,13 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { shortDate, units, type ProductForecast } from "@/lib/api";
 
 const paths: Record<string, ReactNode> = {
+  "ai-settings": (
+    <>
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="2" />
+    </>
+  ),
   store: (
     <>
       <path d="M3 10h18l-2-6H5l-2 6Zm1 0v10h16V10M9 20v-6h6v6M3 10c0 3 4 3 4 0 0 3 5 3 5 0 0 3 5 3 5 0 0 3 4 3 4 0" />
@@ -183,7 +190,12 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
   return (
     <div className="chart-wrap">
       <p className="chart-scroll-hint">좌우로 밀어 7일 예측을 확인하세요.</p>
-      <div className="chart-scroll" tabIndex={0} role="region" aria-label="7일 판매 예측 그래프">
+      <div
+        className="chart-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="7일 판매 예측 그래프"
+      >
         <svg
           className="forecast-chart"
           viewBox="0 0 664 232"
