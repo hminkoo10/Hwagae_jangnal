@@ -133,6 +133,32 @@ class WorkerClientTests(unittest.TestCase):
         self.assertEqual(second["sequence"], 1)
         self.assertEqual(second["context"]["request_number"], 2)
 
+    def test_timeout_also_covers_worker_that_never_reads_stdin(self):
+        self.worker.write_text("import time\ntime.sleep(10)\n", encoding="utf-8")
+        client = self.client()
+        client.timeout = 0.15
+        errors = []
+
+        def request():
+            try:
+                client.request("predict", {"large_input": "x" * 2_000_000})
+            except Exception as exc:
+                errors.append(exc)
+
+        thread = threading.Thread(target=request, daemon=True)
+        thread.start()
+        thread.join(timeout=2)
+        remained_blocked = thread.is_alive()
+        # A regression must fail without hanging the test runner indefinitely.
+        if remained_blocked and client.process is not None:
+            client.process.terminate()
+        thread.join(timeout=3)
+        self.assertFalse(remained_blocked, "stdin transfer ignored the request deadline")
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], TimeoutError)
+        self.assertIsNone(client.process)
+
     def test_malformed_mismatched_crashed_and_nonfinite_responses_fail_closed(self):
         for mode, exception, pattern in [
             ("malformed", ValueError, "Expecting value"),
