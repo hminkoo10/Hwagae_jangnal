@@ -111,6 +111,31 @@ class Database:
                     revision INTEGER NOT NULL, status TEXT NOT NULL CHECK(status IN ('draft','confirmed')),
                     payload TEXT NOT NULL, created_at TEXT NOT NULL, confirmed_at TEXT
                 );
+                CREATE TABLE IF NOT EXISTS model_demo_runs (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
+                    sample_id TEXT NOT NULL, as_of TEXT NOT NULL,
+                    payload TEXT NOT NULL, created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS model_demo_workspaces (
+                    user_id TEXT NOT NULL REFERENCES users(id), sample_id TEXT NOT NULL,
+                    revision INTEGER NOT NULL CHECK(revision>=0), payload TEXT NOT NULL,
+                    updated_at TEXT NOT NULL, PRIMARY KEY(user_id,sample_id)
+                );
+                CREATE TABLE IF NOT EXISTS model_demo_recommendations (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
+                    sample_id TEXT NOT NULL, forecast_id TEXT NOT NULL REFERENCES model_demo_runs(id),
+                    revision INTEGER NOT NULL, as_of TEXT NOT NULL,
+                    payload TEXT NOT NULL, created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS model_demo_orders (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
+                    sample_id TEXT NOT NULL,
+                    recommendation_id TEXT NOT NULL REFERENCES model_demo_recommendations(id),
+                    forecast_id TEXT NOT NULL REFERENCES model_demo_runs(id),
+                    revision INTEGER NOT NULL, version INTEGER NOT NULL CHECK(version>=0),
+                    status TEXT NOT NULL CHECK(status IN ('draft','confirmed')),
+                    payload TEXT NOT NULL, created_at TEXT NOT NULL, confirmed_at TEXT
+                );
             """)
             if seed and not db.execute("SELECT 1 FROM users LIMIT 1").fetchone():
                 self._seed(db)

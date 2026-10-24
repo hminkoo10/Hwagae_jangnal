@@ -7,13 +7,36 @@
 ## TFT 과거 시연 연결
 
 - `GET /model-demo?sample_id=...`와 `POST /model-demo/forecast?sample_id=...`는 로그인 후 사용합니다. `sample_id`는 `walmart-demo-4`, `walmart-demo-24`, `walmart-demo-17`만 허용하며 기본값은 `walmart-demo-4`입니다. `ml/examples/demo-manifest.json`의 고정 파일만 읽고, 사용자 요청 본문으로 날짜·학습 ID·파일 경로를 교체하지 않습니다. 다른 샘플 ID는 422입니다.
-- GET은 기존 `runtime`, `sample`에 선택한 `sample_id`, 선택지 `samples: [{id, label, product_count}]`, `total_products: 10`을 추가합니다. POST 결과에도 `sample_id`를 반환합니다. 별도 매장 생성이나 판매·재고·예측·발주 DB 변경은 없습니다.
+- GET은 기존 `runtime`, `sample`에 선택한 `sample_id`, 선택지 `samples: [{id, label, product_count}]`, `total_products: 10`을 추가합니다. POST 결과에는 `sample_id`와 서버에 저장한 개인 시연 예측의 `id`를 반환합니다. 일반 매장 자료는 그대로 두고 개인 시연 전용 테이블에 저장합니다.
 - API Python 3.14는 `ops/tft_worker.py`를 별도 Python 3.11 프로세스로 실행합니다. 시작할 때 모델과 고정 샘플을 미리 불러오며, 준비 전·장애·동시 실행·제한시간 초과는 503으로 표시합니다. 저장된 예상 출력이나 기준선을 TFT 결과로 대체하지 않습니다.
 - `TFT_PYTHON`, `TFT_CHECKPOINT_PATH`를 설정할 수 있습니다. 기본 모델 Python은 저장소의 `.model-venv`이며, 서버 기본 체크포인트는 `/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt`입니다. 없는 경우 시연만 비활성화됩니다.
 - 현재 샘플은 기준일 2014-09-12의 Walmart 매장 4·24·17, 각각 6·3·1상품입니다. 연속 56일 실제 판매 560행으로 다음 7일을 예측합니다. 미래 날씨는 마지막 관측값을 7일 유지하는 `persistence`이며 실제 예보 입력 기능이 아닙니다. 기존 `input.json`, `expected-api.json`, `expected-quantiles.json`의 2상품 파일은 모델 시작 시 준비·기존 ML 입력 파일 호환용으로 보존합니다.
 - 출력은 실제 TFT의 P10/P50/P90과 같은 56일 입력으로 계산한 API 요일 기준선을 함께 표시합니다. `actuals.json`의 이후 실제 판매 70행은 추론과 두 출력 검사가 끝난 뒤 `points[].actual`로 연결합니다. 모델 입력에 정답을 넣지 않으며 상품·날짜 중복/누락과 잘못된 판매 수량을 거부하고 0개는 유지합니다.
 - `GET /model-demo/evaluation`은 인증 후 저장된 오프라인 평가표를 반환합니다. 파일 누락·잘못된 지표는 내부 경로를 노출하지 않는 503으로 처리합니다. 전체 테스트 재추론이나 학습을 요청하는 경로가 아닙니다.
-- 이 체험을 한국 매장·발주 흐름에 연결하지 않으며, 기존 live provider의 실시간 날씨 검사도 완화하지 않습니다. CI는 ML 전처리·샘플·평가 계산을 검사합니다. 체크포인트가 있는 Ubuntu 배포에서는 기본 10상품 smoke와 전체 ML 테스트를 실행하고, 스킵·실패 시 새 버전을 활성화하지 않습니다.
+- 이 체험은 아래의 개인 발주 시연으로 연결합니다. 한국 매장 적용은 별도 검증이 필요하며 기존 live provider의 실시간 날씨 검사를 유지합니다. CI는 ML 전처리·샘플·평가 계산을 검사합니다. 체크포인트가 있는 Ubuntu 배포에서는 기본 10상품 smoke와 전체 ML 테스트를 실행하고, 스킵·실패 시 새 버전을 활성화하지 않습니다.
+
+### 개인 TFT 발주 시연 계약
+
+로그인 계정과 Walmart 표본별로 예측·설정·재고·추천·주문을 분리합니다. 다른 계정의 기록을 조회하거나 수정할 수 없습니다. 직원은 본인 초안까지 저장할 수 있고, 점주 권한 계정은 본인 초안을 확정·내보낼 수 있습니다. 이 개인 공간은 직원 초안을 점주에게 전달하는 공동 매장 업무 공간이 아닙니다.
+
+| API | 역할 |
+| --- | --- |
+| `GET /model-demo/planning?sample_id=...` | 개인 설정·재고·revision·최근 예측 ID·확정/내보내기 권한 조회 |
+| `PUT /model-demo/planning?sample_id=...` | 같은 revision의 전체 상품 설정·재고를 저장 |
+| `POST /model-demo/recommendations` | `{forecast_id, revision}`으로 서버 TFT 예측과 저장 재고를 계산 |
+| `GET /model-demo/orders?sample_id=...` | 본인의 저장 초안·확정본 조회 |
+| `POST /model-demo/orders` | `{recommendation_id, lines}`로 수정 수량의 초안 저장 |
+| `PUT /model-demo/orders/{id}` | `{version, lines}`로 유효한 초안의 수량 수정 |
+| `POST /model-demo/orders/{id}/confirm` | 점주가 `{version}`으로 확인한 초안을 확정 |
+| `GET /model-demo/orders/{id}/export?format=csv\|xlsx` | 점주가 확정 당시 스냅샷을 파일로 다운로드 |
+
+- 발주 계산용 서버 예측에는 TFT P10·P50·P90만 저장합니다. 비교용 실제 판매와 요일 기준선은 제외하며 클라이언트 예측값을 받지 않습니다.
+- 시연 기준일은 `2014-09-12` 마감입니다. 재고 만료일과 입고일은 이 날짜 이후여야 합니다. 미입력 재고와 직접 확인한 0개를 구분하고 입고 예정 유무 확인 후 계산합니다.
+- 판매가 4,000원·원가 2,000원·납기 1일·판매 가능 기간 3일·발주 주기 1일은 편집 가능한 **시연 가정**입니다. 실제 Walmart 가격·공급사·재고가 아닙니다.
+- 기존 `ordering.recommend`의 FEFO·입고일·만료·세 고정 수요 경로 비교를 재사용합니다. `납기 + 발주 주기 - 1 > 7` 또는 판매가가 원가 이하인 경우 등 계산 불가 조건은 화면에 표시합니다.
+- 설정 revision 또는 최신 TFT 예측이 바뀌면 이전 추천·초안의 저장·확정을 차단합니다. 초안 자체는 version으로 동시 수정을 검사하며 충돌은 409입니다.
+- 수정 수량의 금액은 서버에 저장한 원가로 다시 계산합니다. 추천 수량 기준의 시나리오 손실을 수정 수량의 결과로 복사하지 않습니다.
+- 확정본은 변경하지 않으며 이후 설정이 바뀌어도 확정 당시 값으로 내보냅니다. 파일에 과거 TFT 시연·기준일·모델·가정을 표시합니다. 공급사에 주문을 전송하지 않습니다.
 
 ### 평가 화면의 해석
 

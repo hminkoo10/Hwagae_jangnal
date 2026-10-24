@@ -34,6 +34,7 @@ from app.model_demo import (
     sample_options,
 )
 from app.model_runtime import ModelRuntime, ModelUnavailable
+from app.model_orders import mount_model_order_routes, save_forecast_run
 from app.ordering import recommend
 from app.schemas import (
     Inventory,
@@ -225,7 +226,9 @@ def create_app(db_path=None, seed=True):
         sample_id: SampleId = DEFAULT_SAMPLE_ID, user=Depends(authenticated)
     ):
         try:
-            return replay(application.state.model_runtime, sample_id)
+            result = replay(application.state.model_runtime, sample_id)
+            result["id"] = save_forecast_run(database, user, result)
+            return result
         except ModelUnavailable as exc:
             raise HTTPException(503, str(exc)) from None
         except Exception:
@@ -234,6 +237,8 @@ def create_app(db_path=None, seed=True):
                 503,
                 "TFT 실행 또는 출력 검사에 실패했습니다. 잠시 후 다시 시도해주세요.",
             ) from None
+
+    mount_model_order_routes(application, database, authenticated)
 
     @application.get("/auth/me", tags=["accounts"])
     def me(user=Depends(authenticated)):
