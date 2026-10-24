@@ -1,0 +1,82 @@
+{
+  "schema_version": "1",
+  "version": "merchant-synthetic-live-v1",
+  "model": {
+    "name": "실시간 예보 TFT · 실험",
+    "version": "merchant-synthetic-live-v1",
+    "uses_weather": true,
+    "training_data": "synthetic",
+    "note": "합성 판매·가상 예보로 학습한 별도 실험용 TFT입니다. 현재 조회한 실제 7일 예보를 입력하지만 실매장 예측 성능은 검증하지 않았습니다. 합성 학습에는 기온 상승 시 판매 증가·강한 비에 판매 감소라는 가정이 들어 있습니다. Walmart TFT의 평가 지표는 이 모델에 적용되지 않습니다."
+  },
+  "architecture": {
+    "hidden_size": 16,
+    "hidden_continuous_size": 8,
+    "attention_head_size": 1,
+    "lstm_layers": 1,
+    "dropout": 0.05
+  },
+  "architecture_class": "pytorch_forecasting.TemporalFusionTransformer",
+  "features": [
+    "sales",
+    "dow_sin",
+    "dow_cos",
+    "year_sin",
+    "year_cos",
+    "relative_day",
+    "temp_max",
+    "temp_min",
+    "rain_mm"
+  ],
+  "quantiles": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "encoder_days": 56,
+  "forecast_days": 7,
+  "checkpoint_sha256": "db88aec676bb4d70493579af138bf35a7ea87e142bf2912c1b60c24c9859c335",
+  "checkpoint_bytes": 200043,
+  "training": {
+    "data": "synthetic",
+    "seed": 20261024,
+    "validation_seed": 20261025,
+    "split": "independent generated windows; validation used only to select epoch; not a real-data temporal backtest",
+    "windows": 1536,
+    "validation_windows": 192,
+    "epochs": 32,
+    "best_epoch": 32,
+    "batch_size": 64,
+    "initial_validation_normalized_pinball": 0.6291458606719971,
+    "best_validation_normalized_pinball": 0.05742673575878143,
+    "elapsed_seconds": 109.98673849995248,
+    "threads": 2,
+    "device": "CPU",
+    "precision": "float32",
+    "optimizer": "Adam",
+    "learning_rate": 0.003,
+    "assumptions": "synthetic sales increase 0.022 per degC relative to 20C and decrease 0.012 per rain mm; not evidence of a real causal response",
+    "forecast_noise": "temperature Gaussian sd1.5C, rain Gaussian sd2mm clipped at zero, generated independently per window"
+  },
+  "normalization": "history-only mean (minimum1); temperatures fixed physical scales; no fitted category/group/target encoders",
+  "packages": {
+    "torch": "2.11.0+cpu",
+    "pytorch-forecasting": "1.5.0",
+    "numpy": "2.1.3"
+  },
+  "created_at": "2026-10-24T07:15:45.225061+00:00",
+  "source_sha256": {
+    "network.py": "cc3e5726f778dcb8176f5ed0afaf66e573153a0fb7df79b8b8596a230206fca1",
+    "train.py": "8c846bf9a21714fb0e10319cef4d885e47f4e4f35cf20133fa8b58576dba0804",
+    "predict.py": "0899c45f7dd724657f19ec1fcb931837712ef08fe78bfe9bb9afa7bd5936c984"
+  },
+  "synthetic_validation": {
+    "label": "synthetic validation only; no real merchant performance claim",
+    "rows": 1344,
+    "mae_units": 10.764013290405273,
+    "interval_coverage": 0.8363095238095238,
+    "interval_width_units": 45.66086959838867,
+    "normalized_pinball_5": 0.05742673575878143
+  }
+}

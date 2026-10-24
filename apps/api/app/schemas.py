@@ -35,6 +35,10 @@ class ProductSettings(Payload):
     review_days: int = Field(strict=True, ge=1, le=7)
 
 
+class ForecastSettings(Payload):
+    provider: Literal["weekday", "merchant_tft"]
+
+
 class StoreInput(Payload):
     name: str = Field(min_length=1, max_length=80)
     city: str = Field(min_length=1, max_length=80)

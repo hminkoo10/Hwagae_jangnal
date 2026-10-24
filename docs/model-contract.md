@@ -2,7 +2,7 @@
 
 웹·API 담당은 `apps/`, 모델 담당은 `ml/` 중심으로 작업합니다.
 현재 기본 예측은 `apps/api/app/forecasting.py`의 **날씨를 사용하지 않는 요일 기준선**입니다.
-일반 매장의 예측은 이 기준선을 유지합니다. PR #5로 받은 TFT는 별도 과거 시연 경로로 연결하며 아래 일반 매장 provider와 구분합니다.
+일반 매장은 기본적으로 이 기준선을 사용하며 점주가 실시간 예보 TFT를 선택할 수 있습니다. 새 합성 학습 TFT는 `ml/merchant_tft/`에 있고, PR #5의 Walmart TFT는 별도 과거 시연 경로로 유지합니다.
 
 ## TFT 과거 시연 연결
 
@@ -48,7 +48,7 @@ PR #7은 평가표·날씨 제거 실험 기록·재현 코드를 전달했습�
 
 ### 로컬 모델 시연 준비
 
-일반 매장의 `FORECAST_PROVIDER`는 비워 둡니다. 현재 TFT는 아래의 별도 실행 환경으로 연결합니다.
+일반 매장의 모델은 웹 설정에서 선택합니다. TFT는 아래의 별도 실행 환경으로 연결합니다.
 Windows에서 저장소 루트 기준:
 
 ```powershell
@@ -121,7 +121,7 @@ Ubuntu 설치·재시작은 [배포 안내](deployment.md), 발표 흐름은 [�
 
 ## 일반 매장 provider 계약 — 향후 모델 교체용
 
-이하 내용은 일반 매장 예측을 교체할 때의 계약입니다. 현재 Walmart TFT는 추가 `model_input`과 별도 실행 환경이 필요하므로 `FORECAST_PROVIDER=ml.predict:predict`로 직접 연결하지 않습니다.
+이하 내용은 일반 매장 예측의 입력·출력 계약입니다. HTTP 경로는 매장별 선택에 따라 기준선 또는 merchant worker를 명시적으로 호출합니다. `FORECAST_PROVIDER`는 직접 `run_forecast`를 호출하는 개발용 확장 지점이며 웹 모델 선택을 덮어쓰지 않습니다. Walmart TFT는 추가 `model_input`이 필요하므로 일반 매장에 직접 연결하지 않습니다.
 현재 기본 설정은 다음과 같습니다.
 
 ```dotenv
@@ -185,5 +185,15 @@ API와 같은 프로세스에서 실행되므로 입력·런타임 호환성을 
 - 시간순 학습·검증·최종 테스트 기간, 기준선 비교, 분위수 손실·구간 포함률.
 - 원본 자료 출처·지역·기간·단위·라이선스, 날씨 정보의 기준 시각.
 
-가중치·비밀값은 Git에 넣지 않습니다. 코드·규약·평가 요약과 검산용 `ml/evaluation/tft-evaluation-data.zip`을 공유하며, 추가 대용량 원본 자료는 별도로 전달합니다.
+Walmart 가중치·비밀값은 Git에 넣지 않습니다. 코드·규약·평가 요약과 검산용 `ml/evaluation/tft-evaluation-data.zip`을 공유하며, 추가 대용량 원본 자료는 별도로 전달합니다. 직접 테스트용 합성 TFT의 작은 `ml/merchant_tft/model.ckpt`만 해시·학습 코드와 함께 포함합니다. 텐서 state_dict이며 `weights_only=True`로 읽습니다.
 이 규약이 맞지 않으면 API 코드를 바로 고치기 전에 입력·출력 변경을 합의합니다.
+
+## 일반 매장의 실시간 예보 TFT
+
+`ml/merchant_tft/predict.py`는 위 기본 context와 상품별 7일 응답을 사용합니다. 매장·상품 ID는 결과 연결용이며 모델 특징이나 Walmart ID로 매핑하지 않습니다. 최근 연속 56일(as_of 포함)의 판매와 다음 7일의 실제 `weather.days`를 사용합니다. encoder는 판매·달력, decoder는 달력·최고/최저 기온·강수량을 사용합니다. 고정 단위는 °C·mm, 시간대는 Asia/Seoul입니다.
+
+일반 매장 설정에서 `weekday` 또는 `merchant_tft`를 선택하며, 추론은 API와 분리된 Python 3.11 프로세스에서 실행합니다. 과거 날짜 재생은 기존 기준선 경로를 사용합니다. 예보 누락·오래된 캐시·모델 장애 때 TFT 이름으로 다른 모델 결과를 대신 반환하지 않습니다.
+
+새 모델은 `model.training_data="synthetic"`와 설명을 반환합니다. 실제 예보가 입력되고 신경망이 실행된다는 사실과 실매장 정확도 검증을 구분합니다. 기존 Walmart 평가표는 새 모델의 평가표가 아닙니다. 입력된 실제 판매 정답은 이전과 같이 모델 응답 검사 후 API에서만 붙입니다.
+
+테스트 절차와 모델 담당의 후속 작업은 [실시간 예보 테스트 안내](live-weather-test.md)를 따릅니다.

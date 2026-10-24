@@ -61,7 +61,7 @@ jobs:
   ml-preprocess:
     name: ML data and evaluation tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -72,12 +72,13 @@ jobs:
           python-version: "3.11"
           enable-cache: true
       - run: uv venv --no-project --python 3.11 .model-venv
-      - run: uv pip install --python .model-venv/bin/python numpy==2.1.3 pandas==2.2.3
+      - run: uv pip install --python .model-venv/bin/python --index-strategy unsafe-best-match --default-index https://pypi.org/simple -r ml/requirements-inference.txt
       - run: .model-venv/bin/python -m py_compile ops/tft_worker.py
-      # CI has no checkpoint. Real CPU inference is checked before server activation.
+      # The small synthetic merchant TFT is bundled; Walmart weights stay server-side.
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_preprocess.py -v
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_evaluate.py -v
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_samples.py -v
+      - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_merchant_tft.py -v
 
   deploy:
     name: Deploy Ubuntu

@@ -53,6 +53,8 @@ def runtime_factory(tmp_path, monkeypatch):
     (root / "ops/tft_worker.py").write_text(WORKER, encoding="utf-8")
     checkpoint = root / "fake.ckpt"
     checkpoint.touch()
+    (root / "ml/merchant_tft").mkdir(parents=True)
+    (root / "ml/merchant_tft/model.ckpt").touch()
     monkeypatch.setenv("TFT_PYTHON", sys.executable)
     monkeypatch.setenv("TFT_CHECKPOINT_PATH", str(checkpoint))
     monkeypatch.delenv("FAKE_WARM_DELAY", raising=False)
@@ -231,23 +233,33 @@ def test_windows_redirector_child_is_terminated(runtime_factory):
         kernel.CloseHandle(handle)
 
 
+@pytest.mark.parametrize("profile", ["walmart", "merchant"])
 def test_real_worker_protocol_redirects_library_stdout_and_warms_fixture(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, profile
 ):
     """Exercise the shipped worker with a tiny fake ml module, not a pickle."""
     root = tmp_path / "worker-repo"
     (root / "ops").mkdir(parents=True)
     (root / "ml/examples").mkdir(parents=True)
+    (root / "ml/merchant_tft").mkdir(parents=True)
     worker = Path(__file__).resolve().parents[3] / "ops/tft_worker.py"
     ast.parse(worker.read_text(encoding="utf-8"), feature_version=(3, 11))
     (root / "ops/tft_worker.py").write_bytes(worker.read_bytes())
     (root / "ml/__init__.py").touch()
-    (root / "ml/examples/input.json").write_text('{"warm": true}', encoding="utf-8")
-    (root / "ml/predict.py").write_text(
+    (root / "ml/merchant_tft/__init__.py").touch()
+    fixture = (
+        "ml/merchant_tft/smoke.json"
+        if profile == "merchant"
+        else "ml/examples/input.json"
+    )
+    module = "ml/merchant_tft/predict.py" if profile == "merchant" else "ml/predict.py"
+    (root / fixture).write_text('{"warm": true}', encoding="utf-8")
+    (root / module).write_text(
         "import os\nwarmed = False\n"
         'print("python import log")\nos.write(1, b"native import log\\n")\n'
         "def predict(context):\n"
         "    global warmed\n"
+        '    if context.get("invalid"):\n        raise ValueError("private input path")\n'
         '    if context.get("warm"):\n        warmed = True\n'
         '    if not warmed:\n        raise RuntimeError("not warmed")\n'
         '    print("prediction log")\n    return {"warmed": warmed, "context": context}\n',
@@ -255,9 +267,10 @@ def test_real_worker_protocol_redirects_library_stdout_and_warms_fixture(
     )
     checkpoint = root / "fake.ckpt"
     checkpoint.touch()
+    (root / "ml/merchant_tft/model.ckpt").touch()
     monkeypatch.setenv("TFT_PYTHON", sys.executable)
     monkeypatch.setenv("TFT_CHECKPOINT_PATH", str(checkpoint))
-    runtime = ModelRuntime(repo_root=root)
+    runtime = ModelRuntime(repo_root=root, profile=profile)
     try:
         runtime.start()
         wait_status(runtime, "ready")
@@ -265,5 +278,37 @@ def test_real_worker_protocol_redirects_library_stdout_and_warms_fixture(
             "warmed": True,
             "context": {"hello": "한국"},
         }
+        process = runtime._process
+        with pytest.raises(ModelUnavailable) as rejected:
+            runtime.predict({"invalid": True})
+        assert "private" not in str(rejected.value)
+        assert runtime.status()["status"] == "ready"
+        assert runtime.predict({"after_error": True})["context"] == {
+            "after_error": True
+        }
+        assert runtime._process is process and process.poll() is None
     finally:
         runtime.close()
+
+
+def test_profiles_have_separate_processes_checkpoints_and_failures(
+    runtime_factory, monkeypatch
+):
+    walmart = runtime_factory()
+    merchant = runtime_factory(profile="merchant")
+    walmart.start()
+    merchant.start()
+    wait_status(walmart, "ready")
+    wait_status(merchant, "ready")
+    assert walmart._process.pid != merchant._process.pid
+    assert merchant._process.args[-1] == "--merchant"
+    assert walmart._process.args[-1].endswith("tft_worker.py")
+    assert merchant._configuration()[1] == merchant._root / "ml/merchant_tft/model.ckpt"
+    monkeypatch.setenv("TFT_CHECKPOINT_PATH", "invalid-walmart-path")
+    assert merchant._configuration()[1].is_file()
+    with pytest.raises(ModelUnavailable):
+        merchant.predict({"mode": "crash"})
+    assert walmart.predict({"still": "available"}) == {"echo": {"still": "available"}}
+    assert walmart.status()["status"] == "ready"
+    with pytest.raises(ValueError, match="unsupported"):
+        runtime_factory(profile="client-supplied-module")

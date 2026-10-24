@@ -38,10 +38,14 @@ class ModelRuntime:
     def __init__(
         self,
         *,
+        profile: str = "walmart",
         repo_root: Path | None = None,
         startup_timeout: float = 120.0,
         prediction_timeout: float = 20.0,
     ):
+        if profile not in {"walmart", "merchant"}:
+            raise ValueError("unsupported runtime profile")
+        self._profile = profile
         self._root = (repo_root or Path(__file__).resolve().parents[3]).resolve()
         self._startup_timeout = max(0.01, min(float(startup_timeout), 300.0))
         self._prediction_timeout = max(0.01, min(float(prediction_timeout), 20.0))
@@ -67,7 +71,7 @@ class ModelRuntime:
             self._state = "starting"
             self._message = _MESSAGES["starting"]
             self._thread = threading.Thread(
-                target=self._serve, name="hwagae-tft-runtime", daemon=True
+                target=self._serve, name=f"hwagae-tft-{self._profile}", daemon=True
             )
             self._thread.start()
 
@@ -139,16 +143,21 @@ class ModelRuntime:
             / ".model-venv"
             / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
         )
-        checkpoint_default = Path(
-            "/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt"
+        checkpoint_default = (
+            self._root / "ml/merchant_tft/model.ckpt"
+            if self._profile == "merchant"
+            else Path("/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt")
         )
         selected = []
         missing_default = False
         for name, fallback in (
             ("TFT_PYTHON", python_default),
-            ("TFT_CHECKPOINT_PATH", checkpoint_default),
+            (
+                None if self._profile == "merchant" else "TFT_CHECKPOINT_PATH",
+                checkpoint_default,
+            ),
         ):
-            configured = os.environ.get(name, "").strip()
+            configured = os.environ.get(name, "").strip() if name else ""
             path = Path(configured) if configured else fallback
             if configured and (not path.is_absolute() or not path.is_file()):
                 raise ValueError("invalid configured runtime path")
@@ -179,10 +188,16 @@ class ModelRuntime:
                 PYTHONUTF8="1",
                 PYTHONIOENCODING="utf-8",
                 PYTHONUNBUFFERED="1",
-                TFT_CHECKPOINT_PATH=str(checkpoint),
             )
+            command = [str(python), "-u", str(self._root / "ops" / "tft_worker.py")]
+            if self._profile == "merchant":
+                # The experimental model loads its own fixed, hash-checked bundle.
+                environment.pop("TFT_CHECKPOINT_PATH", None)
+                command.append("--merchant")
+            else:
+                environment["TFT_CHECKPOINT_PATH"] = str(checkpoint)
             process = subprocess.Popen(
-                [str(python), "-u", str(self._root / "ops" / "tft_worker.py")],
+                command,
                 cwd=self._root,
                 env=environment,
                 stdin=subprocess.PIPE,
@@ -215,15 +230,21 @@ class ModelRuntime:
                 process.stdin.flush()
                 response = self._read(process)
                 if (
-                    response.get("kind") != "result"
+                    response.get("kind") not in {"result", "request_error"}
                     or response.get("id") != request.identifier
-                    or not isinstance(response.get("result"), dict)
+                    or (
+                        response["kind"] == "result"
+                        and not isinstance(response.get("result"), dict)
+                    )
                 ):
                     raise ValueError("invalid worker response")
                 with self._lock:
                     if self._closed or self._state != "ready":
                         return
-                    request.result = response["result"]
+                    if response["kind"] == "request_error":
+                        request.error = "이 요청의 TFT 입력·출력 조건을 확인하세요. 다른 요청은 계속 처리할 수 있어요."
+                    else:
+                        request.result = response["result"]
                     self._pending = None
                     request.done.set()
         except Exception:

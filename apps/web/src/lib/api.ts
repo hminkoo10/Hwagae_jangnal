@@ -5,6 +5,10 @@ export type Store = {
   city: string;
   role: "owner" | "staff";
   provenance: string;
+  latitude?: number;
+  longitude?: number;
+  provider?: "weekday" | "merchant_tft";
+  data_note?: string | null;
 };
 export type Product = {
   id: string;
@@ -75,9 +79,27 @@ export type Forecast = {
   as_of: string;
   dates: string[];
   created_at: string;
-  model: { name: string; version: string; uses_weather: boolean };
+  model: {
+    name: string;
+    version: string;
+    uses_weather: boolean;
+    training_data?: string;
+    note?: string;
+  };
   weather: Weather;
   products: ProductForecast[];
+};
+export type MerchantForecastSettings = {
+  provider: "weekday" | "merchant_tft";
+  runtime: { status: string; message: string };
+  model: Forecast["model"] | null;
+  requirements: {
+    history_days: number;
+    horizon_days: number;
+    weather_fields: string[];
+    live_forecast_required: boolean;
+  };
+  data_note: string | null;
 };
 export type ModelDemoStatus = {
   sample_id: string;
