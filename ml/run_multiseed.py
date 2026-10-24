@@ -336,6 +336,7 @@ def summarize(plan_path, output):
         "difference_convention": "weather minus no-weather; negative error differences favor weather; coverage differences alone are not improvements",
         "standard_deviation": "Sample standard deviation across three training seeds (ddof=1), not over daily prediction rows",
         "limitations": plan["limitations"] + [
+            "Removing the eleven weather value/missing/trace features changes input dimension and model parameter count; this is not a parameter-count-matched or causal comparison.",
             "Historical reused seed-42 protocol directly logs six package versions; pytorch-lightning/torchmetrics are verified only in the current unchanged eight-package environment probe, not a separate historical runtime record."],
     })
     print(json.dumps({"status": "summarized", "seed_pairs": 3, "output": str(output)}, indent=2))
