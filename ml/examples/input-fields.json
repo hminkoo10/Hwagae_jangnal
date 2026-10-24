@@ -1,0 +1,210 @@
+{
+  "purpose": "Current API context extensions required for this checkpoint; input.json is a complete executable example.",
+  "schema_version": "1",
+  "context_extension_example": {
+    "products": [
+      {
+        "id": "walmart-9",
+        "model_item_nbr": "9"
+      }
+    ],
+    "model_input": {
+      "dataset": "walmart-stormy-weather",
+      "store_nbr": "4",
+      "station_nbr": "9",
+      "weather_units": "si",
+      "history_weather": [
+        {
+          "date": "2014-09-12",
+          "tavg": 9.444444444444445,
+          "tmax": 12.777777777777779,
+          "tmin": 5.555555555555555,
+          "preciptotal": 0.0,
+          "avgspeed": 2.9504639999999998
+        }
+      ],
+      "weather_strategy": "persistence"
+    }
+  },
+  "fields": [
+    {
+      "field": "products[].model_item_nbr",
+      "required": "For a ready forecast",
+      "type": "string",
+      "unit": "identifier",
+      "example": "9",
+      "rule": "Explicit Walmart trained item ID; do not infer from name or assign Korean products to arbitrary Walmart IDs."
+    },
+    {
+      "field": "model_input.dataset",
+      "required": true,
+      "type": "string",
+      "unit": "dataset identifier",
+      "example": "walmart-stormy-weather",
+      "rule": "Must match the current checkpoint dataset."
+    },
+    {
+      "field": "model_input.store_nbr",
+      "required": true,
+      "type": "string",
+      "unit": "identifier",
+      "example": "4",
+      "rule": "Explicit trained Walmart store ID; store_id remains the application ID."
+    },
+    {
+      "field": "model_input.station_nbr",
+      "required": true,
+      "type": "string",
+      "unit": "identifier",
+      "example": "9",
+      "rule": "Must match selected_series.csv and original key.csv for the mapped store."
+    },
+    {
+      "field": "model_input.weather_units",
+      "required": true,
+      "type": "enum: walmart | si",
+      "unit": "unit-system selector",
+      "example": "si",
+      "rule": "walmart uses degrees Fahrenheit/inches/miles per hour; si uses degrees Celsius/millimeters/meters per second. Column names do not change."
+    },
+    {
+      "field": "model_input.history_weather",
+      "required": true,
+      "type": "array of objects",
+      "unit": "one daily record per station",
+      "example": [
+        {
+          "date": "2014-09-12",
+          "tavg": 9.444444444444445,
+          "tmax": 12.777777777777779,
+          "tmin": 5.555555555555555,
+          "preciptotal": 0.0,
+          "avgspeed": 2.9504639999999998
+        }
+      ],
+      "rule": "Observed weather at or before as_of. Include recent 56 days plus enough older observations to seed causal forward fill. An empty array uses persisted training medians and missing flags; it is not newly fitted."
+    },
+    {
+      "field": "model_input.history_weather[].date",
+      "required": true,
+      "type": "YYYY-MM-DD",
+      "unit": "calendar date",
+      "example": "2014-09-12",
+      "rule": "Daily date in the source dataset; never after as_of. Duplicate dates are rejected."
+    },
+    {
+      "field": "model_input.history_weather[].tavg",
+      "required": "Supply when observed; null means missing",
+      "type": "number | null",
+      "unit": {
+        "si": "degrees Celsius",
+        "walmart": "degrees Fahrenheit"
+      },
+      "example": 9.444444444444445,
+      "rule": "Daily mean temperature; must be provided from the source, not synthesized as (tmin+tmax)/2."
+    },
+    {
+      "field": "model_input.history_weather[].tmax",
+      "required": "Supply when observed; null means missing",
+      "type": "number | null",
+      "unit": {
+        "si": "degrees Celsius",
+        "walmart": "degrees Fahrenheit"
+      },
+      "example": 12.777777777777779,
+      "rule": "Daily maximum temperature."
+    },
+    {
+      "field": "model_input.history_weather[].tmin",
+      "required": "Supply when observed; null means missing",
+      "type": "number | null",
+      "unit": {
+        "si": "degrees Celsius",
+        "walmart": "degrees Fahrenheit"
+      },
+      "example": 5.555555555555555,
+      "rule": "Daily minimum temperature."
+    },
+    {
+      "field": "model_input.history_weather[].preciptotal",
+      "required": "Supply when observed; null means missing",
+      "type": "number | null | original Walmart T/M marker",
+      "unit": {
+        "si": "millimeters/day",
+        "walmart": "inches/day"
+      },
+      "example": 0.0,
+      "rule": "Total daily precipitation. Original Walmart T means trace and becomes 0 with precip_trace=1; preserve T only for original Walmart source records. Do not use rain probability as precipitation total."
+    },
+    {
+      "field": "model_input.history_weather[].avgspeed",
+      "required": "Supply when observed; null means missing",
+      "type": "number | null",
+      "unit": {
+        "si": "meters/second",
+        "walmart": "miles/hour"
+      },
+      "example": 2.9504639999999998,
+      "rule": "Daily average wind speed, not gust speed."
+    },
+    {
+      "field": "model_input.weather_strategy",
+      "required": true,
+      "type": "string",
+      "unit": "strategy identifier",
+      "example": "persistence",
+      "rule": "Repeat the processed as_of weather vector for D+1 through D+7, including missing/trace flags. This is the checkpoint training/evaluation strategy."
+    }
+  ],
+  "existing_fields_with_stricter_model_rules": [
+    {
+      "field": "sales[].units_sold",
+      "unit": "whole units/day",
+      "example": 172,
+      "rule": "Nonnegative finite integer observed sales, not revenue. Require 56 consecutive dates per trained series through as_of. Missing/null is not zero."
+    },
+    {
+      "field": "sales[].date",
+      "unit": "calendar date",
+      "example": "2014-09-12",
+      "rule": "No future actual sales; select most recent 56 days from the API history."
+    },
+    {
+      "field": "dates",
+      "unit": "seven calendar dates",
+      "example": [
+        "2014-09-13",
+        "2014-09-14",
+        "2014-09-15",
+        "2014-09-16",
+        "2014-09-17",
+        "2014-09-18",
+        "2014-09-19"
+      ],
+      "rule": "Each of D+1 through D+7 exactly once; return forecast points in this requested order."
+    },
+    {
+      "field": "weather",
+      "unit": "source metadata",
+      "example": {
+        "status": "ok",
+        "mode": "historical_observations",
+        "source": "Walmart Stormy Weather",
+        "fetched_at": null,
+        "days": []
+      },
+      "rule": "The sample truthfully describes archived historical observations. The existing API live_forecast weather gate rejects this historical demo until the API owner adds an explicit demo adapter. Do not relabel historical observations as live_forecast."
+    }
+  ],
+  "derived_not_api_inputs": [
+    "time_idx = days since 2012-01-01 (fixed checkpoint origin)",
+    "dow (Monday=0), month, weekend, year_sin, year_cos",
+    "per-feature weather missing flags and precip_trace",
+    "sales_observed"
+  ],
+  "unsupported_new_entities": {
+    "status": "insufficient_history",
+    "points": [],
+    "rule": "An unknown store/item pair or missing product mapping is not forecast, even with 56 sales days. Train and validate a new model and its preprocessing artifacts on the actual new entities before registration; never fit during predict()."
+  }
+}

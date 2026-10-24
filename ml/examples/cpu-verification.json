@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "python": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "torch": "2.11.0+cpu",
+  "cuda_available": false,
+  "cpu_threads": 1,
+  "products": 2,
+  "days": 7,
+  "quantiles": 5,
+  "atol": 0.0001,
+  "rtol": 1e-05,
+  "import_seconds": 24.6324,
+  "cold_load_and_predict_seconds": 0.7174,
+  "warm_predict_seconds": 0.1173,
+  "cpu_model": "AMD Ryzen 7 260 w/ Radeon 780M Graphics",
+  "installation": "fresh isolated CPython 3.11 environment; exact requirements-inference.txt"
+}
