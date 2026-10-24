@@ -147,8 +147,10 @@ def prepare(args):
     return namespace, datasets, config
 
 
-def create_model(dataset, config):
-    pl.seed_everything(config["SEED"], workers=True)
+def create_model(dataset, config, *, training_seed=None):
+    # Override model initialization/shuffling only. Cohort preparation continues
+    # to use the unchanged reference configuration and selected-series guard.
+    pl.seed_everything(config["SEED"] if training_seed is None else training_seed, workers=True)
     return TemporalFusionTransformer.from_dataset(
         dataset, learning_rate=1e-3, hidden_size=config["HIDDEN_SIZE"], attention_head_size=4,
         dropout=.15, hidden_continuous_size=min(32, config["HIDDEN_SIZE"]), lstm_layers=1,
@@ -193,7 +195,7 @@ def benchmark(args, namespace, datasets, config):
             self.times.append(time.perf_counter() - self.start)
 
     timer = BatchTimer()
-    model = create_model(datasets[0], config)
+    model = create_model(datasets[0], config, training_seed=args.seed)
     trainer = pl.Trainer(accelerator="gpu" if args.device == "cuda" else "cpu", devices=1,
                          precision=args.precision, max_steps=args.batches + 3, max_epochs=1,
                          gradient_clip_val=.5, limit_val_batches=0, num_sanity_val_steps=0,
@@ -222,7 +224,7 @@ def train(args, namespace, datasets, config):
         raise ValueError("checkpoint directory already exists; choose a fresh output directory")
     checkpoint = ModelCheckpoint(dirpath=directory / "checkpoints", filename="best-{epoch:02d}-{val_loss:.4f}",
                                  monitor="val_loss", mode="min", save_top_k=1, save_last=True)
-    model = create_model(datasets[0], config)
+    model = create_model(datasets[0], config, training_seed=args.seed)
     trainer = pl.Trainer(
         accelerator="gpu" if args.device == "cuda" else "cpu", devices=1, precision=args.precision,
         max_epochs=config["MAX_EPOCHS"], gradient_clip_val=.5, limit_train_batches=config["TRAIN_BATCH_LIMIT"],
@@ -256,6 +258,7 @@ def train(args, namespace, datasets, config):
     pd.DataFrame(metrics).to_csv(args.output_dir / "metrics.csv", index=False)
     write_json(args.output_dir / "completion.json", {
         "status": "trained_and_evaluated", "variant": args.variant,
+        "training_seed": config["SEED"] if args.seed is None else args.seed,
         "checkpoint": checkpoint.best_model_path, "best_validation_loss": float(checkpoint.best_model_score),
         "elapsed_train_and_evaluation_seconds": time.perf_counter() - start,
         "matched_reference_rows": True, "test_used_for_training": False,
@@ -271,6 +274,7 @@ def main():
     parser.add_argument("--variant", choices=["no-weather", "weather"], default="no-weather")
     parser.add_argument("--device", choices=["cpu", "cuda", "auto"], default="auto")
     parser.add_argument("--num-workers", type=int)
+    parser.add_argument("--seed", type=int, help="training RNG seed only; cohort selection stays fixed to the reference run")
     parser.add_argument("--batches", type=int, default=12, help="measured benchmark batches after three warmup batches")
     args = parser.parse_args()
     args.output_dir = args.output_dir.resolve()
@@ -278,6 +282,8 @@ def main():
         parser.error("training output must be outside the Git repository")
     if args.batches < 1 or (args.num_workers is not None and args.num_workers < 0):
         parser.error("batches must be positive and num-workers nonnegative")
+    if args.seed is not None and not 0 <= args.seed < 2**32:
+        parser.error("seed must be between 0 and 2**32 - 1")
     if args.device == "auto":
         args.device = "cuda" if torch.cuda.is_available() else "cpu"
     if args.device == "cuda" and not torch.cuda.is_available():
@@ -299,7 +305,9 @@ def main():
         "source_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "input_files": input_evidence(args.data_dir, args.reference_run),
         "packages": {name: version(name) for name in ["torch", "pytorch-forecasting", "lightning", "pandas", "numpy", "scikit-learn"]},
-        "seed": config["SEED"], "batch_size": config["BATCH_SIZE"], "num_workers": namespace["NUM_WORKERS"],
+        "seed": config["SEED"] if args.seed is None else args.seed,
+        "cohort_reference_seed": config["SEED"],
+        "batch_size": config["BATCH_SIZE"], "num_workers": namespace["NUM_WORKERS"],
         "max_epochs": config["MAX_EPOCHS"], "window_counts": [len(ds) for ds in datasets],
         "weather_protocol": "persistence" if args.variant == "weather" else "all eleven weather values and missing/trace indicators removed; station identity retained",
         "comparison_limits": "Single seed; hardware/runtime may differ from the historical A100 run. Weather contribution is predictive, not causal.",

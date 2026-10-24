@@ -3,10 +3,13 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
-from ml.train_ablation import assert_matched_rows, install_functions, prepare_output_dir
+from ml import train_ablation
+from ml.run_multiseed import paired_tables, summary_limitations
+from ml.train_ablation import assert_matched_rows, create_model, install_functions, prepare_output_dir
 
 
 class AblationProtocolTests(unittest.TestCase):
@@ -55,6 +58,45 @@ class AblationProtocolTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "existing run artifacts are preserved"):
                 prepare_output_dir(path)
             self.assertEqual(evidence.read_text(encoding="utf-8"), "original evidence")
+
+    def test_training_seed_override_keeps_reference_configuration_unchanged(self):
+        config = {"SEED": 42, "HIDDEN_SIZE": 64, "QUANTILES": [.1, .25, .5, .75, .9]}
+        with patch.object(train_ablation.pl, "seed_everything") as seed:
+            with patch.object(train_ablation.TemporalFusionTransformer, "from_dataset") as factory:
+                create_model(object(), config, training_seed=43)
+                seed.assert_called_once_with(43, workers=True)
+                self.assertEqual(config["SEED"], 42)
+                self.assertEqual(factory.call_args.kwargs["hidden_size"], 64)
+                seed.reset_mock()
+                create_model(object(), config)
+                seed.assert_called_once_with(42, workers=True)
+
+    def test_pair_summary_uses_three_seed_differences_and_sample_std(self):
+        rows = [{"seed": seed, "variant": variant, "subset": subset,
+                 "MAE": seed - 41 + offset, "WAPE": (seed - 41 + offset) / 10,
+                 "mean_pinball_3": (seed - 41 + offset) / 2,
+                 "interval_coverage": .8, "interval_width": 10.0}
+                for seed in [42, 43, 44] for variant, offset in [("weather", 0), ("no-weather", 2)]
+                for subset in ["full_original_test", "strict_56_observed_history"]]
+        paired, summary = paired_tables(rows)
+        weather = next(row for row in summary if row["subset"] == "full_original_test"
+                       and row["metric"] == "MAE" and row["variant"] == "weather")
+        self.assertEqual((weather["n_seeds"], weather["mean"], weather["sample_std"]), (3, 2, 1))
+        differences = [row["difference_weather_minus_no_weather"] for row in paired if row["metric"] == "MAE"]
+        self.assertEqual(differences, [-2] * 6)
+        for changed in [rows[:-1], rows + [rows[0]]]:
+            with self.assertRaisesRegex(ValueError, "exactly once"):
+                paired_tables(changed)
+
+    def test_fresh_runs_do_not_claim_historical_package_evidence_limitations(self):
+        plan = {"limitations": ["Three seeds are a small sample."]}
+        fresh = summary_limitations(plan)
+        self.assertFalse(any("Historical reused" in item for item in fresh))
+        self.assertTrue(any("parameter count" in item for item in fresh))
+        plan["reused_no_weather_42"] = {"directory": "historical-run"}
+        reused = summary_limitations(plan)
+        self.assertTrue(any("Historical reused" in item for item in reused))
+        self.assertEqual(plan["limitations"], ["Three seeds are a small sample."])
 
 
 if __name__ == "__main__":

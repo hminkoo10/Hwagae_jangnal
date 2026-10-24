@@ -1,0 +1,41 @@
+{
+  "filename": "tft-multiseed-evaluation-data.zip",
+  "bytes": 5464633,
+  "sha256": "202b4cd7dfa0c708f8e6674f22d34d13e04d4036288c2a77c36a21d96b582fe0",
+  "files": 67,
+  "delivery_path": "C:\\Users\\User\\Documents\\Codex\\2026-10-24\\tft-cpu-1-main-feat-tft-3\\outputs\\tft-multiseed-evaluation-data.zip",
+  "git_storage": "Raw prediction CSVs and this additional ZIP remain outside Git; this identification record and the small result tables are tracked.",
+  "contains": [
+    "original evaluation inputs",
+    "six saved test prediction CSVs with protocols and completion records",
+    "four reference tables",
+    "hash-verified frozen training and aggregation sources",
+    "standalone replay source and launcher"
+  ],
+  "checkpoints_included": false,
+  "reproduce_after_extraction": "python data/runtime/tft-multiseed/reproduce.py --repo data/runtime/tft-multiseed/source",
+  "verification": {
+    "status": "passed",
+    "environment": {
+      "python": "3.11.0 (main, Oct 24 2022, 18:26:48) [MSC v.1933 64 bit (AMD64)]",
+      "third_party_packages_present": {
+        "torch": false,
+        "numpy": false,
+        "pandas": false,
+        "pytorch_forecasting": false
+      }
+    },
+    "seed_pairs": 3,
+    "full_rows": 7973,
+    "strict_rows": 1701,
+    "absolute_tolerance": 1e-12,
+    "relative_tolerance": 1e-12,
+    "all_four_tables_byte_identical": true,
+    "output_sha256": {
+      "metrics.csv": "599f32cbc929fb773d562140d955c2a2c9fb2298f400ade6b7cdd803a5cc5e39",
+      "api-baseline.csv": "4b2e10f2fcdf3fe877359405cd7b0f60b801f063457e6eb49c3a1528fe849245",
+      "paired-differences.csv": "2fd18888244eec893a7ea8539f160abf47c2a548fd43f6aa8c844faa02574388",
+      "summary.csv": "856f4cef09b6ef2f8e2192670c5e709d450d230368a43def992bafb4219e0140"
+    }
+  }
+}

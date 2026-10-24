@@ -1,0 +1,1332 @@
+{
+  "analysis_script_sha256": "bdd048784f18cf943b8b582a7b86b807f31beab03218176edfdfa6e89de8cd7b",
+  "api_baseline_source": {
+    "path": "apps/api/app/forecasting.py",
+    "sha256": "737de259bcf001f89fa2ca54114737490e22893dae44346665d2a161c64e8309",
+    "functions_sha256": "9ed2258e46bdd044203414cdb5a7aa2216f8d2248e0f4d0d9e3f126576c01738",
+    "functions": [
+      "percentile",
+      "baseline"
+    ]
+  },
+  "python": "3.11.0",
+  "sales_unit": "units sold per day",
+  "model_executed": false,
+  "archive_sha256": "213d195418373de5f437d1bc602dc8a0bd6e51e698490442ca42a180518bef5b",
+  "eligible_windows": 243,
+  "eligible_rows": 1701,
+  "selection": "Retrospective failure selection: rank the strict-56-observed test windows by seven-day TFT P50 MAE descending; take the first three distinct store/item pairs. Ties use numeric store, item, then origin date. Future errors ARE used for this failure analysis, not for the three illustrative cases.",
+  "cases": [
+    {
+      "store_nbr": "17",
+      "item_nbr": "9",
+      "as_of": "2014-09-12",
+      "dates": [
+        "2014-09-13",
+        "2014-09-14",
+        "2014-09-15",
+        "2014-09-16",
+        "2014-09-17",
+        "2014-09-18",
+        "2014-09-19"
+      ],
+      "history": [
+        {
+          "product_id": "9",
+          "date": "2014-07-19",
+          "units_sold": 92
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-20",
+          "units_sold": 111
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-21",
+          "units_sold": 70
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-22",
+          "units_sold": 128
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-23",
+          "units_sold": 123
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-24",
+          "units_sold": 105
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-25",
+          "units_sold": 79
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-26",
+          "units_sold": 79
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-27",
+          "units_sold": 131
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-28",
+          "units_sold": 93
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-29",
+          "units_sold": 112
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-30",
+          "units_sold": 60
+        },
+        {
+          "product_id": "9",
+          "date": "2014-07-31",
+          "units_sold": 104
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-01",
+          "units_sold": 97
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-02",
+          "units_sold": 81
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-03",
+          "units_sold": 112
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-04",
+          "units_sold": 81
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-05",
+          "units_sold": 70
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-06",
+          "units_sold": 136
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-07",
+          "units_sold": 95
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-08",
+          "units_sold": 92
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-09",
+          "units_sold": 135
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-10",
+          "units_sold": 148
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-11",
+          "units_sold": 163
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-12",
+          "units_sold": 100
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-13",
+          "units_sold": 106
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-14",
+          "units_sold": 75
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-15",
+          "units_sold": 100
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-16",
+          "units_sold": 91
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-17",
+          "units_sold": 141
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-18",
+          "units_sold": 73
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-19",
+          "units_sold": 52
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-20",
+          "units_sold": 62
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-21",
+          "units_sold": 78
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-22",
+          "units_sold": 50
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-23",
+          "units_sold": 52
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-24",
+          "units_sold": 78
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-25",
+          "units_sold": 77
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-26",
+          "units_sold": 41
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-27",
+          "units_sold": 40
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-28",
+          "units_sold": 24
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-29",
+          "units_sold": 25
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-30",
+          "units_sold": 101
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-31",
+          "units_sold": 87
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-01",
+          "units_sold": 84
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-02",
+          "units_sold": 72
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-03",
+          "units_sold": 96
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-04",
+          "units_sold": 64
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-05",
+          "units_sold": 70
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-06",
+          "units_sold": 161
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-07",
+          "units_sold": 116
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-08",
+          "units_sold": 124
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-09",
+          "units_sold": 123
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-10",
+          "units_sold": 30
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-11",
+          "units_sold": 117
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-12",
+          "units_sold": 80
+        }
+      ],
+      "history_stats": {
+        "days": 56,
+        "total": 5087,
+        "mean": 90.83928571428571,
+        "population_sd": 32.12963517739741,
+        "coefficient_of_variation": 0.3536975761616385,
+        "zero_days": 0,
+        "zero_fraction": 0.0,
+        "minimum": 24,
+        "maximum": 163,
+        "last_7_mean": 107.28571428571429
+      },
+      "baseline_lookback_days": 84,
+      "baseline_observed_days": 72,
+      "forecast_source": "original saved GPU test_predictions.csv; not the CPU sample fixture",
+      "points": [
+        {
+          "date": "2014-09-13",
+          "actual": 124.0,
+          "p10": 31.745495,
+          "p50": 65.16584,
+          "p90": 109.4317,
+          "baseline_p10": 76.3,
+          "baseline_p50": 91.5,
+          "baseline_p90": 137.6
+        },
+        {
+          "date": "2014-09-14",
+          "actual": 160.0,
+          "p10": 40.731617,
+          "p50": 79.90958,
+          "p90": 132.83795,
+          "baseline_p10": 86.1,
+          "baseline_p50": 114.0,
+          "baseline_p90": 153.1
+        },
+        {
+          "date": "2014-09-15",
+          "actual": 235.0,
+          "p10": 31.258856,
+          "p50": 66.38631,
+          "p90": 117.45574,
+          "baseline_p10": 68.9,
+          "baseline_p50": 82.5,
+          "baseline_p90": 170.3
+        },
+        {
+          "date": "2014-09-16",
+          "actual": 166.0,
+          "p10": 29.333422,
+          "p50": 65.17118,
+          "p90": 117.783134,
+          "baseline_p10": 50.9,
+          "baseline_p50": 96.5,
+          "baseline_p90": 123.5
+        },
+        {
+          "date": "2014-09-17",
+          "actual": 125.0,
+          "p10": 28.93162,
+          "p50": 65.76501,
+          "p90": 119.278336,
+          "baseline_p10": 39.0,
+          "baseline_p50": 85.0,
+          "baseline_p90": 124.3
+        },
+        {
+          "date": "2014-09-18",
+          "actual": 109.0,
+          "p10": 29.95527,
+          "p50": 68.7908,
+          "p90": 125.37716,
+          "baseline_p10": 64.0,
+          "baseline_p50": 95.0,
+          "baseline_p90": 117.0
+        },
+        {
+          "date": "2014-09-19",
+          "actual": 90.0,
+          "p10": 40.863495,
+          "p50": 84.33318,
+          "p90": 146.27748,
+          "baseline_p10": 50.0,
+          "baseline_p50": 80.0,
+          "baseline_p90": 100.0
+        }
+      ],
+      "metrics": {
+        "TFT": {
+          "days": 7,
+          "actual_total": 1009.0,
+          "p50_total": 495.5219,
+          "MAE": 73.35401428571429,
+          "WAPE": 0.508898017839445,
+          "interval_coverage": 0.2857142857142857,
+          "above_p90_days": 5,
+          "below_p10_days": 0,
+          "zero_actual_days": 0,
+          "zero_day_p50_MAE": null,
+          "zero_day_p50_total": 0.0,
+          "zero_day_positive_p50_count": 0
+        },
+        "API_baseline": {
+          "days": 7,
+          "actual_total": 1009.0,
+          "p50_total": 644.5,
+          "MAE": 52.07142857142857,
+          "WAPE": 0.3612487611496531,
+          "interval_coverage": 0.42857142857142855,
+          "above_p90_days": 4,
+          "below_p10_days": 0,
+          "zero_actual_days": 0,
+          "zero_day_p50_MAE": null,
+          "zero_day_p50_total": 0.0,
+          "zero_day_positive_p50_count": 0
+        }
+      },
+      "MAE_rank_in_strict_windows": 1,
+      "observed_evidence": {
+        "history_56_mean": 90.83928571428571,
+        "history_last_7_mean": 107.28571428571429,
+        "actual_next_7_mean": 144.14285714285714,
+        "last_7_vs_56_relative_change": 0.18104973461765295,
+        "next_7_vs_last_7_relative_change": 0.34354194407456706,
+        "actual_days_above_history_mean": 6,
+        "actual_days_above_history_maximum": 2,
+        "worst_day": {
+          "date": "2014-09-15",
+          "actual": 235.0,
+          "p10": 31.258856,
+          "p50": 66.38631,
+          "p90": 117.45574,
+          "baseline_p10": 68.9,
+          "baseline_p50": 82.5,
+          "baseline_p90": 170.3,
+          "absolute_p50_error": 168.61369000000002,
+          "actual_outside_history_range": true
+        },
+        "descriptive_pattern": "recent_rise_and_new_peak",
+        "pattern_rule": "Recent rise means last-7 mean >= 1.10 times history-56 mean; a new peak means the maximum-error day's actual exceeds the historical range. This describes observations, not causes."
+      }
+    },
+    {
+      "store_nbr": "4",
+      "item_nbr": "9",
+      "as_of": "2014-10-10",
+      "dates": [
+        "2014-10-11",
+        "2014-10-12",
+        "2014-10-13",
+        "2014-10-14",
+        "2014-10-15",
+        "2014-10-16",
+        "2014-10-17"
+      ],
+      "history": [
+        {
+          "product_id": "9",
+          "date": "2014-08-16",
+          "units_sold": 139
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-17",
+          "units_sold": 163
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-18",
+          "units_sold": 146
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-19",
+          "units_sold": 151
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-20",
+          "units_sold": 152
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-21",
+          "units_sold": 132
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-22",
+          "units_sold": 73
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-23",
+          "units_sold": 127
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-24",
+          "units_sold": 101
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-25",
+          "units_sold": 133
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-26",
+          "units_sold": 79
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-27",
+          "units_sold": 89
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-28",
+          "units_sold": 104
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-29",
+          "units_sold": 173
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-30",
+          "units_sold": 183
+        },
+        {
+          "product_id": "9",
+          "date": "2014-08-31",
+          "units_sold": 204
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-01",
+          "units_sold": 172
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-02",
+          "units_sold": 192
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-03",
+          "units_sold": 81
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-04",
+          "units_sold": 54
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-05",
+          "units_sold": 155
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-06",
+          "units_sold": 191
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-07",
+          "units_sold": 92
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-08",
+          "units_sold": 84
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-09",
+          "units_sold": 104
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-10",
+          "units_sold": 70
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-11",
+          "units_sold": 119
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-12",
+          "units_sold": 77
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-13",
+          "units_sold": 118
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-14",
+          "units_sold": 139
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-15",
+          "units_sold": 69
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-16",
+          "units_sold": 74
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-17",
+          "units_sold": 23
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-18",
+          "units_sold": 57
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-19",
+          "units_sold": 54
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-20",
+          "units_sold": 75
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-21",
+          "units_sold": 97
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-22",
+          "units_sold": 35
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-23",
+          "units_sold": 16
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-24",
+          "units_sold": 54
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-25",
+          "units_sold": 12
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-26",
+          "units_sold": 49
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-27",
+          "units_sold": 96
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-28",
+          "units_sold": 138
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-29",
+          "units_sold": 53
+        },
+        {
+          "product_id": "9",
+          "date": "2014-09-30",
+          "units_sold": 56
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-01",
+          "units_sold": 59
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-02",
+          "units_sold": 30
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-03",
+          "units_sold": 127
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-04",
+          "units_sold": 109
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-05",
+          "units_sold": 122
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-06",
+          "units_sold": 121
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-07",
+          "units_sold": 143
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-08",
+          "units_sold": 155
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-09",
+          "units_sold": 122
+        },
+        {
+          "product_id": "9",
+          "date": "2014-10-10",
+          "units_sold": 56
+        }
+      ],
+      "history_stats": {
+        "days": 56,
+        "total": 5799,
+        "mean": 103.55357142857143,
+        "population_sd": 47.79267712992125,
+        "coefficient_of_variation": 0.46152611127359716,
+        "zero_days": 0,
+        "zero_fraction": 0.0,
+        "minimum": 12,
+        "maximum": 204,
+        "last_7_mean": 118.28571428571429
+      },
+      "baseline_lookback_days": 84,
+      "baseline_observed_days": 84,
+      "forecast_source": "original saved GPU test_predictions.csv; not the CPU sample fixture",
+      "points": [
+        {
+          "date": "2014-10-11",
+          "actual": 143.0,
+          "p10": 75.33262,
+          "p50": 126.28242,
+          "p90": 191.33582,
+          "baseline_p10": 77.1,
+          "baseline_p50": 122.5,
+          "baseline_p90": 190.2
+        },
+        {
+          "date": "2014-10-12",
+          "actual": 249.0,
+          "p10": 90.25722,
+          "p50": 147.25757,
+          "p90": 218.7348,
+          "baseline_p10": 97.4,
+          "baseline_p50": 138.5,
+          "baseline_p90": 196.6
+        },
+        {
+          "date": "2014-10-13",
+          "actual": 74.0,
+          "p10": 67.826065,
+          "p50": 112.67079,
+          "p90": 172.93532,
+          "baseline_p10": 54.6,
+          "baseline_p50": 113.5,
+          "baseline_p90": 152.3
+        },
+        {
+          "date": "2014-10-14",
+          "actual": 80.0,
+          "p10": 57.229225,
+          "p50": 98.44953,
+          "p90": 154.33595,
+          "baseline_p10": 57.8,
+          "baseline_p50": 115.5,
+          "baseline_p90": 190.1
+        },
+        {
+          "date": "2014-10-15",
+          "actual": 110.0,
+          "p10": 47.69036,
+          "p50": 85.8347,
+          "p90": 136.56519,
+          "baseline_p10": 54.5,
+          "baseline_p50": 92.0,
+          "baseline_p90": 154.7
+        },
+        {
+          "date": "2014-10-16",
+          "actual": 129.0,
+          "p10": 40.494038,
+          "p50": 76.465866,
+          "p90": 124.972,
+          "baseline_p10": 32.4,
+          "baseline_p50": 97.5,
+          "baseline_p90": 175.2
+        },
+        {
+          "date": "2014-10-17",
+          "actual": 186.0,
+          "p10": 45.2103,
+          "p50": 82.5355,
+          "p90": 133.05806,
+          "baseline_p10": 54.2,
+          "baseline_p50": 122.0,
+          "baseline_p90": 159.5
+        }
+      ],
+      "metrics": {
+        "TFT": {
+          "days": 7,
+          "actual_total": 971.0,
+          "p50_total": 729.4963759999999,
+          "MAE": 50.820609142857144,
+          "WAPE": 0.3663689639546859,
+          "interval_coverage": 0.5714285714285714,
+          "above_p90_days": 3,
+          "below_p10_days": 0,
+          "zero_actual_days": 0,
+          "zero_day_p50_MAE": null,
+          "zero_day_p50_total": 0.0,
+          "zero_day_positive_p50_count": 0
+        },
+        "API_baseline": {
+          "days": 7,
+          "actual_total": 971.0,
+          "p50_total": 801.5,
+          "MAE": 45.642857142857146,
+          "WAPE": 0.3290422245108136,
+          "interval_coverage": 0.7142857142857143,
+          "above_p90_days": 2,
+          "below_p10_days": 0,
+          "zero_actual_days": 0,
+          "zero_day_p50_MAE": null,
+          "zero_day_p50_total": 0.0,
+          "zero_day_positive_p50_count": 0
+        }
+      },
+      "MAE_rank_in_strict_windows": 2,
+      "observed_evidence": {
+        "history_56_mean": 103.55357142857143,
+        "history_last_7_mean": 118.28571428571429,
+        "actual_next_7_mean": 138.71428571428572,
+        "last_7_vs_56_relative_change": 0.1422659079151578,
+        "next_7_vs_last_7_relative_change": 0.17270531400966194,
+        "actual_days_above_history_mean": 5,
+        "actual_days_above_history_maximum": 1,
+        "worst_day": {
+          "date": "2014-10-17",
+          "actual": 186.0,
+          "p10": 45.2103,
+          "p50": 82.5355,
+          "p90": 133.05806,
+          "baseline_p10": 54.2,
+          "baseline_p50": 122.0,
+          "baseline_p90": 159.5,
+          "absolute_p50_error": 103.4645,
+          "actual_outside_history_range": false
+        },
+        "descriptive_pattern": "recent_rise_but_worst_day_within_history_range",
+        "pattern_rule": "Recent rise means last-7 mean >= 1.10 times history-56 mean; a new peak means the maximum-error day's actual exceeds the historical range. This describes observations, not causes."
+      }
+    },
+    {
+      "store_nbr": "15",
+      "item_nbr": "5",
+      "as_of": "2014-10-10",
+      "dates": [
+        "2014-10-11",
+        "2014-10-12",
+        "2014-10-13",
+        "2014-10-14",
+        "2014-10-15",
+        "2014-10-16",
+        "2014-10-17"
+      ],
+      "history": [
+        {
+          "product_id": "5",
+          "date": "2014-08-16",
+          "units_sold": 24
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-17",
+          "units_sold": 36
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-18",
+          "units_sold": 24
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-19",
+          "units_sold": 15
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-20",
+          "units_sold": 25
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-21",
+          "units_sold": 26
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-22",
+          "units_sold": 67
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-23",
+          "units_sold": 68
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-24",
+          "units_sold": 59
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-25",
+          "units_sold": 21
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-26",
+          "units_sold": 23
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-27",
+          "units_sold": 26
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-28",
+          "units_sold": 11
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-29",
+          "units_sold": 9
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-30",
+          "units_sold": 27
+        },
+        {
+          "product_id": "5",
+          "date": "2014-08-31",
+          "units_sold": 12
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-01",
+          "units_sold": 22
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-02",
+          "units_sold": 35
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-03",
+          "units_sold": 44
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-04",
+          "units_sold": 30
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-05",
+          "units_sold": 90
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-06",
+          "units_sold": 76
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-07",
+          "units_sold": 73
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-08",
+          "units_sold": 34
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-09",
+          "units_sold": 74
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-10",
+          "units_sold": 37
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-11",
+          "units_sold": 73
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-12",
+          "units_sold": 23
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-13",
+          "units_sold": 34
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-14",
+          "units_sold": 42
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-15",
+          "units_sold": 21
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-16",
+          "units_sold": 35
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-17",
+          "units_sold": 23
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-18",
+          "units_sold": 39
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-19",
+          "units_sold": 44
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-20",
+          "units_sold": 48
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-21",
+          "units_sold": 73
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-22",
+          "units_sold": 38
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-23",
+          "units_sold": 57
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-24",
+          "units_sold": 82
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-25",
+          "units_sold": 87
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-26",
+          "units_sold": 8
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-27",
+          "units_sold": 54
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-28",
+          "units_sold": 70
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-29",
+          "units_sold": 48
+        },
+        {
+          "product_id": "5",
+          "date": "2014-09-30",
+          "units_sold": 25
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-01",
+          "units_sold": 34
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-02",
+          "units_sold": 40
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-03",
+          "units_sold": 39
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-04",
+          "units_sold": 26
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-05",
+          "units_sold": 23
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-06",
+          "units_sold": 58
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-07",
+          "units_sold": 30
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-08",
+          "units_sold": 43
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-09",
+          "units_sold": 59
+        },
+        {
+          "product_id": "5",
+          "date": "2014-10-10",
+          "units_sold": 23
+        }
+      ],
+      "history_stats": {
+        "days": 56,
+        "total": 2287,
+        "mean": 40.839285714285715,
+        "population_sd": 21.172570518171355,
+        "coefficient_of_variation": 0.5184363572442483,
+        "zero_days": 0,
+        "zero_fraction": 0.0,
+        "minimum": 8,
+        "maximum": 90,
+        "last_7_mean": 37.42857142857143
+      },
+      "baseline_lookback_days": 84,
+      "baseline_observed_days": 77,
+      "forecast_source": "original saved GPU test_predictions.csv; not the CPU sample fixture",
+      "points": [
+        {
+          "date": "2014-10-11",
+          "actual": 74.0,
+          "p10": 19.429571,
+          "p50": 41.400978,
+          "p90": 73.83217,
+          "baseline_p10": 26.0,
+          "baseline_p50": 50.0,
+          "baseline_p90": 68.0
+        },
+        {
+          "date": "2014-10-12",
+          "actual": 180.0,
+          "p10": 24.317142,
+          "p50": 49.036057,
+          "p90": 85.8278,
+          "baseline_p10": 23.0,
+          "baseline_p50": 59.0,
+          "baseline_p90": 78.0
+        },
+        {
+          "date": "2014-10-13",
+          "actual": 48.0,
+          "p10": 17.201265,
+          "p50": 37.04764,
+          "p90": 68.195206,
+          "baseline_p10": 21.0,
+          "baseline_p50": 38.0,
+          "baseline_p90": 75.0
+        },
+        {
+          "date": "2014-10-14",
+          "actual": 36.0,
+          "p10": 12.859888,
+          "p50": 31.054003,
+          "p90": 59.447914,
+          "baseline_p10": 15.0,
+          "baseline_p50": 35.0,
+          "baseline_p90": 74.0
+        },
+        {
+          "date": "2014-10-15",
+          "actual": 30.0,
+          "p10": 10.742094,
+          "p50": 28.13951,
+          "p90": 54.724113,
+          "baseline_p10": 22.0,
+          "baseline_p50": 34.0,
+          "baseline_p90": 48.0
+        },
+        {
+          "date": "2014-10-16",
+          "actual": 49.0,
+          "p10": 8.801687,
+          "p50": 25.554768,
+          "p90": 51.61047,
+          "baseline_p10": 17.0,
+          "baseline_p50": 39.0,
+          "baseline_p90": 73.0
+        },
+        {
+          "date": "2014-10-17",
+          "actual": 118.0,
+          "p10": 12.62318,
+          "p50": 30.605274,
+          "p90": 58.453835,
+          "baseline_p10": 9.0,
+          "baseline_p50": 39.0,
+          "baseline_p90": 67.0
+        }
+      ],
+      "metrics": {
+        "TFT": {
+          "days": 7,
+          "actual_total": 535.0,
+          "p50_total": 242.83823,
+          "MAE": 41.73739571428571,
+          "WAPE": 0.5460967663551402,
+          "interval_coverage": 0.5714285714285714,
+          "above_p90_days": 3,
+          "below_p10_days": 0,
+          "zero_actual_days": 0,
+          "zero_day_p50_MAE": null,
+          "zero_day_p50_total": 0.0,
+          "zero_day_positive_p50_count": 0
+        },
+        "API_baseline": {
+          "days": 7,
+          "actual_total": 535.0,
+          "p50_total": 294.0,
+          "MAE": 35.57142857142857,
+          "WAPE": 0.4654205607476635,
+          "interval_coverage": 0.5714285714285714,
+          "above_p90_days": 3,
+          "below_p10_days": 0,
+          "zero_actual_days": 0,
+          "zero_day_p50_MAE": null,
+          "zero_day_p50_total": 0.0,
+          "zero_day_positive_p50_count": 0
+        }
+      },
+      "MAE_rank_in_strict_windows": 3,
+      "observed_evidence": {
+        "history_56_mean": 40.839285714285715,
+        "history_last_7_mean": 37.42857142857143,
+        "actual_next_7_mean": 76.42857142857143,
+        "last_7_vs_56_relative_change": -0.0835155225185833,
+        "next_7_vs_last_7_relative_change": 1.0419847328244276,
+        "actual_days_above_history_mean": 5,
+        "actual_days_above_history_maximum": 2,
+        "worst_day": {
+          "date": "2014-10-12",
+          "actual": 180.0,
+          "p10": 24.317142,
+          "p50": 49.036057,
+          "p90": 85.8278,
+          "baseline_p10": 23.0,
+          "baseline_p50": 59.0,
+          "baseline_p90": 78.0,
+          "absolute_p50_error": 130.963943,
+          "actual_outside_history_range": true
+        },
+        "descriptive_pattern": "new_peak_without_recent_average_rise",
+        "pattern_rule": "Recent rise means last-7 mean >= 1.10 times history-56 mean; a new peak means the maximum-error day's actual exceeds the historical range. This describes observations, not causes."
+      }
+    }
+  ]
+}
