@@ -2334,6 +2334,9 @@ input[type="checkbox"] {
 .merchant-readiness > .button {
   margin-top: 17px;
 }
+.merchant-table-products .table-scroll {
+  position: relative;
+}
 .merchant-products table,
 .merchant-table-products table {
   min-width: 610px;
