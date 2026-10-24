@@ -7,7 +7,8 @@
     "node": ">=22.0.0"
   },
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "apps/mobile"
   ],
   "scripts": {
     "setup:env": "node scripts/setup-env.mjs",
@@ -16,6 +17,11 @@
     "dev:api": "uv run uvicorn app.main:app --app-dir apps/api --reload --reload-dir apps/api --host 127.0.0.1 --port 8000 --env-file apps/api/.env",
     "build": "npm run build --workspace @hwagae/web",
     "check": "npm run typecheck --workspace @hwagae/web",
-    "test:api": "uv run pytest"
+    "test:api": "uv run pytest",
+    "mobile:build": "node scripts/build-mobile.mjs",
+    "mobile:sync": "npm run mobile:build && npm run sync --workspace @hwagae/mobile",
+    "mobile:android": "npm run open:android --workspace @hwagae/mobile",
+    "mobile:ios": "npm run open:ios --workspace @hwagae/mobile",
+    "mobile:check": "node --test scripts/mobile-config.test.mjs apps/web/tests/*.test.mjs"
   }
 }

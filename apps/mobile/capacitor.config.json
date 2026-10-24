@@ -1,0 +1,23 @@
+{
+  "appId": "kr.milky.hwagae",
+  "appName": "화개장날",
+  "webDir": "www",
+  "backgroundColor": "#f4f6f9",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "minWebViewVersion": 111
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}

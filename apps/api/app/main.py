@@ -118,6 +118,9 @@ def create_app(db_path=None, seed=True):
         ).split(",")
         if item.strip()
     ]
+    # Bundled Capacitor apps use these fixed local WebView origins. Every API
+    # request still requires the same bearer token; cookies stay disabled.
+    origins.extend(["capacitor://localhost", "https://localhost"])
     application.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

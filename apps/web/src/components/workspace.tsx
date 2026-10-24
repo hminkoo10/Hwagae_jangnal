@@ -21,6 +21,7 @@ import { InventoryModal, ProductModal, SalesPanel, StoreModal } from "./forms";
 import { Empty, ForecastChart, Icon } from "./ui";
 import { MerchantOverview } from "./merchant-overview";
 import { ModelDemo } from "./model-demo";
+import { NATIVE_BACK_EVENT } from "./native-shell";
 import {
   MerchantModelPanel,
   TestWeatherStoreModal,
@@ -233,6 +234,8 @@ function LoginScreen({
 
 export default function Workspace() {
   const [restoring, setRestoring] = useState(true);
+  const [restoreError, setRestoreError] = useState("");
+  const [restoreAttempt, setRestoreAttempt] = useState(0);
   const [token, setToken] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
@@ -282,6 +285,7 @@ export default function Workspace() {
   }
   const clearSession = useCallback(() => {
     sessionStorage.removeItem("hwagae-session");
+    setRestoreError("");
     setToken("");
     setUser(null);
     setStores([]);
@@ -302,18 +306,44 @@ export default function Workspace() {
     const controller = new AbortController();
     api<User>("/auth/me", stored, { signal: controller.signal })
       .then((account) => {
+        if (controller.signal.aborted) return;
         setUser(account);
         setToken(stored);
+        setRestoreError("");
       })
       .catch((error) => {
-        if (!(error instanceof DOMException && error.name === "AbortError"))
+        if (controller.signal.aborted) return;
+        if (error instanceof ApiError && error.status === 401) {
           sessionStorage.removeItem("hwagae-session");
+          setRestoreError("");
+        } else {
+          setRestoreError(
+            error instanceof Error ? error.message : "매장에 연결하지 못했어요.",
+          );
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setRestoring(false);
       });
     return () => controller.abort();
-  }, []);
+  }, [restoreAttempt]);
+
+  useEffect(() => {
+    const back = (event: Event) => {
+      if (busy) {
+        event.preventDefault();
+        return;
+      }
+      if (user && tab !== "overview") {
+        event.preventDefault();
+        setTab("overview");
+        setSearch("");
+        setAsOf(today);
+      }
+    };
+    window.addEventListener(NATIVE_BACK_EVENT, back);
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, back);
+  }, [busy, tab, today, user]);
 
   const refreshStores = useCallback(
     async (preferred?: string) => {
@@ -455,6 +485,29 @@ export default function Workspace() {
       <main className="boot-screen">
         <span className="loading-spinner" />
         매장 연결을 확인하고 있어요.
+      </main>
+    );
+  if (restoreError)
+    return (
+      <main className="boot-screen">
+        <section className="connection-retry" role="alert">
+          <h1>매장에 연결하지 못했어요</h1>
+          <p>{restoreError}</p>
+          <div className="split-actions">
+            <button
+              className="button primary"
+              onClick={() => {
+                setRestoring(true);
+                setRestoreAttempt((value) => value + 1);
+              }}
+            >
+              다시 연결
+            </button>
+            <button className="button secondary" onClick={clearSession}>
+              다른 계정으로 로그인
+            </button>
+          </div>
+        </section>
       </main>
     );
   if (!user) return <LoginScreen onLogin={acceptLogin} />;
@@ -1516,12 +1569,12 @@ export default function Workspace() {
                                             disabled={busy}
                                             onClick={() =>
                                               void action(async () => {
-                                                await download(
+                                                const exported = await download(
                                                   `/stores/${storeId}/orders/${order.id}/export?format=${format}`,
                                                   token,
                                                   `화개장날_발주서_${order.as_of}.${format}`,
                                                 );
-                                                setNotice(
+                                                if (exported) setNotice(
                                                   "저장 당시 수량으로 발주서를 내보냈어요.",
                                                 );
                                               })

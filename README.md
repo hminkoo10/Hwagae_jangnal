@@ -103,6 +103,7 @@ CI에는 Python 3.11의 ML 전처리 검사도 있습니다. 체크포인트 없
 ```text
 apps/
   web/                 Next.js + TypeScript
+  mobile/              Capacitor Android · iOS 앱
   api/
     app/               FastAPI
     tests/             API 통합 테스트
@@ -140,3 +141,4 @@ scripts/setup-env.mjs  로컬 환경 파일 초기화
 - [API 연결 규약](docs/api-contract.md): 현재 구현된 API와 향후 합의 항목
 - [모델 연결 규약](docs/model-contract.md): 실제 TFT 시연 설정·인수 상태·일반 매장 연결 계약
 - [Ubuntu CI/CD](docs/deployment.md): Docker 없는 배포 구성·운영 확인 기록·복구
+- [Android · iPhone 앱](docs/mobile-app.md): APK 설치·iOS 빌드·모바일 기능 확인

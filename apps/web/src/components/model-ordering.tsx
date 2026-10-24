@@ -882,13 +882,13 @@ export function ModelOrdering({
 
   function exportOrder(order: ModelDemoOrder, format: "csv" | "xlsx") {
     void perform(async (signal) => {
-      await download(
+      const exported = await download(
         `/model-demo/orders/${encodeURIComponent(order.id)}/export?format=${format}`,
         token,
         `화개장날_TFT시연_${order.as_of}_${order.id.slice(0, 8)}.${format}`,
         { signal },
       );
-      if (!signal.aborted)
+      if (exported && !signal.aborted)
         setNotice(
           "확정한 시연 수량을 파일로 내보냈어요. 실제 업체 주문은 전송되지 않아요.",
         );

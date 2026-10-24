@@ -1,0 +1,115 @@
+name: Build mobile apps
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "apps/web/**"
+      - "scripts/mobile*"
+      - "scripts/build-mobile.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".gitignore"
+      - ".github/workflows/mobile.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "apps/web/**"
+      - "scripts/mobile*"
+      - "scripts/build-mobile.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".gitignore"
+      - ".github/workflows/mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  NEXT_PUBLIC_API_BASE_URL: https://hwagae.milky.kr/api
+  NEXT_PUBLIC_DEMO_LOGIN_ENABLED: "false"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  android:
+    name: Android debug APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            apps/mobile/android/**/*.gradle*
+            apps/mobile/android/gradle/wrapper/gradle-wrapper.properties
+      - run: npm ci
+      - run: npm run mobile:sync
+      - run: npm run mobile:check
+      - name: Build installable test APK
+        working-directory: apps/mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug --stacktrace
+      - name: Save Android APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hwagae-android-debug
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  ios:
+    name: iOS simulator build
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run mobile:sync
+      - run: npm run mobile:check
+      - name: Build without an Apple signing identity
+        run: |
+          xcodebuild -version
+          xcodebuild \
+            -project apps/mobile/ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Package simulator app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/ios/Build/Products/Debug-iphonesimulator/App.app \
+            build/hwagae-ios-simulator.zip
+      - name: Save iOS simulator app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hwagae-ios-simulator
+          path: build/hwagae-ios-simulator.zip
+          if-no-files-found: error
+          retention-days: 7
