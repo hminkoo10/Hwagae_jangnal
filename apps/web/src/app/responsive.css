@@ -1,0 +1,569 @@
+/* Shared controls use the same layout in browser, Android and iOS. */
+html,
+body {
+  min-inline-size: 0;
+  min-block-size: 100%;
+}
+.app-shell,
+.login-page,
+.boot-screen {
+  min-height: 100dvh;
+}
+.app-shell > *,
+.panel > *,
+.merchant-card > *,
+.form-grid > *,
+.panel-heading > *,
+.page-heading > * {
+  min-width: 0;
+}
+.app-shell .workspace-main {
+  max-width: none;
+  width: 100%;
+  padding-bottom: 28px;
+}
+.app-shell .ai-settings,
+.app-shell .onboarding-panel {
+  max-width: none;
+}
+.sidebar {
+  height: 100dvh;
+  overflow-y: auto;
+}
+.panel-heading,
+.page-heading,
+.panel-footer,
+.merchant-card-heading,
+.split-actions {
+  flex-wrap: wrap;
+}
+.panel-heading > :first-child,
+.merchant-card-heading > :first-child {
+  min-width: 0;
+}
+.custom-control {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  vertical-align: middle;
+}
+.control-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #ccd7d2;
+  background: white;
+  color: #243c35;
+  border-radius: 9px;
+  font: inherit;
+  text-align: left;
+  line-height: 1.4;
+}
+.control-trigger > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.control-trigger > :last-child {
+  flex-shrink: 0;
+}
+.date-control {
+  min-width: 0;
+}
+.date-control .control-trigger {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+input.control-validation {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+  inset: 0 auto auto 0;
+}
+.choice-list {
+  display: grid;
+  gap: 6px;
+  max-height: min(55dvh, 480px);
+  overflow-y: auto;
+  padding: 8px 3px;
+  margin-top: 10px;
+}
+.choice-list > button {
+  min-height: 46px;
+  border: 0;
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #f6f8f7;
+  color: #243c35;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.choice-list > button[aria-selected="true"] {
+  background: #e7f4ee;
+  color: #126b58;
+  font-weight: 650;
+}
+.calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 18px;
+}
+.calendar-year {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.modal .calendar-year input {
+  width: 90px;
+}
+.calendar-week,
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  text-align: center;
+}
+.calendar-week {
+  font-size: 13px;
+  color: #6c7f74;
+  margin-bottom: 10px;
+}
+.calendar-days {
+  margin-bottom: 20px;
+}
+.calendar-days > button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 8px;
+  color: #243c35;
+  background: #f6f8f7;
+  font: inherit;
+}
+.calendar-days .other-month {
+  color: #829087;
+  background: white;
+}
+.calendar-days .selected {
+  background: #18836b;
+  color: white;
+  font-weight: 700;
+}
+.app-shell :is(input:not([type="checkbox"]):not([type="radio"]), textarea),
+.modal :is(input:not([type="checkbox"]):not([type="radio"]), textarea) {
+  min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
+}
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+summary:focus:not(:focus-visible) {
+  outline: none;
+}
+button:focus-visible,
+input:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+.merchant-shell :is(button, input, a):focus-visible {
+  outline: 2px solid #18836b;
+  outline-offset: 2px;
+}
+.app-shell .store-picker {
+  min-width: 0;
+  max-width: 100%;
+}
+.store-picker .custom-control {
+  width: min(290px, 100%);
+}
+.store-picker .control-trigger {
+  border: 0;
+  min-height: 36px;
+  background: transparent;
+}
+.forecast-controls {
+  align-items: end;
+}
+.forecast-controls > .custom-control {
+  flex: 1 1 180px;
+  width: auto;
+}
+.date-picker {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.date-picker .custom-control {
+  width: auto;
+  flex: 1 1 160px;
+}
+.merchant-card-heading > .custom-control {
+  flex: 0 1 240px;
+}
+.table-tools {
+  min-width: 0;
+}
+.form-grid {
+  align-items: end;
+}
+.location-fieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.location-fieldset legend {
+  margin-bottom: 12px;
+}
+.app-shell .button,
+.modal .button,
+.operator-shell .button {
+  min-height: 44px;
+}
+.operator-toolbar .table-tools > .custom-control {
+  width: min(240px, 100%);
+}
+.row-actions,
+.ai-card-actions,
+.account-actions {
+  flex-wrap: wrap;
+}
+.row-actions {
+  justify-content: flex-start;
+}
+.merchant-shell .chart-scroll .forecast-chart {
+  min-width: 0;
+  width: 100%;
+  height: auto;
+}
+.merchant-shell .chart-scroll {
+  overflow: visible;
+}
+.chart-scroll-hint,
+.merchant-shell .chart-scroll-hint {
+  display: none;
+}
+.location-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.location-results button {
+  width: 100%;
+  white-space: normal;
+  text-align: left;
+  justify-content: flex-start;
+}
+.location-results small {
+  display: block;
+  margin-top: 4px;
+}
+.location-selected {
+  padding: 14px;
+  background: #edf7f2;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.operator-main {
+  width: 100%;
+  padding: clamp(16px, 3vw, 40px);
+  min-width: 0;
+}
+.operator-shell {
+  min-height: 100dvh;
+}
+.operator-shell .account-actions,
+.app-shell .account-actions {
+  white-space: normal;
+  min-width: 0;
+}
+.account-actions > span,
+.account-actions > div,
+.operator-main p,
+.invite-page p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.operator-shell input:not([type="checkbox"]) {
+  min-height: 44px;
+  max-width: 100%;
+}
+.operator-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px clamp(16px, 3vw, 40px);
+  background: white;
+  border-bottom: 1px solid var(--line);
+}
+.operator-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.operator-toolbar h1 {
+  margin: 0 0 8px;
+}
+.operator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 20px;
+}
+.operator-grid .panel {
+  margin-bottom: 0;
+}
+.operator-contract h2,
+.operator-contract p {
+  overflow-wrap: anywhere;
+}
+.operator-contract dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.operator-contract dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.operator-contract dt {
+  color: var(--muted);
+}
+.operator-stores {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.operator-stores li {
+  padding: 12px;
+  background: #f6f8f7;
+  border-radius: 9px;
+}
+.invite-link {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccd7d2;
+  font: inherit;
+}
+.invite-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.invite-page > section {
+  width: min(100%, 480px);
+}
+@media (max-width: 1000px) {
+  .app-shell.merchant-shell {
+    display: block;
+  }
+  .app-shell .sidebar,
+  .native-app .app-shell .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 18px 20px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .app-shell .sidebar .brand strong,
+  .app-shell .sidebar .brand-icon {
+    display: inline-flex;
+  }
+  .app-shell .sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 16px;
+    padding-bottom: 0;
+    overflow: visible;
+    gap: 6px;
+  }
+  .app-shell .sidebar .nav-item {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    padding: 12px;
+    font-size: 13px;
+  }
+  .app-shell .sidebar-bottom,
+  .app-shell .workspace-label {
+    display: none;
+  }
+  .app-shell .topbar {
+    min-height: 64px;
+    height: auto;
+    padding: 12px 20px;
+    flex-wrap: wrap;
+  }
+  .app-shell .workspace-main {
+    padding: 24px 20px;
+  }
+}
+@media (max-width: 1250px) {
+  .table-scroll {
+    overflow: visible;
+  }
+  table.responsive-table,
+  .merchant-shell table.responsive-table {
+    display: block;
+    min-width: 0 !important;
+    max-width: 100%;
+    width: 100%;
+  }
+  .responsive-table thead {
+    display: none;
+  }
+  .responsive-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .responsive-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 14px;
+    border: 1px solid #e1e9e5;
+    border-radius: 10px;
+    padding: 10px;
+    min-width: 0;
+  }
+  .responsive-table td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 4px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .responsive-table td::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 550;
+    color: #6c7f74;
+  }
+  .responsive-table td[data-wide="true"] {
+    grid-column: 1/-1;
+  }
+  .responsive-table td input,
+  .responsive-table td .custom-control {
+    width: 100%;
+  }
+  .responsive-table .product-cell {
+    flex-wrap: wrap;
+  }
+  .responsive-table .row-actions {
+    flex-wrap: wrap;
+  }
+  .responsive-table td small {
+    max-width: 100%;
+  }
+}
+@media (max-height: 850px) and (min-width: 1001px) {
+  .app-shell .sidebar-bottom {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .app-shell .sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-shell .sidebar {
+    padding: 16px;
+  }
+  .app-shell .workspace-main {
+    padding: 20px 14px;
+  }
+  .app-shell .panel {
+    padding: 18px 14px;
+  }
+  .page-heading,
+  .panel-heading,
+  .panel-footer,
+  .merchant-card-heading {
+    align-items: stretch;
+    gap: 14px;
+  }
+  .page-heading > *,
+  .page-heading .store-picker {
+    width: 100%;
+  }
+  .store-picker .custom-control {
+    width: 100%;
+  }
+  .forecast-controls,
+  .date-picker {
+    width: 100%;
+  }
+  .forecast-controls > *,
+  .date-picker > .custom-control {
+    flex-basis: 100%;
+    width: 100%;
+  }
+  .merchant-card-heading > .custom-control {
+    flex-basis: 100%;
+  }
+  .app-shell .form-grid,
+  .modal .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .modal,
+  .native-app .modal {
+    width: calc(100% - 24px);
+    padding: 20px 16px;
+    max-width: 590px;
+  }
+  .app-shell .weather-days {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px 4px;
+  }
+  .app-shell .weather-day {
+    border-left: 0;
+  }
+  .app-shell .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-shell .search-input {
+    width: 100%;
+  }
+  .calendar-days > button {
+    min-height: 38px !important;
+  }
+  .login-page .login-story {
+    min-height: 0;
+  }
+}

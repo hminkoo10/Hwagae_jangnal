@@ -33,7 +33,9 @@ export function NativeShell({ children }: { children: ReactNode }) {
       await keep(
         App.addListener("backButton", () => {
           if (hasPendingRequests()) return;
-          const dialog = document.querySelector<HTMLDialogElement>("dialog[open]");
+          const dialog = [
+            ...document.querySelectorAll<HTMLDialogElement>("dialog[open]"),
+          ].at(-1);
           if (dialog) {
             dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
             return;

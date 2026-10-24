@@ -1,5 +1,7 @@
 "use client";
 
+import { Select, DateField, ResponsiveTable } from "./controls";
+
 import {
   useCallback,
   useEffect,
@@ -192,7 +194,7 @@ function PlanningItemModal({
           <div className={styles.formSection}>
             <label>
               재고 상태
-              <select
+              <Select
                 value={mode}
                 onChange={(event) => {
                   const next = event.target.value as typeof mode;
@@ -204,7 +206,7 @@ function PlanningItemModal({
                 <option value="unknown">아직 확인하지 않음</option>
                 <option value="zero">현재 재고 0개 확인</option>
                 <option value="batches">만료일별 재고 입력</option>
-              </select>
+              </Select>
             </label>
             <p className={styles.muted}>
               미입력 재고는 0개로 계산하지 않아요. 판매 가능 마지막 날은{" "}
@@ -238,8 +240,7 @@ function PlanningItemModal({
                   </label>
                   <label>
                     판매 가능 마지막 날
-                    <input
-                      type="date"
+                    <DateField
                       min={nextDay}
                       required
                       value={batch.expires_on}
@@ -309,8 +310,7 @@ function PlanningItemModal({
                   </label>
                   <label>
                     입고일
-                    <input
-                      type="date"
+                    <DateField
                       min={nextDay}
                       required
                       value={batch.arrives_on}
@@ -328,8 +328,7 @@ function PlanningItemModal({
                   </label>
                   <label>
                     판매 가능 마지막 날
-                    <input
-                      type="date"
+                    <DateField
                       min={batch.arrives_on || nextDay}
                       required
                       value={batch.expires_on}
@@ -481,7 +480,7 @@ function SavedOrder({
           상품별 수량 확인{!confirmed && " · 초안 수정"}
         </summary>
         <div className={styles.tableScroll}>
-          <table className={styles.table}>
+          <ResponsiveTable className={styles.table}>
             <thead>
               <tr>
                 <th>상품</th>
@@ -534,7 +533,7 @@ function SavedOrder({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </ResponsiveTable>
         </div>
         {!confirmed && dirty && (
           <p className={styles.dirtyNotice}>
@@ -1041,7 +1040,9 @@ export function ModelOrdering({
               </span>
             </div>
             <div className={styles.tableScroll}>
-              <table className={`${styles.table} ${styles.settingsTable}`}>
+              <ResponsiveTable
+                className={`${styles.table} ${styles.settingsTable}`}
+              >
                 <thead>
                   <tr>
                     <th>상품</th>
@@ -1106,7 +1107,7 @@ export function ModelOrdering({
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </ResponsiveTable>
             </div>
             <p className={styles.assumptions}>{plan.assumptions}</p>
           </section>
@@ -1137,8 +1138,7 @@ export function ModelOrdering({
             <div className={styles.summary}>
               <label className="date-picker">
                 발주 예정일
-                <input
-                  type="date"
+                <DateField
                   aria-label="시연 발주 예정일"
                   value={orderDate}
                   min={plan.as_of}
@@ -1188,7 +1188,7 @@ export function ModelOrdering({
                   </span>
                 </div>
                 <div className={styles.tableScroll}>
-                  <table className={styles.table}>
+                  <ResponsiveTable className={styles.table}>
                     <thead>
                       <tr>
                         <th>상품</th>
@@ -1251,7 +1251,7 @@ export function ModelOrdering({
                         );
                       })}
                     </tbody>
-                  </table>
+                  </ResponsiveTable>
                 </div>
                 <p className={styles.assumptions}>
                   {recommendation.assumptions}

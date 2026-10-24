@@ -14,11 +14,12 @@
 }
 .sectionTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   border-bottom: 1px solid #dfe7f2;
   min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
+  overflow: visible;
   overscroll-behavior-x: contain;
 }
 .sectionTabs button {
@@ -34,8 +35,9 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  flex-shrink: 0;
-  white-space: nowrap;
+  flex: 1 1 160px;
+  min-width: 0;
+  white-space: normal;
 }
 .sectionTabs button[aria-pressed="true"] {
   border-bottom-color: #2478f5;
@@ -599,7 +601,7 @@
 }
 @media (max-width: 600px) {
   .plotScroll .chart {
-    min-width: 480px;
+    min-width: 0;
   }
   .chartText {
     font-size: 16px;

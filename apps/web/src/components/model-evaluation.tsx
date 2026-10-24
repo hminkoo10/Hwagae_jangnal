@@ -1,5 +1,7 @@
 "use client";
 
+import { Select, ResponsiveTable } from "./controls";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type ModelEvaluation } from "@/lib/api";
 import { Icon } from "./ui";
@@ -114,7 +116,7 @@ export function ModelEvaluationPanel({
           <div className={styles.subsetBar}>
             <label>
               평가 대상
-              <select
+              <Select
                 value={selectedId}
                 onChange={(event) => setSelectedId(event.target.value)}
               >
@@ -123,7 +125,7 @@ export function ModelEvaluationPanel({
                     {item.label} · {format(item.n, 0)}행
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <div className={styles.counts}>
               <span>
@@ -158,7 +160,7 @@ export function ModelEvaluationPanel({
           </div>
 
           <div className={styles.tableScroll}>
-            <table className={styles.table}>
+            <ResponsiveTable className={styles.table}>
               <caption>{subset.label} · 세 모델의 동일 행 비교</caption>
               <thead>
                 <tr>
@@ -203,7 +205,7 @@ export function ModelEvaluationPanel({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </ResponsiveTable>
           </div>
           <p className={styles.metricNote}>
             ↓ 지표는 작을수록 오차가 적어요. 포함률은 실제 판매량이 P10~P90 안에

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select, DateField, ResponsiveTable } from "./controls";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
@@ -27,6 +29,7 @@ import { NATIVE_BACK_EVENT } from "./native-shell";
 import { MerchantModelPanel } from "./merchant-model-panel";
 import { InitialData } from "./initial-data";
 import { AiSettings, AiExplanation } from "./ai-settings";
+import { OperatorDashboard } from "./operator-dashboard";
 
 type Tab =
   | "overview"
@@ -554,6 +557,19 @@ export default function Workspace() {
       </main>
     );
   if (!user) return <LoginScreen onLogin={acceptLogin} />;
+  if (user.platform_role === "operator")
+    return (
+      <OperatorDashboard
+        token={token}
+        user={user}
+        onExpired={clearSession}
+        onLogout={() => {
+          void api("/auth/logout", token, { method: "POST" })
+            .catch(() => {})
+            .finally(clearSession);
+        }}
+      />
+    );
 
   const store = stores.find((item) => item.id === storeId);
   const data = bundle?.storeId === storeId ? bundle : null;
@@ -710,7 +726,7 @@ export default function Workspace() {
           </Empty>
         ) : (
           <div className="table-scroll">
-            <table>
+            <ResponsiveTable>
               <thead>
                 <tr>
                   <th>상품</th>
@@ -826,7 +842,7 @@ export default function Workspace() {
                   );
                 })}
               </tbody>
-            </table>
+            </ResponsiveTable>
           </div>
         )}
       </section>
@@ -933,7 +949,7 @@ export default function Workspace() {
             {!modelDemo && (
               <div className="store-picker">
                 <Icon name="store" />
-                <select
+                <Select
                   aria-label="매장 선택"
                   disabled={busy}
                   value={storeId}
@@ -957,7 +973,7 @@ export default function Workspace() {
                       {item.name}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {owner && (
                   <button
                     className="icon-button"
@@ -1259,7 +1275,7 @@ export default function Workspace() {
                         </p>
                       </div>
                       <div className="forecast-controls">
-                        <select
+                        <Select
                           aria-label="예측 상품 선택"
                           value={selectedForecast?.product_id ?? ""}
                           onChange={(event) =>
@@ -1271,12 +1287,11 @@ export default function Workspace() {
                               {product.name}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                         <label className="date-picker">
                           판매 기준일
-                          <input
+                          <DateField
                             aria-label="예측 기준일"
-                            type="date"
                             value={asOf}
                             max={today}
                             required
@@ -1318,7 +1333,7 @@ export default function Workspace() {
                       selectedForecast &&
                       selectedForecast.points.length > 0 && (
                         <div className="table-scroll">
-                          <table>
+                          <ResponsiveTable>
                             <thead>
                               <tr>
                                 <th>판매일</th>
@@ -1349,7 +1364,7 @@ export default function Workspace() {
                                 </tr>
                               ))}
                             </tbody>
-                          </table>
+                          </ResponsiveTable>
                         </div>
                       )}
                     {forecast && (
@@ -1406,8 +1421,8 @@ export default function Workspace() {
                       <div>
                         <h2>새 발주 계획</h2>
                         <p>
-                          판매·재고 기준일 {asOf} · 매장 현지 날짜. 발주 예정일과
-                          입고까지 걸리는 기간을 함께 반영해요.
+                          판매·재고 기준일 {asOf} · 매장 현지 날짜. 발주
+                          예정일과 입고까지 걸리는 기간을 함께 반영해요.
                         </p>
                       </div>
                       <button
@@ -1433,8 +1448,7 @@ export default function Workspace() {
                     <div className="plan-summary">
                       <label className="date-picker">
                         발주 예정일
-                        <input
-                          type="date"
+                        <DateField
                           aria-label="발주 예정일"
                           value={orderDate}
                           min={today}
@@ -1498,7 +1512,7 @@ export default function Workspace() {
                           </span>
                         </div>
                         <div className="table-scroll">
-                          <table>
+                          <ResponsiveTable>
                             <thead>
                               <tr>
                                 <th>상품</th>
@@ -1560,7 +1574,7 @@ export default function Workspace() {
                                 </tr>
                               ))}
                             </tbody>
-                          </table>
+                          </ResponsiveTable>
                         </div>
                         <p className="helper assumptions">
                           {recommendation.assumptions}
@@ -1618,7 +1632,7 @@ export default function Workspace() {
                       </Empty>
                     ) : (
                       <div className="table-scroll">
-                        <table>
+                        <ResponsiveTable>
                           <thead>
                             <tr>
                               <th>발주안</th>
@@ -1712,7 +1726,7 @@ export default function Workspace() {
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </ResponsiveTable>
                       </div>
                     )}
                   </section>

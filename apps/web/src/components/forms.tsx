@@ -1,5 +1,9 @@
 "use client";
 
+import { LocationPicker, type Location } from "./location-picker";
+
+import { Select, DateField, ResponsiveTable } from "./controls";
+
 import { useState, type FormEvent } from "react";
 import {
   api,
@@ -167,9 +171,8 @@ export function SalesPanel({
             <div className="form-grid">
               <label>
                 판매일
-                <input
+                <DateField
                   name="date"
-                  type="date"
                   defaultValue={today}
                   max={today}
                   required
@@ -177,13 +180,13 @@ export function SalesPanel({
               </label>
               <label>
                 상품
-                <select name="product_id" required>
+                <Select name="product_id" required>
                   {products.map((product) => (
                     <option value={product.id} key={product.id}>
                       {product.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             </div>
             <label>
@@ -238,7 +241,7 @@ export function SalesPanel({
             </div>
           )}
           <div className="table-scroll">
-            <table>
+            <ResponsiveTable>
               <thead>
                 <tr>
                   <th>판매일</th>
@@ -255,7 +258,7 @@ export function SalesPanel({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </ResponsiveTable>
           </div>
           {preview.rows.length > 10 && (
             <p className="helper">처음 10개 기록을 표시하고 있어요.</p>
@@ -280,7 +283,7 @@ export function SalesPanel({
           </Empty>
         ) : (
           <div className="table-scroll">
-            <table>
+            <ResponsiveTable>
               <thead>
                 <tr>
                   <th>판매일</th>
@@ -310,7 +313,7 @@ export function SalesPanel({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </ResponsiveTable>
           </div>
         )}
       </section>
@@ -440,8 +443,7 @@ export function InventoryModal({
                 </label>
                 <label>
                   판매 가능 마지막 날
-                  <input
-                    type="date"
+                  <DateField
                     required={Number(batch.quantity) > 0}
                     value={batch.expires_on}
                     onChange={(event) =>
@@ -503,8 +505,7 @@ export function InventoryModal({
             </label>
             <label>
               입고일
-              <input
-                type="date"
+              <DateField
                 min={earliestArrival}
                 required
                 value={batch.arrives_on}
@@ -521,8 +522,7 @@ export function InventoryModal({
             </label>
             <label>
               만료일
-              <input
-                type="date"
+              <DateField
                 min={batch.arrives_on}
                 required
                 value={batch.expires_on}
@@ -719,73 +719,35 @@ export function StoreModal({
   onSaved: (id: string) => void;
   onClose: () => void;
 }) {
-  const places = {
-    dallas: {
-      city: "댈러스, 텍사스",
-      latitude: 32.7767,
-      longitude: -96.797,
-      timezone: "America/Chicago",
-    },
-    seoul: {
-      city: "서울",
-      latitude: 37.5665,
-      longitude: 126.978,
-      timezone: "Asia/Seoul",
-    },
-    busan: {
-      city: "부산",
-      latitude: 35.1796,
-      longitude: 129.0756,
-      timezone: "Asia/Seoul",
-    },
-    gwangju: {
-      city: "광주",
-      latitude: 35.1595,
-      longitude: 126.8526,
-      timezone: "Asia/Seoul",
-    },
-    new_york: {
-      city: "뉴욕",
-      latitude: 40.7128,
-      longitude: -74.006,
-      timezone: "America/New_York",
-    },
-    seattle: {
-      city: "시애틀",
-      latitude: 47.6062,
-      longitude: -122.3321,
-      timezone: "America/Los_Angeles",
-    },
-  };
-  const [place, setPlace] = useState<keyof typeof places>("seoul");
+  const [location, setLocation] = useState<Location | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!location || busy) return;
+    const fields = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
-    const fields = new FormData(event.currentTarget);
     try {
       const result = await api<{ id: string }>("/stores", token, {
         method: "POST",
-        body: JSON.stringify({
-          name: fields.get("name"),
-          city: fields.get("city"),
-          latitude: Number(fields.get("latitude")),
-          longitude: Number(fields.get("longitude")),
-          timezone: fields.get("timezone"),
-        }),
+        body: JSON.stringify({ name: fields.get("name"), ...location }),
       });
       onSaved(result.id);
       onClose();
-    } catch (error) {
-      setError(message(error));
+    } catch (e) {
+      setError(message(e));
     } finally {
       setBusy(false);
     }
   }
   return (
-    <Modal title="매장 추가" onClose={onClose}>
+    <Modal
+      title="매장 추가"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
       <form className="stack" onSubmit={submit}>
         {error && (
           <div className="error-banner" role="alert">
@@ -794,73 +756,13 @@ export function StoreModal({
         )}
         <label>
           매장명
-          <input name="name" maxLength={80} required />
+          <input name="name" maxLength={80} required disabled={busy} />
         </label>
-        <label>
-          매장 지역
-          <select
-            value={place}
-            onChange={(e) => setPlace(e.target.value as keyof typeof places)}
-          >
-            {Object.entries(places).map(([key, value]) => (
-              <option key={key} value={key}>
-                {value.city}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="helper">
-          지역의 실제 날씨와 현지 날짜로 판매 예측·발주를 계산해요.
-        </p>
-        <details className="location-details">
-          <summary>상세 위치·시간대</summary>
-          <div className="stack" key={place}>
-            <label>
-              지역 이름
-              <input
-                name="city"
-                defaultValue={places[place].city}
-                maxLength={80}
-                required
-              />
-            </label>
-            <div className="form-grid">
-              <label>
-                위도
-                <input
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  min="-90"
-                  max="90"
-                  defaultValue={places[place].latitude}
-                  required
-                />
-              </label>
-              <label>
-                경도
-                <input
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  min="-180"
-                  max="180"
-                  defaultValue={places[place].longitude}
-                  required
-                />
-              </label>
-            </div>
-            <label>
-              시간대
-              <input
-                name="timezone"
-                defaultValue={places[place].timezone}
-                required
-              />
-            </label>
-          </div>
-        </details>
-        <button className="button primary" disabled={busy}>
+        <fieldset disabled={busy} className="location-fieldset">
+          <legend>매장 위치</legend>
+          <LocationPicker token={token} onChange={setLocation} />
+        </fieldset>
+        <button className="button primary" disabled={busy || !location}>
           {busy ? "추가 중…" : "매장 추가"}
         </button>
       </form>

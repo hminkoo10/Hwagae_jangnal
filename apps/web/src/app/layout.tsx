@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { NativeShell } from "@/components/native-shell";
 import "./globals.css";
+import "./responsive.css";
 
 export const metadata: Metadata = {
   title: "화개장날 | 내일 장사, 오늘부터 가볍게",

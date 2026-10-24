@@ -1,5 +1,7 @@
 "use client";
 
+import { ResponsiveTable } from "./controls";
+
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type Product, type Stock, won } from "@/lib/api";
 import { Icon } from "./ui";
@@ -143,7 +145,7 @@ export function InitialData({
             · 재고 기준일 <strong>{preview.measured_on}</strong>
           </p>
           <div className="table-scroll">
-            <table>
+            <ResponsiveTable>
               <thead>
                 <tr>
                   <th>상품</th>
@@ -184,7 +186,7 @@ export function InitialData({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </ResponsiveTable>
           </div>
           <label className="checkbox">
             <input

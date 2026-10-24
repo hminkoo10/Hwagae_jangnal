@@ -161,6 +161,8 @@ class Database:
                     payload TEXT NOT NULL, created_at TEXT NOT NULL, confirmed_at TEXT
                 );
             """)
+            from app.platform_admin import initialize_platform
+            initialize_platform(db)
             if seed and not db.execute("SELECT 1 FROM users LIMIT 1").fetchone():
                 self._seed(db)
 
