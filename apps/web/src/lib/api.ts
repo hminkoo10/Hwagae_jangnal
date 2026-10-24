@@ -260,45 +260,78 @@ export class ApiError extends Error {
   }
 }
 
-async function response(path: string, token: string, init: RequestInit = {}) {
+let pendingRequests = 0;
+
+export function hasPendingRequests() {
+  return pendingRequests > 0;
+}
+
+async function response<T>(
+  path: string,
+  token: string,
+  init: RequestInit,
+  read: (result: Response) => Promise<T>,
+): Promise<T> {
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (typeof init.body === "string")
     headers.set("Content-Type", "application/json");
-  const timeout = AbortSignal.timeout(25000);
-  let result: Response;
+  // Older supported iOS WebViews do not implement AbortSignal.any(). Keep the
+  // deadline alive until the response body is consumed, and release listeners.
+  const controller = new AbortController();
+  let timedOut = false;
+  const abort = () => controller.abort();
+  if (init.signal?.aborted) abort();
+  else init.signal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 25000);
+  pendingRequests += 1;
   try {
-    result = await fetch(`${base}${path}`, {
+    const result = await fetch(`${base}${path}`, {
       ...init,
       headers,
       cache: "no-store",
-      signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
+      signal: controller.signal,
     });
+    if (!result.ok) {
+      const error = await result.json().catch((error) => {
+        if (controller.signal.aborted) throw error;
+        return {};
+      });
+      const detail = error.detail;
+      const message =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail)
+            ? detail
+                .map(
+                  (item: { loc?: string[]; msg?: string }) =>
+                    `${item.loc?.slice(1).join(" · ")}: ${item.msg}`,
+                )
+                .join(" / ")
+            : `요청에 실패했어요. (${result.status})`;
+      throw new ApiError(message, result.status);
+    }
+    return await read(result);
   } catch (error) {
+    if (init.signal?.aborted)
+      throw new DOMException("요청을 취소했어요.", "AbortError");
+    if (timedOut)
+      throw new ApiError("응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요.", 0);
+    if (error instanceof ApiError) throw error;
     if (error instanceof DOMException && error.name === "AbortError")
       throw error;
     throw new ApiError(
       "API에 연결하지 못했어요. 서버 실행과 연결 주소를 확인해주세요.",
       0,
     );
+  } finally {
+    clearTimeout(timer);
+    init.signal?.removeEventListener("abort", abort);
+    pendingRequests -= 1;
   }
-  if (!result.ok) {
-    const error = await result.json().catch(() => ({}));
-    const detail = error.detail;
-    const message =
-      typeof detail === "string"
-        ? detail
-        : Array.isArray(detail)
-          ? detail
-              .map(
-                (item: { loc?: string[]; msg?: string }) =>
-                  `${item.loc?.slice(1).join(" · ")}: ${item.msg}`,
-              )
-              .join(" / ")
-          : `요청에 실패했어요. (${result.status})`;
-    throw new ApiError(message, result.status);
-  }
-  return result;
 }
 
 export async function api<T>(
@@ -306,7 +339,7 @@ export async function api<T>(
   token = "",
   init: RequestInit = {},
 ): Promise<T> {
-  return (await response(path, token, init)).json();
+  return response(path, token, init, (result) => result.json());
 }
 
 export async function download(
@@ -315,18 +348,27 @@ export async function download(
   filename: string,
   init: RequestInit = {},
 ) {
-  const blob = await (await response(path, token, init)).blob();
-  if (init.signal?.aborted) return;
-  saveBlob(blob, filename);
+  const blob = await response(path, token, init, (result) => result.blob());
+  if (init.signal?.aborted) return false;
+  return saveBlob(blob, filename);
 }
 
-export function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+export async function saveBlob(blob: Blob, filename: string) {
+  pendingRequests += 1;
+  try {
+    const { shareNativeFile } = await import("./native-files");
+    const result = await shareNativeFile(blob, filename);
+    if (result !== "browser") return result === "shared";
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } finally {
+    pendingRequests -= 1;
+  }
 }
 
 export const won = (value: number) =>

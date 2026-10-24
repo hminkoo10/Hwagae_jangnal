@@ -27,6 +27,66 @@
 body {
   margin: 0;
 }
+.native-app body {
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.native-app .app-shell,
+.native-app .login-page,
+.native-app .boot-screen {
+  min-height: calc(
+    100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
+}
+.native-app .modal {
+  max-height: calc(
+    100dvh - 32px - env(safe-area-inset-top, 0px) -
+      env(safe-area-inset-bottom, 0px)
+  );
+}
+.native-app .toast {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.native-offline-banner {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  padding: 12px 16px;
+  color: #80551d;
+  background: #fff1d6;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+.connection-retry {
+  width: min(440px, calc(100% - 32px));
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  color: var(--ink);
+}
+.connection-retry h1 {
+  font-size: 22px;
+}
+@media (max-width: 600px) {
+  .native-app input:not([type="checkbox"]):not([type="radio"]),
+  .native-app .app-shell select,
+  .native-app .login-page select,
+  .native-app .modal select,
+  .native-app textarea {
+    font-size: 16px;
+  }
+  .native-app .button,
+  .native-app .icon-button,
+  .native-app .text-button,
+  .native-app .nav-item {
+    min-height: 44px;
+  }
+  .native-app .icon-button {
+    min-width: 44px;
+  }
+}
 button,
 input,
 select {
@@ -3058,5 +3118,323 @@ input[type="checkbox"] {
   .merchant-test-toolbar .button {
     justify-content: center;
     white-space: normal;
+  }
+}
+
+/* Shared phone/tablet layout: keep scrolling inside tables and charts. */
+.merchant-shell .workspace-main > *,
+.merchant-shell .page-heading > *,
+.merchant-shell .panel,
+.merchant-shell .panel-heading > div,
+.merchant-shell .merchant-card-heading > div,
+.merchant-shell .store-picker,
+.modal label,
+.modal fieldset {
+  min-width: 0;
+}
+.merchant-shell .store-picker {
+  max-width: 100%;
+}
+.merchant-shell .store-picker select {
+  min-width: 0;
+  max-width: 240px;
+}
+.merchant-shell .page-heading h1,
+.merchant-shell .page-heading p,
+.merchant-shell .source-note > span,
+.merchant-shell .error-banner > div,
+.merchant-shell .loading-banner,
+.modal .modal-description {
+  overflow-wrap: anywhere;
+}
+.merchant-shell .table-scroll,
+.merchant-shell .chart-scroll {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.merchant-shell .chart-wrap {
+  min-width: 0;
+}
+.merchant-shell .chart-scroll-hint {
+  display: none;
+}
+.merchant-shell .chart-scroll:focus-visible {
+  outline: 2px solid #74c8b2;
+  outline-offset: 3px;
+}
+.merchant-shell .chart-legend {
+  flex-wrap: wrap;
+}
+.modal {
+  overscroll-behavior-y: contain;
+  scroll-padding-block: 20px;
+}
+.modal input:not([type="checkbox"]):not([type="radio"]),
+.modal select {
+  width: 100%;
+  max-width: 100%;
+}
+.modal input[type="date"] {
+  min-inline-size: 0;
+}
+.modal input[type="date"]::-webkit-date-and-time-value {
+  min-height: 1.3em;
+  text-align: left;
+}
+
+/* Top-layer dialogs and sticky rails do not inherit the body's safe padding. */
+.native-app .sidebar {
+  top: env(safe-area-inset-top, 0px);
+  height: calc(
+    100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+.native-app .modal {
+  position: fixed;
+  height: fit-content;
+  inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  margin: auto;
+  width: min(
+    590px,
+    calc(
+      100vw - 32px - env(safe-area-inset-left, 0px) -
+        env(safe-area-inset-right, 0px)
+    )
+  );
+}
+.native-app .toast {
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  max-width: calc(
+    100vw - 32px - env(safe-area-inset-left, 0px) -
+      env(safe-area-inset-right, 0px)
+  );
+}
+.native-app
+  :is(.app-shell, .login-page, .modal)
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-height: 44px;
+  font-size: 16px;
+}
+.native-app :is(.app-shell, .login-page, .modal) button {
+  min-height: 44px;
+}
+.native-app :is(.app-shell, .login-page, .modal) .icon-button {
+  min-width: 44px;
+}
+.native-app .modal .batch-row {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) 44px;
+}
+.native-app .modal .incoming-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.native-app .modal .incoming-row > .icon-button {
+  justify-self: end;
+}
+
+@media (min-width: 601px) {
+  .native-app .login-story {
+    min-height: calc(
+      100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+@media (max-width: 1250px) {
+  .merchant-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .merchant-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    padding: 22px;
+  }
+  .merchant-rail > section {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    min-width: 0;
+  }
+  .rail-greeting {
+    grid-column: 1 / -1;
+  }
+  .merchant-shell .page-heading {
+    flex-wrap: wrap;
+  }
+  .merchant-shell .chart-text {
+    font-size: 13px;
+  }
+}
+@media (min-width: 601px) and (max-width: 1100px) {
+  .merchant-chart-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .merchant-readiness {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    align-items: center;
+    gap: 0 20px;
+  }
+  .merchant-readiness .merchant-card-heading,
+  .merchant-readiness .chart-footnote {
+    grid-column: 1 / -1;
+  }
+  .merchant-readiness .readiness-ring {
+    margin: 0;
+    width: 140px;
+    height: 140px;
+  }
+  .merchant-readiness .readiness-legend {
+    margin: 0;
+  }
+  .merchant-readiness > .button {
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin-top: 10px;
+  }
+}
+@media (pointer: coarse) and (max-width: 1250px) {
+  .merchant-shell
+    :is(button, input:not([type="checkbox"]):not([type="radio"]), select),
+  .login-page :is(button, input:not([type="checkbox"]):not([type="radio"])),
+  .modal :is(button, input:not([type="checkbox"]):not([type="radio"]), select) {
+    min-height: 44px;
+  }
+  .merchant-shell :is(input:not([type="checkbox"]):not([type="radio"]), select),
+  .login-page input,
+  .modal :is(input:not([type="checkbox"]):not([type="radio"]), select) {
+    font-size: 16px;
+  }
+  .merchant-shell .icon-button,
+  .modal .icon-button {
+    min-width: 44px;
+  }
+  .modal .batch-row {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) 44px;
+  }
+  .modal .incoming-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .native-app .sidebar {
+    top: auto;
+    height: auto;
+    overflow: visible;
+  }
+  .merchant-shell .sidebar nav {
+    min-width: 0;
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-inline: 10px;
+  }
+  .merchant-shell .store-picker select {
+    max-width: 100%;
+  }
+  .merchant-shell .merchant-forecast .merchant-card-heading {
+    flex-wrap: wrap;
+  }
+  .merchant-shell .merchant-forecast select {
+    width: 100%;
+  }
+  .merchant-shell .forecast-controls > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .merchant-shell .date-picker input {
+    width: 100%;
+  }
+  .merchant-shell .chart-scroll-hint {
+    display: block;
+    margin: 4px 0 9px;
+    color: #738b81;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .merchant-shell .chart-scroll .forecast-chart {
+    width: 100%;
+    min-width: 480px;
+    min-height: 0;
+    height: auto;
+  }
+  .merchant-shell .chart-text {
+    font-size: 16px;
+  }
+  .merchant-shell .merchant-rail {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+    padding: 22px 18px;
+  }
+  .merchant-shell .merchant-rail > section:not(:first-child) {
+    padding-top: 22px;
+    border-top: 1px solid #edf0f4;
+  }
+  .modal .batch-row,
+  .modal .incoming-row,
+  .native-app .modal .batch-row,
+  .native-app .modal .incoming-row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 10px;
+    padding: 12px;
+    background: #f7faf8;
+    border-radius: 8px;
+  }
+  .modal .batch-row > label,
+  .modal .incoming-row > label {
+    grid-column: 1 / -1;
+  }
+  .modal .batch-row > label:first-child,
+  .modal .incoming-row > label:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .modal .batch-row > .icon-button,
+  .modal .incoming-row > .icon-button {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+}
+@media (max-width: 430px) {
+  .merchant-shell .metric-card {
+    padding: 14px 12px;
+  }
+  .merchant-shell .metric-label {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .merchant-shell .merchant-readiness {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 0 12px;
+  }
+  .merchant-shell .merchant-readiness .readiness-ring {
+    width: 96px;
+    height: 96px;
+  }
+  .merchant-shell .action-card {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+  .merchant-shell .action-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .merchant-shell .action-link {
+    grid-column: 2;
+    grid-row: 3;
+    margin-top: 7px;
+    justify-self: start;
+  }
+  .modal .form-grid,
+  .merchant-shell .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .merchant-shell .workspace-footer {
+    flex-direction: column;
   }
 }

@@ -4,6 +4,7 @@
   border: 1px solid #dce5f0;
   border-radius: 10px;
   background: #fff;
+  min-width: 0;
 }
 .heading {
   display: flex;
@@ -11,6 +12,10 @@
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.heading > div {
+  min-width: 0;
 }
 .heading h2 {
   margin: 5px 0 0;
@@ -30,11 +35,14 @@
   gap: 6px;
   color: #65758b;
   font-size: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 .selector select {
   min-width: 210px;
   color: #243149;
   font-size: 13px;
+  max-width: 100%;
 }
 .badges {
   display: flex;
@@ -47,6 +55,8 @@
   font-size: 11px;
   line-height: 1.4;
   font-weight: 650;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .blue {
   color: #2469ce;
@@ -109,6 +119,11 @@
   color: #58697d;
   font-size: 12px;
   line-height: 1.6;
+  flex-wrap: wrap;
+}
+.runtime > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .runtime button {
   flex-shrink: 0;

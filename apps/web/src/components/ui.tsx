@@ -182,71 +182,74 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
   const actual = points.filter((point) => point.actual !== null);
   return (
     <div className="chart-wrap">
-      <svg
-        className="forecast-chart"
-        viewBox="0 0 664 232"
-        role="img"
-        aria-label={`${forecast.name} 7일 예측 중앙값과 범위입니다. 7일 판매 예측 메뉴에서 수량 표를 확인할 수 있습니다.`}
-      >
-        {[0, 1, 2, 3].map((level) => (
-          <g key={level}>
-            <line
-              x1="44"
-              x2="640"
-              y1={y((max * level) / 3)}
-              y2={y((max * level) / 3)}
-              stroke="#e9eeec"
-              strokeDasharray="4 5"
-            />
-            <text
-              x="32"
-              y={y((max * level) / 3) + 4}
-              textAnchor="end"
-              className="chart-text"
-            >
-              {Math.round((max * level) / 3)}
-            </text>
-          </g>
-        ))}
-        <path d={band} fill="var(--chart-band, #e0f4ee)" />
-        <path
-          d={path("p50")}
-          stroke="var(--chart-line, #18836b)"
-          strokeWidth="3"
-          fill="none"
-        />
-        {points.map((point, index) => (
-          <g key={point.date}>
+      <p className="chart-scroll-hint">좌우로 밀어 7일 예측을 확인하세요.</p>
+      <div className="chart-scroll" tabIndex={0} role="region" aria-label="7일 판매 예측 그래프">
+        <svg
+          className="forecast-chart"
+          viewBox="0 0 664 232"
+          role="img"
+          aria-label={`${forecast.name} 7일 예측 중앙값과 범위입니다. 7일 판매 예측 메뉴에서 수량 표를 확인할 수 있습니다.`}
+        >
+          {[0, 1, 2, 3].map((level) => (
+            <g key={level}>
+              <line
+                x1="44"
+                x2="640"
+                y1={y((max * level) / 3)}
+                y2={y((max * level) / 3)}
+                stroke="#e9eeec"
+                strokeDasharray="4 5"
+              />
+              <text
+                x="32"
+                y={y((max * level) / 3) + 4}
+                textAnchor="end"
+                className="chart-text"
+              >
+                {Math.round((max * level) / 3)}
+              </text>
+            </g>
+          ))}
+          <path d={band} fill="var(--chart-band, #e0f4ee)" />
+          <path
+            d={path("p50")}
+            stroke="var(--chart-line, #18836b)"
+            strokeWidth="3"
+            fill="none"
+          />
+          {points.map((point, index) => (
+            <g key={point.date}>
+              <circle
+                cx={x(index)}
+                cy={y(point.p50)}
+                r="4"
+                fill="#fff"
+                stroke="var(--chart-line, #18836b)"
+                strokeWidth="2.5"
+              />
+              <text
+                x={x(index)}
+                y="219"
+                textAnchor="middle"
+                className="chart-text"
+              >
+                {shortDate(point.date)}
+              </text>
+            </g>
+          ))}
+          {actual.map((point) => (
             <circle
-              cx={x(index)}
-              cy={y(point.p50)}
+              key={point.date}
+              cx={x(points.indexOf(point))}
+              cy={y(point.actual!)}
               r="4"
-              fill="#fff"
-              stroke="var(--chart-line, #18836b)"
-              strokeWidth="2.5"
-            />
-            <text
-              x={x(index)}
-              y="219"
-              textAnchor="middle"
-              className="chart-text"
+              fill="var(--chart-actual, #8d78b8)"
             >
-              {shortDate(point.date)}
-            </text>
-          </g>
-        ))}
-        {actual.map((point) => (
-          <circle
-            key={point.date}
-            cx={x(points.indexOf(point))}
-            cy={y(point.actual!)}
-            r="4"
-            fill="var(--chart-actual, #8d78b8)"
-          >
-            <title>실제 판매 {units(point.actual!)}개</title>
-          </circle>
-        ))}
-      </svg>
+              <title>실제 판매 {units(point.actual!)}개</title>
+            </circle>
+          ))}
+        </svg>
+      </div>
       <div className="chart-legend">
         <span>
           <i className="legend-line" />

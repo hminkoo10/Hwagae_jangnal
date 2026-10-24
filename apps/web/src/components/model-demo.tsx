@@ -80,72 +80,75 @@ function ComparisonChart({
     .join(" ");
   return (
     <div className={styles.chartWrap}>
-      <svg
-        className={styles.chart}
-        viewBox="0 0 650 240"
-        role="img"
-        aria-label={`${forecast.name}, TFT의 7일 P10~P90 범위와 P50, 요일 기준선 P50, 실제 판매량 비교. 정확한 수량은 아래 표에 있습니다.`}
-      >
-        {[0, 1, 2, 3].map((level) => (
-          <g key={level}>
-            <line
-              x1="47"
-              x2="607"
-              y1={y((max * level) / 3)}
-              y2={y((max * level) / 3)}
-              className={styles.gridLine}
-            />
-            <text
-              x="36"
-              y={y((max * level) / 3) + 4}
-              textAnchor="end"
-              className={styles.chartText}
-            >
-              {units((max * level) / 3)}
-            </text>
-          </g>
-        ))}
-        <path d={band} className={styles.band} />
-        {baselinePath && (
-          <path d={baselinePath} className={styles.baselineLine} />
-        )}
-        <path d={path("p50")} className={styles.modelLine} />
-        {hasActual && <path d={actualPath} className={styles.actualLine} />}
-        {points.map((point, index) => (
-          <g key={point.date}>
-            {point.actual !== null && (
+      <p className="chart-scroll-hint">좌우로 밀어 7일 예측을 확인하세요.</p>
+      <div className={styles.plotScroll} tabIndex={0} role="region" aria-label="TFT 7일 예측 비교 그래프">
+        <svg
+          className={styles.chart}
+          viewBox="0 0 650 240"
+          role="img"
+          aria-label={`${forecast.name}, TFT의 7일 P10~P90 범위와 P50, 요일 기준선 P50, 실제 판매량 비교. 정확한 수량은 아래 표에 있습니다.`}
+        >
+          {[0, 1, 2, 3].map((level) => (
+            <g key={level}>
+              <line
+                x1="47"
+                x2="607"
+                y1={y((max * level) / 3)}
+                y2={y((max * level) / 3)}
+                className={styles.gridLine}
+              />
+              <text
+                x="36"
+                y={y((max * level) / 3) + 4}
+                textAnchor="end"
+                className={styles.chartText}
+              >
+                {units((max * level) / 3)}
+              </text>
+            </g>
+          ))}
+          <path d={band} className={styles.band} />
+          {baselinePath && (
+            <path d={baselinePath} className={styles.baselineLine} />
+          )}
+          <path d={path("p50")} className={styles.modelLine} />
+          {hasActual && <path d={actualPath} className={styles.actualLine} />}
+          {points.map((point, index) => (
+            <g key={point.date}>
+              {point.actual !== null && (
+                <circle
+                  cx={x(index)}
+                  cy={y(point.actual)}
+                  r="3"
+                  className={styles.actualPoint}
+                >
+                  <title>
+                    {point.date} 실제 판매 {units(point.actual)}개
+                  </title>
+                </circle>
+              )}
               <circle
                 cx={x(index)}
-                cy={y(point.actual)}
-                r="3"
-                className={styles.actualPoint}
+                cy={y(point.p50)}
+                r="3.5"
+                className={styles.chartPoint}
               >
                 <title>
-                  {point.date} 실제 판매 {units(point.actual)}개
+                  {point.date} TFT P50 {units(point.p50)}개
                 </title>
               </circle>
-            )}
-            <circle
-              cx={x(index)}
-              cy={y(point.p50)}
-              r="3.5"
-              className={styles.chartPoint}
-            >
-              <title>
-                {point.date} TFT P50 {units(point.p50)}개
-              </title>
-            </circle>
-            <text
-              x={x(index)}
-              y="226"
-              textAnchor="middle"
-              className={styles.chartText}
-            >
-              {shortDate(point.date)}
-            </text>
-          </g>
-        ))}
-      </svg>
+              <text
+                x={x(index)}
+                y="226"
+                textAnchor="middle"
+                className={styles.chartText}
+              >
+                {shortDate(point.date)}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
       <div className={styles.legend}>
         <span>
           <i className={styles.modelKey} />
