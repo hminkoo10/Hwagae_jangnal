@@ -61,6 +61,14 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
+def prepare_output_dir(path):
+    # Refuse before preprocessing writes its state or provenance. A failed
+    # rerun must not replace the evidence belonging to an existing checkpoint.
+    if path.exists() and (not path.is_dir() or any(path.iterdir())):
+        raise ValueError("output directory must be new or empty; existing run artifacts are preserved")
+    path.mkdir(parents=True, exist_ok=True)
+
+
 def csv_path(root, name):
     matches = [path for path in (root / name, root / (name + ".zip")) if path.is_file()]
     if len(matches) != 1:
@@ -278,7 +286,7 @@ def main():
     torch.set_float32_matmul_precision("high")
     if args.device == "cuda":
         torch.backends.cuda.matmul.allow_tf32 = True
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    prepare_output_dir(args.output_dir)
     namespace, datasets, config = prepare(args)
     write_json(args.output_dir / "protocol.json", {
         "created_at": datetime.now(timezone.utc).isoformat(), "mode": args.mode, "variant": args.variant,

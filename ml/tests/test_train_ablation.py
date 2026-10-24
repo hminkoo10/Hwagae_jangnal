@@ -1,10 +1,12 @@
 """Prevent silent cohort changes in the matched weather comparison."""
 
+from pathlib import Path
+import tempfile
 import unittest
 
 import pandas as pd
 
-from ml.train_ablation import assert_matched_rows, install_functions
+from ml.train_ablation import assert_matched_rows, install_functions, prepare_output_dir
 
 
 class AblationProtocolTests(unittest.TestCase):
@@ -42,6 +44,17 @@ class AblationProtocolTests(unittest.TestCase):
         self.assertNotIn("train", namespace)
         with self.assertRaisesRegex(ValueError, "not found"):
             install_functions({}, source, ["missing"])
+
+    def test_existing_run_evidence_is_not_overwritten(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run"
+            prepare_output_dir(path)
+            prepare_output_dir(path)  # An existing empty directory is safe.
+            evidence = path / "protocol.json"
+            evidence.write_text("original evidence", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "existing run artifacts are preserved"):
+                prepare_output_dir(path)
+            self.assertEqual(evidence.read_text(encoding="utf-8"), "original evidence")
 
 
 if __name__ == "__main__":
