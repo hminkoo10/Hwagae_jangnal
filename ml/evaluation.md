@@ -11,10 +11,12 @@
 - 기준선 보정값: `baseline_validation_residual_quantiles.csv`.
 - 학습 환경 기록: `environment_freeze.txt`.
 - 모델 구조와 학습 기록: `tft_weather/logs/version_0/hparams.yaml`, `metrics.csv`.
-- 원본 학습/전처리 코드: 전달받은 `Colab Notebooks/startup_thon.ipynb`의 cell 7, 8, 10, 13(0부터 세는 cell 번호).
+- 원본 학습/전처리 코드: 사용자가 지정한 `startup_thon_1.ipynb`를 `ml/notebooks/startup_thon_1.ipynb`로 전달했다. cell 7, 8, 10, 13, 17, 21(0부터 세는 cell 번호)을 근거로 확인했다. 실행 출력이 남은 `Colab Notebooks/startup_thon.ipynb`와 학습 관련 코드가 같으며, 전달본은 source를 유지하고 출력과 실행 메타데이터만 제거했다.
 - 최적 체크포인트: `best-epoch=02-val_loss=3.9847.ckpt`. 학습 로그에서 epoch 2의 `val_loss=3.9847028255462646`이 기록된 epoch 0~7 중 최솟값임을 확인했다. 최대 epoch 설정은 20이지만 실제 저장된 로그는 epoch 7까지다.
 
 저장된 CSV로 MAE, RMSE, WAPE, 평균 pinball loss, 구간 포함률 및 구간 폭을 다시 계산했다. 원본 표와의 차이는 부동소수점 직렬화/집계 정밀도 수준이다(구간 폭까지 포함한 최대 절대 차이 약 `1.6e-6`). 저장된 예측의 수치적 일관성을 확인한 것이며, 전체 평가 데이터에 대해 체크포인트를 다시 실행한 검증은 아니다.
+
+전달용 CPU 샘플은 매장 `4`, 상품 `9`와 `27`, 기준일 `2014-09-12`, 예측일 `2014-09-13~2014-09-19`다. 동일한 매장·상품·기준일에 해당하는 원본 테스트 CSV의 70개 분위수 값과 CPU 예상 출력을 비교했을 때 최대 절대 차이는 `0.02351691894531882`였다. CPU smoke test의 작은 허용 오차는 `expected-quantiles.json`의 CPU 기준값에 적용하며, 원본 GPU 평가 CSV와의 동일 오차 일치를 주장하지 않는다. 장치·연산 정밀도·배치 구성별 차이의 원인 분해는 미검증이다.
 
 ## 시간순 분할
 
@@ -90,7 +92,7 @@ postprocessed = sorted(max(0.0, value) for value in raw_five_quantiles)
 
 - 원본 설정상 학습 장치: NVIDIA A100-SXM4-80GB, `bf16-mixed`.
 - 원본 패키지: torch `2.11.0+cu130`, pytorch-forecasting `1.5.0`, lightning/pytorch-lightning `2.5.5`, torchmetrics `1.7.4`, pandas `2.2.3`, numpy `2.1.3`, scikit-learn `1.6.1`.
-- 원본 `environment_freeze.txt`는 설치 패키지 기록이며 Python 인터프리터 버전을 직접 입증하지 않는다. 서버 CPU에서 검증한 Python 버전은 `README.md`를 따른다.
+- 원본 학습 Python은 **3.13.16**이다. 같은 실행 경로가 표시된 `Colab Notebooks/startup_thon.ipynb`의 cell 3 실행 출력에서 Python 버전과 torch/GPU/precision을 확인했다. 노트북 metadata의 `3.12` 및 마지막 안내의 synthetic 테스트 환경은 이 실제 학습 인터프리터 버전과 구분한다. 서버 CPU에서 검증한 Python 버전은 `README.md`를 따른다.
 - 저장된 GPU 평가 숫자와 CPU float32 재현 숫자는 연산 정밀도에 따라 다를 수 있다. CPU 샘플 비교의 예상 출력과 허용 오차는 README 및 smoke test 기준을 따른다.
 - 원본 노트북 끝부분에는 실제 A100 학습을 아직 수행하지 않았다는 초안 안내가 남아 있다. 저장된 실행 출력·체크포인트·실행 설정과 구분해야 하는 미갱신 안내이며, 이 평가표는 실제 저장된 결과 CSV와 실행 로그를 근거로 작성했다.
 - 선택된 200개 미국 매장·상품 시계열 밖의 신규 매장/상품, 한국 날씨·상품 분포, 2026년 날짜 외삽, 실제 발급 예보 입력에 대한 성능은 미검증이다.
