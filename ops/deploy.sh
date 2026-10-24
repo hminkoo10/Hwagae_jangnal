@@ -2,6 +2,7 @@
 # Execute as the dedicated hwagae user after one-time server provisioning.
 set -Eeuo pipefail
 umask 027
+export PATH="/opt/hwagae/node/bin:/opt/hwagae/bin:$PATH"
 
 revision="${1:?Usage: deploy.sh COMMIT_SHA}"
 [[ "$revision" =~ ^[a-f0-9]{40}$ ]] || { echo 'Invalid commit SHA' >&2; exit 2; }
@@ -43,10 +44,17 @@ rollback() {
     if [[ -n "$previous" && -d "$previous" ]]; then
       ln -sfn "$previous" "$app_root/.rollback"
       mv -Tf "$app_root/.rollback" "$app_root/current"
-      sudo -n systemctl restart hwagae-api.service hwagae-web.service || true
-      echo 'Restored previous code release; database was preserved.' >&2
+      if sudo -n systemctl restart hwagae-api.service hwagae-web.service; then
+        echo 'Restored previous code release and restarted services; database was preserved.' >&2
+      else
+        echo 'Restored previous code link, but service restart failed; inspect systemd logs.' >&2
+      fi
     else
       sudo -n systemctl stop hwagae-api.service hwagae-web.service || true
+      # A failed first release must not be mistaken for an active release on retry.
+      if [[ -L "$app_root/current" && "$(readlink -f "$app_root/current")" == "$release" ]]; then
+        unlink "$app_root/current"
+      fi
     fi
   fi
   exit "$result"

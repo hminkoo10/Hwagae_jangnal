@@ -4,9 +4,11 @@
 
 GitHub Actions와 배포 스크립트·systemd·Nginx 예제를 준비했습니다.
 CI는 API 테스트·웹 타입·웹 빌드·배포 스크립트 문법을 검사합니다.
-CD는 검사를 통과한 main에서 DEPLOY_ENABLED=true일 때만 실행합니다.
-**대상 Ubuntu 서버의 주소·SSH·도메인은 미확인이고, 실제 서버 연결·설치·배포는 미완료입니다.**
-PC의 milky@192.168.175.31은 사용자가 대상이 아니라고 확인했습니다. 이 서버에 적용하지 않습니다.
+CD는 DEPLOY_ENABLED=true일 때 검사를 통과한 main 또는 명시적으로 선택한 수동 배포에서 실행합니다.
+대상은 Ubuntu 22.04 ARM64 서버, 서비스 주소는 https://hwagae.milky.kr 입니다.
+관리 접속은 ubuntu, Actions 배포는 별도 hwagae 계정과 전용 키를 사용합니다.
+기존 navi·eom 서비스와 Minecraft는 별도이며 설정·런타임을 교체하지 않습니다.
+첫 공개 배포와 Actions 배포 검증 결과는 아래 운영 확인 기록에 추가합니다.
 
 ## 구성
 
@@ -19,15 +21,19 @@ DB는 코드 밖의 /srv/hwagae/shared/hwagae.sqlite3에 유지합니다.
 
 1. Ubuntu 버전·CPU·메모리·디스크, SSH 계정·포트, 기존 80·443·3000·8000 서비스 점검.
 2. GitHub 실행기에서 SSH 접속 가능한지 확인. 내부망 전용이면 runner 등 CD 방식을 조정.
-3. Node.js 24, npm, uv 0.10.6 이상, Python 3.14, curl·tar·flock·Nginx 준비.
+3. Node.js 24와 npm은 /opt/hwagae/node, uv는 /opt/hwagae/bin, Python 3.14는 hwagae 계정에서 준비.
 4. 전용 hwagae 계정과 /srv/hwagae/{incoming,releases,shared}, /etc/hwagae 준비.
 5. /etc/hwagae/hwagae.env를 만들고 읽기 권한을 제한. 비밀값은 Git·로그·채팅에 남기지 않음.
-6. ops의 service 파일 설치. Node 경로 /usr/bin/node도 실제 위치 확인.
+6. ops의 service 파일 설치. Node 경로 /opt/hwagae/node/bin/node도 실제 위치 확인.
 7. 배포 계정의 sudo는 두 서비스 restart·stop으로 제한.
 8. 기존 사이트를 보존하며 Nginx·도메인·HTTPS 구성. nginx -t 성공 후 반영.
 9. 첫 배포 성공 후 두 서비스를 부팅 시 자동 시작하도록 활성화.
 
-서버 정보 확인 전 일괄 설치하지 않습니다. 기존 Nginx 설정·서비스를 임의로 교체하지 않습니다.
+기존 Nginx 설정·서비스를 교체하지 않습니다. 현재 서버는 ops/nginx.cloudflare.conf를 별도 사이트로 설치합니다.
+인증서는 /etc/hwagae/tls에 보관하며 Cloudflare Origin CA의 *.milky.kr 인증서를 사용합니다.
+Cloudflare 프록시를 유지해야 합니다. 원본 인증서는 일반 브라우저의 직접 접속용 인증서가 아닙니다.
+기존 서버의 cloudflare-ips.conf와 cloudflare-realip.conf에 있는 신뢰 CIDR만 사용합니다.
+API 응답은 no-store, 로그인 제한은 복원한 방문자 IP 기준입니다.
 
 환경 파일 예시:
 
@@ -62,7 +68,9 @@ hwagae ALL=(root) NOPASSWD: /usr/bin/systemctl restart hwagae-api.service hwagae
 | DEPLOY_KNOWN_HOSTS | 별도로 지문을 확인한 서버 호스트 키 |
 
 repository variable DEPLOY_ENABLED=true는 **서버 준비와 첫 배포 확인 뒤** 활성화합니다.
-현재는 설정·활성화하지 않았습니다. 호스트키 검사를 끄거나 배포 중 자동 신뢰하지 않습니다.
+호스트키는 기존 PC의 신뢰 기록과 대조합니다. 검사를 끄거나 배포 중 자동 신뢰하지 않습니다.
+수동 배포는 Actions의 Run workflow에서 브랜치를 선택하고 deploy=true로 요청합니다.
+이 기능은 workflow 파일이 main에 존재한 뒤 사용할 수 있습니다. 단순 수동 검사는 deploy=false입니다.
 
 ## 배포 순서와 복구
 
@@ -77,8 +85,16 @@ repository variable DEPLOY_ENABLED=true는 **서버 준비와 첫 배포 확인 
 순차 재시작이므로 짧은 중단이 있으며 무중단 배포는 아닙니다.
 스키마는 생성 중심 v1입니다. 향후 파괴적 DB 변경은 별도 마이그레이션·복구 검증이 필요합니다.
 release·백업을 자동 삭제하지 않으므로 보관 정책은 운영 환경에서 정합니다.
-systemd·Nginx·SSH·HTTPS 실제 동작은 대상 서버 연결 후 검증해야 합니다.
+## 운영 확인 기록
+
+- 2026-10-24: 서버 접속과 기존 서비스 조사 완료. 3000·8000 포트 미사용 확인.
+- 앱 전용 계정·Node 24.22.1·uv 0.10.6·Python 3.14.3 준비.
+- 전용 배포 계정은 두 앱 서비스의 restart·stop만 sudo 허용.
+- 운영 초기 비밀번호는 서버에서 무작위 생성하며 저장소·Actions Secrets에 넣지 않음.
+- 첫 공개 배포·GitHub CD 완료 여부는 실제 결과 확인 뒤 갱신.
 
 출처: [GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax),
 [systemd](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
 [Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass).
+Cloudflare: [Origin CA](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/),
+[방문자 IP 헤더](https://developers.cloudflare.com/fundamentals/reference/http-headers/).

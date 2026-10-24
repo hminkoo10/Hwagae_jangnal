@@ -9,7 +9,8 @@ Group=hwagae
 WorkingDirectory=/srv/hwagae/current/apps/web
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
-ExecStart=/usr/bin/node /srv/hwagae/current/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+Environment=PATH=/opt/hwagae/node/bin:/opt/hwagae/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/hwagae/node/bin/node /srv/hwagae/current/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
 Restart=on-failure
 RestartSec=3
 UMask=0027
