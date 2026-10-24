@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pandas as pd
 
 from ml import train_ablation
+from ml.run_multiseed import paired_tables
 from ml.train_ablation import assert_matched_rows, create_model, install_functions, prepare_output_dir
 
 
@@ -69,6 +70,23 @@ class AblationProtocolTests(unittest.TestCase):
                 seed.reset_mock()
                 create_model(object(), config)
                 seed.assert_called_once_with(42, workers=True)
+
+    def test_pair_summary_uses_three_seed_differences_and_sample_std(self):
+        rows = [{"seed": seed, "variant": variant, "subset": subset,
+                 "MAE": seed - 41 + offset, "WAPE": (seed - 41 + offset) / 10,
+                 "mean_pinball_3": (seed - 41 + offset) / 2,
+                 "interval_coverage": .8, "interval_width": 10.0}
+                for seed in [42, 43, 44] for variant, offset in [("weather", 0), ("no-weather", 2)]
+                for subset in ["full_original_test", "strict_56_observed_history"]]
+        paired, summary = paired_tables(rows)
+        weather = next(row for row in summary if row["subset"] == "full_original_test"
+                       and row["metric"] == "MAE" and row["variant"] == "weather")
+        self.assertEqual((weather["n_seeds"], weather["mean"], weather["sample_std"]), (3, 2, 1))
+        differences = [row["difference_weather_minus_no_weather"] for row in paired if row["metric"] == "MAE"]
+        self.assertEqual(differences, [-2] * 6)
+        for changed in [rows[:-1], rows + [rows[0]]]:
+            with self.assertRaisesRegex(ValueError, "exactly once"):
+                paired_tables(changed)
 
 
 if __name__ == "__main__":

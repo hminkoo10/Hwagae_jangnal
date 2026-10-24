@@ -1,0 +1,161 @@
+{
+  "experiment_id": "paired-weather-seeds-42-43-44-20261024",
+  "created_at_utc": "2026-10-24T06:49:54.587255+00:00",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "variants": [
+    "weather",
+    "no-weather"
+  ],
+  "selection_rule": "All three predeclared seed pairs; no test-driven selection or stopping.",
+  "training_script_git_commit": "dbddf56",
+  "source_sha256": {
+    "ml/__init__.py": "17b93eb9a7dd98293bd5a255fe4c2cbe38df849ae862c5026b9ee62ff5959bd2",
+    "ml/train_ablation.py": "f80645ebb4f3ae2610ee276a985b634214b0e6d9b18073efd782db7925483195",
+    "ml/notebooks/startup_thon_1.ipynb": "2787fff5ae9dc8e3d5f01a042e391ffb6989c847e5a4faaa2124180a2ef8519e",
+    "original-train-ablation-de56d49.py": "241cfcb212ec4ff9b5f9c5a9d88530c4557cb9970db16a9dd3e2d7a00609d11e"
+  },
+  "python": "3.11.0",
+  "packages": {
+    "torch": "2.11.0+cu130",
+    "pytorch-forecasting": "1.5.0",
+    "lightning": "2.5.5",
+    "pytorch-lightning": "2.5.5",
+    "torchmetrics": "1.7.4",
+    "pandas": "2.2.3",
+    "numpy": "2.1.3",
+    "scikit-learn": "1.6.1"
+  },
+  "device": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "precision": "bf16-mixed",
+  "training_policy": {
+    "SEED": 42,
+    "ENCODER_DAYS": 56,
+    "HORIZON": 7,
+    "VALID_DAYS": 56,
+    "TEST_DAYS": 56,
+    "MAX_SERIES": 200,
+    "MIN_NONZERO_DAYS": 14,
+    "BATCH_SIZE": 128,
+    "MAX_EPOCHS": 20,
+    "HIDDEN_SIZE": 64,
+    "NUM_WORKERS": 2,
+    "TRAIN_BATCH_LIMIT": 1.0,
+    "QUANTILES": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "start_date": "2012-01-01 00:00:00",
+    "end_date": "2014-10-31 00:00:00",
+    "train_end": "2014-07-11 00:00:00",
+    "validation_end": "2014-09-05 00:00:00",
+    "weather_training_mode": "persistence",
+    "future_weather_mode": "persistence"
+  },
+  "fixed_model_policy": {
+    "attention_heads": 4,
+    "dropout": 0.15,
+    "hidden_continuous_size": 32,
+    "lstm_layers": 1,
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "gradient_clip": 0.5,
+    "early_stopping_patience": 5,
+    "reduce_on_plateau_patience": 3,
+    "selection_metric": "validation_loss"
+  },
+  "cohort_reference_seed": 42,
+  "window_counts": [
+    143620,
+    990,
+    1139
+  ],
+  "limitations": [
+    "Three seeds do not establish statistical significance or causal weather effects.",
+    "The existing seed-42 no-weather result was already known before this paired extension.",
+    "Historical persistence, not archived issued weather forecasts."
+  ],
+  "external_plan_sha256": "260dd3fc09a868c69848f2c7c6ab2dee4ea173cb75e3cfb80a3de93fe50fb355",
+  "input_sha256": {
+    "train.csv": "70d7b0c7f24a55369ac22f092148e8cced5991623645d1f136ea1977c9d7eadf",
+    "weather.csv": "feb96736bad00d4e819715049d7cbc9af7352105c04e488f468c7b2d4b0edced",
+    "key.csv": "145270ab9b544e0fc5c93a822e36c48621c1ba3ebc895170b7ffc96c2250004a",
+    "reference/run_config.json": "3822e75ae049747177f09c8524ed2fb6558126ee3398a264ee1797d9a011bc7a",
+    "reference/selected_series.csv": "b90262322208499697df3bbc9294902a415f8c942ba8fd497db256a22fff0c14",
+    "reference/validation_predictions.csv": "17583d392353400392e7883cce34c469cf944eff614e68e86545844c353c6b70",
+    "reference/test_predictions.csv": "fcea87f0c38a7046d73f2b29091ae638b49d6e9f5cc2a1d35fbf415aadd534ef"
+  },
+  "runs": [
+    {
+      "seed": 42,
+      "variant": "weather",
+      "reuse": false
+    },
+    {
+      "seed": 42,
+      "variant": "no-weather",
+      "reuse": true
+    },
+    {
+      "seed": 43,
+      "variant": "weather",
+      "reuse": false
+    },
+    {
+      "seed": 43,
+      "variant": "no-weather",
+      "reuse": false
+    },
+    {
+      "seed": 44,
+      "variant": "weather",
+      "reuse": false
+    },
+    {
+      "seed": 44,
+      "variant": "no-weather",
+      "reuse": false
+    }
+  ],
+  "reused_no_weather_42": {
+    "original_script_git_commit": "de56d49",
+    "artifacts": {
+      "dataset_parameters.pkl": {
+        "filename": "dataset_parameters.pkl",
+        "sha256": "8bdd71bd69abc3bc62948640ab468bc26af66760df0ebefd49e976aa5f6dfdfe",
+        "bytes": 13405
+      },
+      "tft_no_weather_validation_predictions.csv": {
+        "filename": "tft_no_weather_validation_predictions.csv",
+        "sha256": "7be2b37bd8840f86102be1b1851d425c1d6f0609eccb96dc2e0986d9fca6ef91",
+        "bytes": 1047766,
+        "rows": 6930
+      },
+      "tft_no_weather_test_predictions.csv": {
+        "filename": "tft_no_weather_test_predictions.csv",
+        "sha256": "adc36c52daa35d08fb0159e4f21381524e3d8507b5afe5690633cbda6727e731",
+        "bytes": 1206099,
+        "rows": 7973
+      },
+      "metrics.csv": {
+        "filename": "metrics.csv",
+        "sha256": "8392e7612aa3103ed47cd1b0f6eac180bec2a9cef3c1cf210a6fb4a8f9078074",
+        "bytes": 983
+      },
+      "best_checkpoint": {
+        "filename": "best-epoch=06-val_loss=3.9695.ckpt",
+        "sha256": "bab22106ea0582bdd1a3aa20f2a8cf574f522e1d031c432e01a5272d469c3588",
+        "bytes": 4180214
+      }
+    },
+    "protocol_sha256": "7bd89c815866cce2a789d188e06385e4ae076648ea8954f55b15aa5d7869681e",
+    "completion_sha256": "bdc3018e50b280656d861a308522f67b0818e61ba87137b10d14173f143fc9ed",
+    "eligibility": "Same Python/GPU/package versions/BF16, data and reference hashes, cohort/splits and training policy. Seed override defaults to the same seed 42; later edits add provenance, output protection and explicit training-seed selection only."
+  }
+}
