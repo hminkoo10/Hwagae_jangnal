@@ -58,6 +58,11 @@ const paths: Record<string, ReactNode> = {
       <path d="M6 14a4 4 0 0 1-1-8 6 6 0 0 1 11-1 4 4 0 0 1 2 8M8 17l-1 3M13 17l-1 3M18 17l-1 3" />
     </>
   ),
+  snow: (
+    <>
+      <path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 3 3-3M9 20l3-3 3 3M4 10l4-1-1-4M17 19l-1-4 4-1M4 14l4 1-1 4M17 5l-1 4 4 1" />
+    </>
+  ),
   cloud: <path d="M6 17a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5 5 0 1 1 2 11H6Z" />,
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
   refresh: (
@@ -203,8 +208,13 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
             </text>
           </g>
         ))}
-        <path d={band} fill="#e0f4ee" />
-        <path d={path("p50")} stroke="#18836b" strokeWidth="3" fill="none" />
+        <path d={band} fill="var(--chart-band, #e0f4ee)" />
+        <path
+          d={path("p50")}
+          stroke="var(--chart-line, #18836b)"
+          strokeWidth="3"
+          fill="none"
+        />
         {points.map((point, index) => (
           <g key={point.date}>
             <circle
@@ -212,7 +222,7 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
               cy={y(point.p50)}
               r="4"
               fill="#fff"
-              stroke="#18836b"
+              stroke="var(--chart-line, #18836b)"
               strokeWidth="2.5"
             />
             <text
@@ -231,7 +241,7 @@ export function ForecastChart({ forecast }: { forecast: ProductForecast }) {
             cx={x(points.indexOf(point))}
             cy={y(point.actual!)}
             r="4"
-            fill="#8d78b8"
+            fill="var(--chart-actual, #8d78b8)"
           >
             <title>실제 판매 {units(point.actual!)}개</title>
           </circle>
