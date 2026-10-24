@@ -26,6 +26,7 @@ from app.database import Database, encode, now_iso, password_matches, today, sto
 from app.evaluation_report import evaluation_report
 from app.forecasting import run_forecast
 from app.imports import MAX_BYTES, parse_file
+from app.setup_import import mount_setup_routes
 from app.model_demo import (
     DEFAULT_SAMPLE_ID,
     SampleId,
@@ -350,6 +351,8 @@ def create_app(db_path=None, seed=True):
                 )
             ]
         return {"stores": [localized_store(row) for row in rows], "today": today().isoformat()}
+
+    mount_setup_routes(application, database, access, authenticated)
 
     @application.post("/stores", status_code=201, tags=["stores"])
     def create_store(payload: StoreInput, user=Depends(authenticated)):

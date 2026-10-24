@@ -155,7 +155,7 @@ export function MerchantOverview({
               {ready.length ? units(nextDemand) : "—"}
               <small>개</small>
             </strong>
-            <p>예측 가능 상품의 P50 합계</p>
+            <p>예측 가능한 상품의 예상 판매 합계</p>
           </article>
           <article className="metric-card">
             <span className="metric-label">
@@ -226,7 +226,9 @@ export function MerchantOverview({
             <div className="merchant-card-footer">
               <span>
                 {forecast
-                  ? `${forecast.model.name} · ${forecast.model.uses_weather ? "날씨 반영" : "날씨 미반영"}`
+                  ? forecast.model.uses_weather
+                    ? "날씨 반영 판매 예측"
+                    : "요일별 판매 예측"
                   : "아직 예측이 완료되지 않았어요"}
               </span>
               <button
@@ -317,7 +319,7 @@ export function MerchantOverview({
                   <tr>
                     <th>상품</th>
                     <th className="number">
-                      {nextDay ? shortDate(nextDay) : "내일"} 예측 P50
+                      {nextDay ? shortDate(nextDay) : "내일"} 예상 판매
                     </th>
                     <th className="number">내일 판매 가능한 재고</th>
                     <th>확인 상태</th>
@@ -572,8 +574,10 @@ export function MerchantOverview({
             </div>
           )}
         </section>
-        <section className="rail-model">
-          <h2 className="rail-section-title">예측은 이렇게 만들어요</h2>
+        <details className="rail-model">
+          <summary className="rail-section-title">
+            예측 방식·데이터 안내
+          </summary>
           <p className="rail-note">
             {forecast
               ? `현재 ${forecast.model.name} 모델로 예측해요. `
@@ -587,6 +591,7 @@ export function MerchantOverview({
               ? "합성 자료로 학습한 실험 모델이에요. "
               : ""}
             예측 범위는 정확도 보장이 아니에요.
+            {store.provenance}
           </p>
           <button
             className="text-button rail-link"
@@ -594,7 +599,7 @@ export function MerchantOverview({
           >
             예측 범위 자세히 보기 <Icon name="arrow" size={14} />
           </button>
-        </section>
+        </details>
       </aside>
     </div>
   );
