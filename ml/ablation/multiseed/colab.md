@@ -2,25 +2,29 @@
 
 [paired_tft_a100.ipynb](../../notebooks/paired_tft_a100.ipynb)를 Colab에서 열고 A100 GPU 런타임을 선택한다. **노트북 작성 시 실제 Colab 설치·학습은 아직 검증하지 않았다.** 셀 구문 검증만 완료했으며, 실제 설치 성공·GPU 연산·완료 여부는 실행 후 남는 기록으로 확인한다.
 
-이 노트북은 현재 ml.run_multiseed와 ml.train_ablation을 그대로 호출한다. 원본 학습 노트북, 기존 체크포인트·전처리 객체, 기존 실험 계획을 변경하지 않는다. GitHub/API 인증 토큰 없이 전달된 코드 ZIP을 업로드하고 본인 Drive를 마운트한다. 해당 원본 폴더에 접근할 수 있는 계정으로 Colab과 Drive에 로그인해야 한다.
+이 노트북은 현재 ml.run_multiseed와 ml.train_ablation을 그대로 호출한다. 원본 학습 노트북, 기존 체크포인트·전처리 객체, 기존 실험 계획을 변경하지 않는다. GitHub/API 인증 토큰 없이 원본 입력을 포함한 코드 ZIP을 업로드하고 본인 Drive를 결과 보존용으로 마운트한다. 학교 계정 Drive에 원본 폴더가 없어도 ZIP에 포함된 입력으로 실행할 수 있다.
 
 ## 입력과 저장 위치
 
 코드 ZIP은 저장소 구조를 유지해야 한다. 최소한 ml/__init__.py, ml/run_multiseed.py, ml/train_ablation.py, ml/evaluate.py, ml/requirements-inference.txt, ml/notebooks/startup_thon_1.ipynb 및 apps/api/app/forecasting.py가 필요하다. API 파일은 요일 기준선 함수의 읽기 전용 평가에 사용하며 서버를 실행하지 않는다. ZIP이 저장소 이름의 최상위 폴더를 포함해도 된다.
 
-Drive 기본 원본 경로는 /content/drive/MyDrive/weather_order_tft다. Drive에 보이는 위치가 다르면 노트북의 DRIVE_SOURCE를 수정한다. 필요한 파일은 다음과 같다.
+ZIP 루트의 MANIFEST.json은 자신을 제외한 모든 파일의 path·bytes·sha256를 files 배열에 기록해야 한다. 경로는 저장소 루트 기준이며 슬래시를 사용한다. 압축 해제 후 파일 목록이 정확히 같은지 검사하고 각 파일의 크기·SHA-256을 확인한다. 목록 누락·추가 파일·중복 경로·해시 불일치가 있으면 설치와 학습 전에 중단한다.
 
-- train.csv.zip, weather.csv.zip, key.csv.zip. 각 파일은 압축하지 않은 같은 이름의 CSV로 대신할 수 있으나 CSV와 ZIP을 동시에 두면 중단한다.
-- runs/walmart_20261024T020058Z/run_config.json
-- 같은 실행 폴더의 selected_series.csv, validation_predictions.csv, test_predictions.csv
+ZIP 입력 경로는 다음과 같다. 체크포인트는 포함하지 않는다.
+
+- inputs/data/train.csv.zip, inputs/data/weather.csv.zip, inputs/data/key.csv.zip
+- inputs/reference/run_config.json
+- inputs/reference/selected_series.csv, inputs/reference/validation_predictions.csv, inputs/reference/test_predictions.csv
+
+ZIP에 inputs 폴더가 없는 경우에만 Drive 원본을 사용한다. 기본 대체 경로는 /content/drive/MyDrive/weather_order_tft이며, 데이터는 해당 폴더의 train.csv.zip/weather.csv.zip/key.csv.zip, 참조 실행 4개 파일은 runs/walmart_20261024T020058Z 아래에 있어야 한다. 실제 위치가 다르면 DRIVE_SOURCE를 수정한다. inputs 폴더가 있지만 불완전하면 다른 원본과 섞지 않고 중단한다. 각 데이터 ZIP은 압축하지 않은 같은 이름의 CSV로 대신할 수 있으나 CSV와 ZIP이 동시에 있으면 중단한다.
 
 입력은 /content/tft-paired-inputs로 복사하고 원본과 복사본의 SHA-256을 비교한다. 기존 체크포인트를 읽거나 복사하지 않는다. 실험 산출물은 Drive의 tft-paired-experiments/paired-tft-a100-<UTC 시각> 새 폴더에 저장한다. 입력·환경·코드·출력 폴더가 이미 있으면 조용히 덮어쓰지 않는다.
 
 ## 환경과 실행 순서
 
 1. A100 GPU 이름·UUID·NVIDIA 드라이버를 확인한다.
-2. 코드 ZIP 하나를 업로드한다. 전달받은 ZIP SHA-256을 EXPECTED_CODE_SHA256에 넣으면 배포본과 일치하는지 검사한다. 비워 두면 실제 해시만 기록한다.
-3. Drive를 마운트하고 입력을 /content로 복사한다.
+2. 입력을 포함한 코드 ZIP 하나를 업로드한다. 모든 파일을 MANIFEST.json과 비교한다. 전달받은 ZIP SHA-256을 EXPECTED_CODE_SHA256에 넣으면 배포본과 일치하는지도 검사한다. 비워 두면 ZIP 자체는 실제 해시만 기록한다.
+3. Drive를 결과 보존용으로 마운트하고 ZIP에 포함된 입력을 /content로 복사한다. ZIP 입력이 없을 때만 Drive 원본으로 대체한다.
 4. uv 0.13.1로 Python 3.11.14 독립 환경을 만든다. Colab 기본 커널은 Drive/UI에만 사용한다.
 5. 전체 패키지 버전을 기존 requirements-inference.txt로 고정하되 torch 2.11.0+cpu와 CPU index를 CUDA wheel/index로 치환한다. torch·forecasting·Lightning 등 주요 8종과 Linux CUDA 전이 의존성을 포함한 전체 freeze를 기록한다.
 6. CUDA/BF16 순전파·역전파 검사 및 주요 패키지 import를 확인한다.
@@ -43,7 +47,7 @@ summary/에는 metrics.csv, api-baseline.csv, paired-differences.csv, summary.cs
 - experiment-plan.json: 여섯 실행 모두 reuse:false, 고정 코드·원본 노트북·입력 해시, 학습 조건.
 - colab-runtime.json: A100 UUID/driver, 실제 Python·CUDA·패키지 버전, BF16 검사, fresh_model_fits:6/reused_model_fits:0.
 - requirements-installed.txt와 requirements-paired-a100.txt: 실제 설치 전체 버전과 설치 요구사항.
-- source-code-zip-sha256.txt, 실행별 protocol.json/completion.json/예측 CSV/체크포인트/로그.
+- source-code-zip-sha256.txt와 source-bundle-manifest.json, 실행별 protocol.json/completion.json/예측 CSV/체크포인트/로그. colab-runtime.json의 input_origin은 uploaded_bundle 또는 drive_original_fallback이다.
 - status.json과 summary/의 평가표·해시.
 
 실제 새 실행 여부는 위 계획의 여섯 reuse:false와 런타임 증거로 확인한다. 공통 요약 코드도 재사용 계획이 있을 때만 과거 seed 42 재사용 설명을 추가한다. 기존 발표 수치·Windows 결과·과거 A100 단일 실행을 이 여섯 seed 결과에 섞지 않는다.
