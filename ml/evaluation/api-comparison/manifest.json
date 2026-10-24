@@ -37,8 +37,10 @@
   "api_baseline_ready_rows": 7973,
   "api_baseline_unavailable_windows": [],
   "no_weather": {
-    "status": "not_supplied",
-    "reason": "No aligned no-weather prediction CSV supplied; weather contribution remains unverified."
+    "status": "aligned_predictions_supplied",
+    "path": "D:\\tmp\\codex-tft-ablation-20261024\\matched-no-weather\\tft_no_weather_test_predictions.csv",
+    "sha256": "adc36c52daa35d08fb0159e4f21381524e3d8507b5afe5690633cbda6727e731",
+    "training_protocol": "See separate experiment provenance; CSV alignment alone does not verify training."
   },
   "row_order": "sorted store_nbr,item_nbr,origin_date,date",
   "notes": [
