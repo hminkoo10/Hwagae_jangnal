@@ -209,7 +209,7 @@ def main():
         writer = csv.DictWriter(stream, fieldnames=list(table[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(table)
-    (args.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (args.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps({"status": "recomputed", "tables": len(table),
                       "original_rows": manifest["full_original_test_rows"],
                       "strict_rows": manifest["strict_56_observed_history_rows"],
