@@ -7,6 +7,8 @@ export type Store = {
   provenance: string;
   latitude?: number;
   longitude?: number;
+  timezone?: string;
+  local_today?: string;
   provider?: "weekday" | "merchant_tft";
   data_note?: string | null;
 };
@@ -91,6 +93,9 @@ export type Forecast = {
 };
 export type MerchantForecastSettings = {
   provider: "weekday" | "merchant_tft";
+  model_kind?: "walmart" | "synthetic";
+  history_available_from?: string | null;
+  history_available_to?: string | null;
   runtime: { status: string; message: string };
   model: Forecast["model"] | null;
   requirements: {
@@ -190,6 +195,7 @@ export type RecommendationRow = {
 };
 export type Recommendation = {
   id: string;
+  order_date?: string;
   rows: RecommendationRow[];
   calculated_count: number;
   total: number;
@@ -200,6 +206,7 @@ export type Order = {
   status: "draft" | "confirmed";
   created_at: string;
   as_of: string;
+  order_date?: string;
   total: number;
   author: string;
   stale: boolean;
@@ -319,7 +326,10 @@ async function response<T>(
     if (init.signal?.aborted)
       throw new DOMException("요청을 취소했어요.", "AbortError");
     if (timedOut)
-      throw new ApiError("응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요.", 0);
+      throw new ApiError(
+        "응답이 늦어지고 있어요. 잠시 후 다시 시도해주세요.",
+        0,
+      );
     if (error instanceof ApiError) throw error;
     if (error instanceof DOMException && error.name === "AbortError")
       throw error;
@@ -377,3 +387,21 @@ export const units = (value: number) =>
   new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 1 }).format(value);
 export const shortDate = (value: string) =>
   `${Number(value.slice(5, 7))}.${Number(value.slice(8, 10))}`;
+
+export function addCalendarDays(value: string, days: number) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function isOrderDateInWindow(value: string, asOf: string) {
+  return (
+    !!asOf &&
+    !!value &&
+    addCalendarDays(value, 0) === value &&
+    value >= asOf &&
+    value <= addCalendarDays(asOf, 6)
+  );
+}

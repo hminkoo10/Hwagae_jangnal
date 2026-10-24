@@ -355,11 +355,15 @@ def test_runtime_failures_and_invalid_identity_never_fall_back(demo):
     with database.connect() as db:
         assert db.execute("SELECT COUNT(*) FROM forecasts").fetchone()[0] == 0
     previous = (today() - timedelta(days=14)).isoformat()
+    runtime.invalid = False
+    past_weather = valid_weather(today() - timedelta(days=14))
+    past_weather["mode"] = "historical_reanalysis"
+    client.app.state.weather_reader = lambda *args: past_weather
     assert (
         client.post(
             prefix + f"/forecasts?as_of={previous}", headers=auth["owner"]
         ).status_code
-        == 422
+        == 200
     )
     client.put(
         prefix + "/forecast-settings",

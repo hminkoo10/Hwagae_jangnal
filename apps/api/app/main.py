@@ -22,7 +22,7 @@ from openpyxl.styles import Font, PatternFill
 from pydantic import BaseModel
 
 from app import forecasting
-from app.database import Database, encode, now_iso, password_matches, today
+from app.database import Database, encode, now_iso, password_matches, today, store_today
 from app.evaluation_report import evaluation_report
 from app.forecasting import run_forecast
 from app.imports import MAX_BYTES, parse_file
@@ -50,6 +50,10 @@ from app.schemas import (
     StoreInput,
 )
 from app.weather import get_weather, require_live_forecast
+from app.walmart_scenarios import (
+    WalmartTestInput, binding as walmart_binding, create_walmart_test_store,
+    model_context as walmart_model_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +154,13 @@ def create_app(db_path=None, seed=True):
             ).fetchone()
         if not row or (owner and row["role"] != "owner"):
             raise HTTPException(403, "이 매장 또는 작업에 접근할 권한이 없습니다.")
-        return dict(row)
+        return localized_store(dict(row))
+
+    def localized_store(store):
+        with database.connect() as db:
+            locale = db.execute("SELECT timezone,weather_provider FROM store_locales WHERE store_id=?", (store["id"],)).fetchone()
+        result = {**store, **(dict(locale) if locale else {"timezone": "Asia/Seoul", "weather_provider": "auto"})}
+        return {**result, "local_today": store_today(result).isoformat()}
 
     def find_product(store_id, product_id):
         with database.connect() as db:
@@ -183,7 +193,11 @@ def create_app(db_path=None, seed=True):
 
     def forecast_settings_response(store):
         provider = forecast_provider(store["id"])
-        if provider == "merchant_tft":
+        binding = walmart_binding(database, store["id"])
+        if provider == "merchant_tft" and binding:
+            runtime = application.state.model_runtime.status()
+            model = {"name": "Walmart 예보 TFT · 실험", "version": "provided-forecast-scenario-v1", "uses_weather": True, "training_data": "walmart", "experimental": True, "note": store["provenance"]}
+        elif provider == "merchant_tft":
             runtime = application.state.merchant_model_runtime.status()
             model = None
             try:
@@ -221,8 +235,13 @@ def create_app(db_path=None, seed=True):
                 "version": "weekday-empirical-v1",
                 "uses_weather": False,
             }
+        with database.connect() as db:
+            history = db.execute("SELECT MIN(date),MAX(date) FROM sales WHERE store_id=?", (store["id"],)).fetchone()
         return {
             "provider": provider,
+            "model_kind": "walmart" if binding else "synthetic",
+            "history_available_from": (date.fromisoformat(history[0]) + timedelta(days=55 if provider == "merchant_tft" else 27)).isoformat() if history[0] else None,
+            "history_available_to": history[1],
             "runtime": runtime,
             "model": model,
             "requirements": {
@@ -231,7 +250,7 @@ def create_app(db_path=None, seed=True):
                 "weather_fields": ["temp_max", "temp_min", "rain_mm"]
                 if provider == "merchant_tft"
                 else [],
-                "live_forecast_required": provider == "merchant_tft",
+                "live_forecast_required": False,
             },
             "data_note": store["provenance"],
         }
@@ -330,7 +349,7 @@ def create_app(db_path=None, seed=True):
                     (user["id"],),
                 )
             ]
-        return {"stores": rows, "today": today().isoformat()}
+        return {"stores": [localized_store(row) for row in rows], "today": today().isoformat()}
 
     @application.post("/stores", status_code=201, tags=["stores"])
     def create_store(payload: StoreInput, user=Depends(authenticated)):
@@ -356,6 +375,7 @@ def create_app(db_path=None, seed=True):
                 "INSERT INTO memberships VALUES (?,?,?)",
                 (user["id"], store_id, "owner"),
             )
+            db.execute("INSERT INTO store_locales VALUES (?,?,?)", (store_id, payload.timezone, "noaa_gfs" if payload.timezone.startswith("America/") else "auto"))
         return {"id": store_id}
 
     @application.post("/stores/test-weather", status_code=201, tags=["stores"])
@@ -367,6 +387,13 @@ def create_app(db_path=None, seed=True):
             ).fetchone():
                 raise HTTPException(403, "점주만 테스트 매장을 만들 수 있습니다.")
         return create_test_store(database, user["id"], payload)
+
+    @application.post("/stores/test-walmart", status_code=201, tags=["stores"])
+    def walmart_test_store(payload: WalmartTestInput, user=Depends(authenticated)):
+        with database.connect() as db:
+            if not db.execute("SELECT 1 FROM memberships WHERE user_id=? AND role='owner' LIMIT 1", (user["id"],)).fetchone():
+                raise HTTPException(403, "점주만 테스트 매장을 만들 수 있습니다.")
+        return create_walmart_test_store(database, user["id"], payload)
 
     @application.get("/stores/{store_id}/forecast-settings", tags=["forecast"])
     def get_forecast_settings(store_id: str, user=Depends(authenticated)):
@@ -498,10 +525,10 @@ def create_app(db_path=None, seed=True):
     async def preview(
         store_id: str, file: UploadFile = File(...), user=Depends(authenticated)
     ):
-        access(store_id, user)
+        store = access(store_id, user)
         try:
             content = await file.read(MAX_BYTES + 1)
-            rows, errors = parse_file(file.filename or "", content)
+            rows, errors = parse_file(file.filename or "", content, latest_date=store_today(store))
         except Exception as exc:
             message = (
                 str(exc)
@@ -545,8 +572,8 @@ def create_app(db_path=None, seed=True):
 
     @application.post("/stores/{store_id}/sales", status_code=201, tags=["sales"])
     def save_sales(store_id: str, payload: SalesBatch, user=Depends(authenticated)):
-        access(store_id, user)
-        if any(row.date > today() for row in payload.rows):
+        store = access(store_id, user)
+        if any(row.date > store_today(store) for row in payload.rows):
             raise HTTPException(422, "미래 날짜의 판매 기록은 저장할 수 없습니다.")
         if len({(row.date, row.product_id) for row in payload.rows}) != len(
             payload.rows
@@ -585,9 +612,10 @@ def create_app(db_path=None, seed=True):
     def save_inventory(
         store_id: str, product_id: str, payload: Inventory, user=Depends(authenticated)
     ):
-        access(store_id, user)
+        store = access(store_id, user)
         find_product(store_id, product_id)
-        if any(batch.arrives_on <= today() for batch in payload.incoming):
+        cutoff = store_today(store)
+        if any(batch.arrives_on <= cutoff for batch in payload.incoming):
             raise HTTPException(
                 422,
                 "이미 도착한 상품은 현재 재고로 입력하세요. 입고 예정일은 내일부터 가능합니다.",
@@ -599,7 +627,7 @@ def create_app(db_path=None, seed=True):
                     store_id,
                     product_id,
                     payload.model_dump_json(),
-                    today().isoformat(),
+                    cutoff.isoformat(),
                     now_iso(),
                 ),
             )
@@ -609,8 +637,8 @@ def create_app(db_path=None, seed=True):
     @application.get("/stores/{store_id}/weather", tags=["weather"])
     def weather(store_id: str, as_of: date | None = None, user=Depends(authenticated)):
         store = access(store_id, user)
-        cutoff = as_of or today()
-        if cutoff > today():
+        cutoff = as_of or store_today(store)
+        if cutoff > store_today(store):
             raise HTTPException(422, "기준일은 오늘 또는 과거 날짜여야 합니다.")
         return application.state.weather_reader(database, store, cutoff)
 
@@ -619,15 +647,11 @@ def create_app(db_path=None, seed=True):
         store_id: str, as_of: date | None = None, user=Depends(authenticated)
     ):
         store = access(store_id, user)
-        cutoff = as_of or today()
-        if cutoff > today():
+        cutoff = as_of or store_today(store)
+        if cutoff > store_today(store):
             raise HTTPException(422, "기준일은 오늘 또는 과거 날짜여야 합니다.")
         provider = forecast_provider(store_id)
-        if provider == "merchant_tft" and cutoff != today():
-            raise HTTPException(
-                422,
-                "실시간 예보 TFT는 오늘 기준으로만 실행합니다. 과거 비교는 요일 기준선을 선택하세요.",
-            )
+        binding = walmart_binding(database, store_id)
         if (
             provider == "merchant_tft"
             and not 1 <= len(database.products(store_id)) <= 50
@@ -639,24 +663,29 @@ def create_app(db_path=None, seed=True):
         weather_data = application.state.weather_reader(database, store, cutoff)
         if provider == "merchant_tft":
             try:
-                require_live_forecast(weather_data, cutoff)
+                require_live_forecast(weather_data, cutoff, timezone_name=store["timezone"], historical=cutoff < store_today(store))
             except ValueError as exc:
                 raise HTTPException(503, str(exc)) from None
         try:
             if provider == "merchant_tft":
 
                 def predictor(context):
-                    result = application.state.merchant_model_runtime.predict(context)
+                    if binding:
+                        result = application.state.model_runtime.predict(walmart_model_context(context, binding))
+                    else:
+                        result = application.state.merchant_model_runtime.predict(context)
                     model = result.get("model", {})
                     if (
                         model.get("uses_weather") is not True
-                        or model.get("training_data") != "synthetic"
+                        or model.get("training_data") != ("walmart" if binding else "synthetic")
                         or not isinstance(model.get("note"), str)
                         or not model["note"]
                     ):
                         raise ValueError(
                             "experimental merchant model metadata is missing"
                         )
+                    if binding:
+                        result["model"] = {**model, "name": "Walmart 예보 TFT · 실험" if cutoff == store_today(store) else "Walmart 과거 날씨 시나리오", "note": model["note"] + " " + store["provenance"] + " " + weather_data.get("note", "")}
                     return result
             else:
                 predictor = forecasting.baseline
@@ -685,7 +714,8 @@ def create_app(db_path=None, seed=True):
     ):
         store = access(store_id, user)
         _, forecast = saved_record("forecasts", payload.forecast_id, store_id)
-        if forecast["as_of"] != today().isoformat():
+        cutoff = store_today(store)
+        if forecast["as_of"] != cutoff.isoformat():
             raise HTTPException(
                 409,
                 "과거 재생은 수요 예측 비교용입니다. 현재 재고로 과거 발주량을 계산하지 않습니다.",
@@ -694,6 +724,9 @@ def create_app(db_path=None, seed=True):
             raise HTTPException(
                 409, "판매 기록 또는 상품 설정이 바뀌었습니다. 예측을 다시 생성하세요."
             )
+        order_date = payload.order_date or cutoff
+        if not cutoff <= order_date <= cutoff + timedelta(days=6):
+            raise HTTPException(422, "발주 예정일은 매장 현지 오늘부터 6일 뒤까지 선택하세요.")
         stock = database.stock(store_id)
         points = {product["product_id"]: product for product in forecast["products"]}
         products = database.products(store_id)
@@ -704,13 +737,14 @@ def create_app(db_path=None, seed=True):
                 409, "상품 목록이 바뀌었습니다. 예측을 다시 생성하세요."
             )
         rows = [
-            recommend(product, points[product["id"]], stock.get(product["id"]), today())
+            recommend(product, points[product["id"]], stock.get(product["id"]), cutoff, order_date)
             for product in products
         ]
         result = {
             "id": uuid.uuid4().hex,
             "forecast_id": payload.forecast_id,
             "as_of": forecast["as_of"],
+            "order_date": order_date.isoformat(),
             "rows": rows,
             "revision": store["revision"],
             "created_at": now_iso(),
@@ -765,7 +799,7 @@ def create_app(db_path=None, seed=True):
 
     @application.post("/stores/{store_id}/orders", status_code=201, tags=["orders"])
     def save_order(store_id: str, payload: OrderRequest, user=Depends(authenticated)):
-        access(store_id, user)
+        store = access(store_id, user)
         record, recommendation = saved_record(
             "recommendations", payload.recommendation_id, store_id
         )
@@ -789,6 +823,7 @@ def create_app(db_path=None, seed=True):
         ]
         result = {
             "as_of": recommendation["as_of"],
+            "order_date": recommendation.get("order_date", recommendation["as_of"]),
             "forecast_id": recommendation["forecast_id"],
             "lines": lines,
             "total": sum(line["amount"] for line in lines),
@@ -802,7 +837,7 @@ def create_app(db_path=None, seed=True):
             ).fetchone()[0]
             if (
                 revision != record["revision"]
-                or recommendation["as_of"] != today().isoformat()
+                or recommendation["as_of"] != store_today(store).isoformat()
             ):
                 raise HTTPException(
                     409, "계산 기준이 바뀌었습니다. 예측과 발주량을 다시 확인하세요."
@@ -825,7 +860,7 @@ def create_app(db_path=None, seed=True):
 
     @application.post("/stores/{store_id}/orders/{order_id}/confirm", tags=["orders"])
     def confirm_order(store_id: str, order_id: str, user=Depends(authenticated)):
-        access(store_id, user, owner=True)
+        store = access(store_id, user, owner=True)
         record, payload = saved_record("orders", order_id, store_id)
         with database.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -834,7 +869,7 @@ def create_app(db_path=None, seed=True):
             ).fetchone()[0]
             if (
                 revision != record["revision"]
-                or payload["as_of"] != today().isoformat()
+                or payload["as_of"] != store_today(store).isoformat()
             ):
                 raise HTTPException(
                     409, "현재 자료와 다른 발주안입니다. 다시 계산해 저장하세요."
@@ -884,6 +919,7 @@ def create_app(db_path=None, seed=True):
                 "수량(개)",
                 "매입원가(원)",
                 "합계(원)",
+                "발주예정일",
             ]
         ]
         rows += [
@@ -899,6 +935,7 @@ def create_app(db_path=None, seed=True):
                     line["quantity"],
                     line["cost"],
                     line["amount"],
+                    payload.get("order_date", payload["as_of"]),
                 ]
             ]
             for line in payload["lines"]
@@ -922,7 +959,7 @@ def create_app(db_path=None, seed=True):
                     Font(color="FFFFFF", bold=True),
                 )
             sheet.freeze_panes = "A2"
-            for column in "ABCDEFGHI":
+            for column in "ABCDEFGHIJ":
                 sheet.column_dimensions[column].width = 22
             stream = io.BytesIO()
             book.save(stream)

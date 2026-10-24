@@ -6,14 +6,15 @@ from datetime import datetime, timedelta, timezone
 
 import httpx2 as httpx
 
-from app.database import encode, now_iso, today
+from app.database import encode, now_iso, store_today
 
 
-def require_live_forecast(weather, as_of):
+def require_live_forecast(weather, as_of, *, timezone_name="Asia/Seoul", historical=False):
     """Validate the exact forecast snapshot before a weather model sees it."""
-    if weather.get("status") != "ok" or weather.get("mode") != "live_forecast":
-        raise ValueError("최신 실시간 예보 7일이 필요합니다. 날씨를 새로 조회하세요.")
-    if weather.get("timezone") != "Asia/Seoul" or weather.get("units") != {
+    modes = {"historical_reanalysis", "recent_weather"} if historical else {"live_forecast"}
+    if weather.get("status") != "ok" or weather.get("mode") not in modes:
+        raise ValueError("선택한 기준일의 완전한 날씨 7일이 필요합니다. 날씨를 새로 조회하세요.")
+    if weather.get("timezone") != timezone_name or weather.get("units") != {
         "temperature": "celsius",
         "precipitation": "mm",
     }:
@@ -50,9 +51,13 @@ def require_live_forecast(weather, as_of):
 
 def get_weather(database, store, as_of):
     start, end = as_of + timedelta(days=1), as_of + timedelta(days=7)
-    historical = as_of < today()
-    mode = "historical_reanalysis" if historical else "live_forecast"
-    key = f"v2:{store['latitude']}:{store['longitude']}:{as_of}:{mode}"
+    local_today = store_today(store)
+    historical = as_of < local_today
+    archive = historical and end <= local_today - timedelta(days=6)
+    mode = "historical_reanalysis" if archive else "recent_weather" if historical else "live_forecast"
+    timezone_name = store.get("timezone", "Asia/Seoul")
+    noaa = store.get("weather_provider") == "noaa_gfs"
+    key = f"v3:{store['latitude']}:{store['longitude']}:{timezone_name}:{noaa}:{as_of}:{mode}"
     with database.connect() as db:
         cached = db.execute(
             "SELECT * FROM weather_cache WHERE cache_key=?", (key,)
@@ -66,22 +71,23 @@ def get_weather(database, store, as_of):
     ):
         return {**json.loads(cached["payload"]), "cached": True}
     base = {
-        "source": "Open-Meteo",
-        "timezone": "Asia/Seoul",
+        "source": "Open-Meteo · 과거 재분석" if archive else "Open-Meteo · NOAA GFS/HRRR" if noaa else "Open-Meteo",
+        "timezone": timezone_name,
         "units": {"temperature": "celsius", "precipitation": "mm"},
         "mode": mode,
         "fetched_at": now_iso(),
         "cached": False,
         "days": [],
-        "note": "과거 재분석 자료이며 당시 발급된 예보가 아닙니다."
-        if historical
-        else "현재 제공되는 수치예보입니다.",
+        "note": "과거 재분석 자료를 넣는 시나리오이며 당시 발급된 예보로 평가한 결과가 아닙니다."
+        if archive else "최근 과거 수치모델 자료와 현재 예보를 사용하는 시나리오입니다. 당시 발급된 7일 예보가 아닙니다."
+        if historical else "현재 제공되는 수치예보입니다. 조회 시각은 기상모델의 발급 시각과 다릅니다.",
+        "location": {"latitude": store["latitude"], "longitude": store["longitude"]},
     }
-    if historical and end > today() - timedelta(days=6):
+    if as_of > local_today + timedelta(days=8):
         return {
             **base,
             "status": "unavailable",
-            "message": "최근 과거 구간은 재분석 자료가 준비되지 않았습니다. 2주 이전 날짜를 선택하세요.",
+            "message": "조회 가능한 예보 범위를 넘었습니다. 발주 예정일은 현재 7일 예측 안에서 선택하세요.",
         }
     fields = [
         "temperature_2m_max",
@@ -89,21 +95,25 @@ def get_weather(database, store, as_of):
         "precipitation_sum",
         "weather_code",
     ]
-    if not historical:
+    if noaa:
+        fields.extend(["temperature_2m_mean", "wind_speed_10m_mean"])
+    if not archive:
         fields.append("precipitation_probability_max")
     params = {
         "latitude": store["latitude"],
         "longitude": store["longitude"],
-        "timezone": "Asia/Seoul",
+        "timezone": timezone_name,
         "temperature_unit": "celsius",
         "precipitation_unit": "mm",
+        "wind_speed_unit": "ms",
         "daily": ",".join(fields),
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
     }
     url = (
         "https://archive-api.open-meteo.com/v1/archive"
-        if historical
+        if archive
+        else "https://api.open-meteo.com/v1/gfs" if noaa
         else "https://api.open-meteo.com/v1/forecast"
     )
     try:
@@ -125,6 +135,8 @@ def get_weather(database, store, as_of):
                 "date": day,
                 "temp_max": value("temperature_2m_max"),
                 "temp_min": value("temperature_2m_min"),
+                "temp_mean": value("temperature_2m_mean"),
+                "wind_mean_ms": value("wind_speed_10m_mean"),
                 "rain_mm": value("precipitation_sum"),
                 "rain_probability": value("precipitation_probability_max"),
                 "code": value("weather_code"),
@@ -143,9 +155,8 @@ def get_weather(database, store, as_of):
             )
             for i in range(7)
         ]
-        complete = all(
-            day["temp_max"] is not None and day["rain_mm"] is not None for day in days
-        )
+        required = ["temp_max", "temp_min", "rain_mm"] + (["temp_mean", "wind_mean_ms"] if noaa else [])
+        complete = all(day.get(field) is not None for day in days for field in required)
         result = {
             **base,
             "status": "ok" if complete else "partial",

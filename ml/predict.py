@@ -133,8 +133,9 @@ def predict_quantiles(context: dict) -> dict:
     """Offline verification output containing all five postprocessed quantiles.
 
     Use predict(), not this helper, as FORECAST_PROVIDER. The supplied historical
-    weather must be available by the cutoff. Future weather.days is deliberately
-    unused: this artifact was trained/evaluated with persistence, not live forecasts.
+    weather must be available by the cutoff. The default persistence path keeps
+    the original evaluation unchanged. Explicit provided_forecast scenarios use
+    model_input.forecast_weather, outside the validated training distribution.
     """
     runtime = _runtime()
     with runtime.lock:
@@ -147,7 +148,9 @@ def predict_quantiles(context: dict) -> dict:
             )
             loader = dataset.to_dataloader(
                 train=False, batch_size=64, num_workers=0, pin_memory=False,
-                collate_fn=PersistenceCollator(dataset.reals),
+                collate_fn=(PersistenceCollator(dataset.reals)
+                            if context["model_input"]["weather_strategy"] == "persistence"
+                            else TimeSeriesDataSet._collate_fn),
             )
             with torch.inference_mode():
                 for x, _ in loader:
@@ -172,8 +175,18 @@ def predict_quantiles(context: dict) -> dict:
                     for day in context["dates"]
                 ]
             output.append(product)
-        return {"model": {"name": "TFT Walmart persistence", "version": runtime.version,
-                          "uses_weather": True}, "products": output}
+        model = {"name": "TFT Walmart persistence", "version": runtime.version,
+                 "uses_weather": True}
+        if context["model_input"]["weather_strategy"] == "provided_forecast":
+            model.update(
+                name="Walmart TFT · 미국 날씨 시나리오",
+                training_data="walmart", experimental=True, weather_strategy="provided_forecast",
+                note=("Walmart 판매·과거 날씨로 학습한 기존 TFT에 별도로 조회한 날씨를 입력하는 실험입니다. "
+                      "마지막 관측 날씨 유지 방식으로 학습·평가했으므로 기존 평가 지표를 적용하지 않습니다. "
+                      "시연 지역은 원본 Walmart 매장의 실제 위치가 아니며, 날짜 이동 자료는 실제 현재 판매가 아닙니다. "
+                      "예보에 관측 trace 표시가 없어 강수량 숫자를 사용하고 trace 특징은 0으로 가정합니다."),
+            )
+        return {"model": model, "products": output}
 
 
 def predict(context: dict) -> dict:

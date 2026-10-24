@@ -4,8 +4,11 @@ import math
 from datetime import date, timedelta
 
 
-def simulate(quantity, demand, product, stock, as_of):
-    arrival = as_of + timedelta(days=product["lead_days"])
+def simulate(quantity, demand, product, stock, as_of, order_date=None):
+    order_date = order_date or as_of
+    if order_date < as_of:
+        raise ValueError("발주 예정일은 판매 마감 기준일보다 빠를 수 없습니다.")
+    arrival = order_date + timedelta(days=product["lead_days"])
     expiry = arrival + timedelta(days=product["shelf_days"] - 1)
     batches = [
         {
@@ -52,7 +55,11 @@ def simulate(quantity, demand, product, stock, as_of):
     }
 
 
-def recommend(product, forecast, stock, as_of):
+def recommend(product, forecast, stock, as_of, order_date=None):
+    order_date = order_date or as_of
+    delay = (order_date - as_of).days
+    if delay < 0:
+        raise ValueError("발주 예정일은 판매 마감 기준일보다 빠를 수 없습니다.")
     row = {
         "product_id": product["id"],
         "name": product["name"],
@@ -62,12 +69,13 @@ def recommend(product, forecast, stock, as_of):
         "amount": None,
         "status": "blocked",
         "current_stock": None,
-        "arrival_date": (as_of + timedelta(days=product["lead_days"])).isoformat(),
+        "order_date": order_date.isoformat(),
+        "arrival_date": (order_date + timedelta(days=product["lead_days"])).isoformat(),
     }
     if not stock:
         return {**row, "reason": "재고를 직접 입력하면 발주량을 계산합니다."}
     if stock["measured_on"] != as_of.isoformat():
-        return {**row, "reason": "오늘 기준으로 재고를 다시 확인하세요."}
+        return {**row, "reason": "판매 마감 기준일에 맞춰 재고를 다시 확인하세요."}
     if not stock["incoming_confirmed"]:
         return {**row, "reason": "입고 예정 유무를 확인하세요."}
     if any(item["arrives_on"] <= as_of.isoformat() for item in stock["incoming"]):
@@ -82,7 +90,9 @@ def recommend(product, forecast, stock, as_of):
     )
     if forecast["status"] != "ready":
         return {**row, "reason": "7일 예측에 필요한 판매 기록이 부족합니다."}
-    horizon = product["lead_days"] + product["review_days"] - 1
+    # Keep simulation anchored to measured stock. Demand before the planned
+    # order still consumes existing batches and scheduled incoming deliveries.
+    horizon = delay + product["lead_days"] + product["review_days"] - 1
     if horizon > len(forecast["points"]):
         return {
             **row,
@@ -97,17 +107,17 @@ def recommend(product, forecast, stock, as_of):
         [point[key] for point in forecast["points"][:horizon]]
         for key in ("p10", "p50", "p90")
     ]
-    upper = math.ceil(sum(scenarios[-1][product["lead_days"] - 1 :]))
+    upper = math.ceil(sum(scenarios[-1][delay + product["lead_days"] - 1 :]))
     step = max(1, math.ceil(upper / 250))
     candidates = set(range(0, upper + 1, step)) | {upper}
     for scenario in scenarios:
-        unmet = simulate(0, scenario, product, stock, as_of)["missed_units"]
+        unmet = simulate(0, scenario, product, stock, as_of, order_date)["missed_units"]
         for candidate in (math.floor(unmet), math.ceil(unmet)):
             candidates.add(max(0, min(upper, candidate)))
     best = None
     for quantity in sorted(candidates):
         results = [
-            simulate(quantity, scenario, product, stock, as_of)
+            simulate(quantity, scenario, product, stock, as_of, order_date)
             for scenario in scenarios
         ]
         loss = sum(result["loss"] for result in results) / 3

@@ -188,6 +188,62 @@ class PreprocessingTests(unittest.TestCase):
         self.assertEqual(results[0]["status"], "ready")
         self.assertTrue(frame.time_idx.is_monotonic_increasing)
 
+    def test_provided_weather_reaches_decoder_and_converts_si_without_fill(self):
+        context = sample_context()
+        context["model_input"]["weather_strategy"] = "provided_forecast"
+        context["model_input"]["forecast_weather"] = [
+            {"date": day, "tavg": 60 + index, "tmin": 50 + index, "tmax": 70 + index,
+             "preciptotal": index / 10, "avgspeed": 5 + index}
+            for index, day in enumerate(context["dates"])
+        ]
+        original = deepcopy(context)
+        native, _ = self.prepare(context)
+        for index, row in enumerate(context["model_input"]["forecast_weather"]):
+            for name in WEATHER_BASE:
+                self.assertAlmostEqual(native.iloc[56 + index][name], row[name], places=5)
+        self.assertTrue((native.iloc[56:][[name for name in WEATHER_FEATURES if name not in WEATHER_BASE]] == 0).all().all())
+        converted = deepcopy(context)
+        converted["model_input"]["weather_units"] = "si"
+        for row in [*converted["model_input"]["history_weather"], *converted["model_input"]["forecast_weather"]]:
+            for name in ("tavg", "tmax", "tmin"):
+                row[name] = (row[name] - 32) * 5 / 9
+            row["preciptotal"] *= 25.4
+            row["avgspeed"] *= 0.44704
+        si, _ = self.prepare(converted)
+        pd.testing.assert_frame_equal(native, si, check_exact=True)
+        self.assertEqual(context, original)
+
+    def test_provided_weather_rejects_missing_invalid_or_misaligned_data(self):
+        for case in ("missing", "short", "duplicate", "wrong_date", "reversed", "nan", "bool", "string",
+                     "temperature", "order", "negative_rain", "wind", "missing_field"):
+            with self.subTest(case=case):
+                context = sample_context()
+                spec = context["model_input"]
+                spec["weather_strategy"] = "provided_forecast"
+                rows = [{"date": day, **DEFAULTS} for day in context["dates"]]
+                spec["forecast_weather"] = rows
+                if case == "missing":
+                    del spec["forecast_weather"]
+                elif case == "short":
+                    rows.pop()
+                elif case == "duplicate":
+                    rows[1] = deepcopy(rows[0])
+                elif case == "wrong_date":
+                    rows[0]["date"] = context["as_of"]
+                elif case == "reversed":
+                    rows.reverse()
+                elif case == "missing_field":
+                    del rows[0]["tavg"]
+                elif case in {"nan", "bool", "string", "temperature", "order"}:
+                    rows[0]["tavg"] = {"nan": float("nan"), "bool": True, "string": "65", "temperature": 999,
+                                       "order": DEFAULTS["tmin"] - 1}[case]
+                elif case == "negative_rain":
+                    rows[0]["preciptotal"] = -1
+                else:
+                    rows[0]["avgspeed"] = 1000
+                with self.assertRaises(ValueError):
+                    self.prepare(context)
+
 
 if __name__ == "__main__":
     unittest.main()

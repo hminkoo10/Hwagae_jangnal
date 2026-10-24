@@ -78,6 +78,7 @@ jobs:
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_preprocess.py -v
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_evaluate.py -v
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_samples.py -v
+      - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_scenario_history.py -v
       - run: .model-venv/bin/python -m unittest discover -s ml/tests -p test_merchant_tft.py -v
 
   deploy:

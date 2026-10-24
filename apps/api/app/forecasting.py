@@ -113,10 +113,10 @@ def run_forecast(database, store, as_of, weather, predictor=None):
     if not model.get("name") or not model.get("version"):
         raise ValueError("모델 이름과 버전이 필요합니다.")
     if model["uses_weather"] and (
-        weather["status"] != "ok" or weather["mode"] != "live_forecast"
+        weather["status"] != "ok" or weather["mode"] not in {"live_forecast", "historical_reanalysis", "recent_weather"}
     ):
         raise ValueError(
-            "이 모델의 예측에 필요한 이용 가능한 실시간 예보가 없습니다. 과거 관측을 당시 예보로 대신하지 않습니다."
+            "이 모델의 예측에 필요한 날씨가 없습니다. 날씨 조회 상태와 대상 기간을 확인하세요."
         )
     names = {product["id"]: product["name"] for product in products}
     output, seen = [], set()

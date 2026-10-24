@@ -66,7 +66,7 @@ def test_weather_is_cached_and_failed_refresh_is_explicit(tmp_path, monkeypatch)
     assert unavailable["status"] == "unavailable" and unavailable["days"] == []
     recent = get_weather(database, store, today() - timedelta(days=1))
     assert (
-        recent["status"] == "unavailable" and recent["mode"] == "historical_reanalysis"
+        recent["status"] == "unavailable" and recent["mode"] == "recent_weather"
     )
 
 
