@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "python": "3.11.0",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "torch": "2.11.0+cpu",
+  "cuda_available": false,
+  "cpu_threads": 1,
+  "products": 10,
+  "sample_requests": 3,
+  "days": 7,
+  "quantiles": 5,
+  "samples": [
+    {
+      "store_id": "walmart-demo-4",
+      "as_of": "2014-09-12",
+      "products": 6
+    },
+    {
+      "store_id": "walmart-demo-24",
+      "as_of": "2014-09-12",
+      "products": 3
+    },
+    {
+      "store_id": "walmart-demo-17",
+      "as_of": "2014-09-12",
+      "products": 1
+    }
+  ],
+  "insufficient_history_case": "passed",
+  "atol": 0.0001,
+  "rtol": 1e-05,
+  "import_seconds": 12.8428,
+  "cold_load_and_predict_seconds": 0.9706,
+  "warm_predict_seconds": 0.4516
+}

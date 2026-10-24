@@ -25,8 +25,8 @@ ML_ROOT = Path(__file__).parents[1]
 
 
 def sample_context():
-    """Use the exact two-product handoff fixture for all request invariants."""
-    fixture = ML_ROOT / "examples" / "input.json"
+    """Use the exact six-product store-4 fixture for request invariants."""
+    fixture = ML_ROOT / "examples" / "input-store-4.json"
     return json.loads(fixture.read_text(encoding="utf-8"))
 
 
