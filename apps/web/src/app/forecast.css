@@ -1,12 +1,10 @@
 /* 7일 판매 예측 화면 보정. 다른 CSS 뒤에 불러온다. */
 
-/* 화면 제목 아래 설명: 좁은 화면에서도 단어 중간에서 끊기지 않게 한다. */
 .merchant-shell .page-heading p {
   max-width: 40em;
   word-break: keep-all;
 }
 
-/* 그래프 범례: 작은 화면에서도 읽히는 크기 */
 .merchant-shell .chart-legend {
   gap: 6px 18px;
   font-size: 13px;
@@ -18,7 +16,6 @@
   border-radius: 3px;
 }
 
-/* 상품·기준일 선택: 라벨은 위, 입력칸과 '오늘로' 버튼은 같은 높이로 맞춘다. */
 .merchant-shell .forecast-heading {
   align-items: flex-end;
 }
@@ -76,7 +73,6 @@
   }
 }
 
-/* 그래프 등장: 범위가 먼저 나타나고, 예상선이 그려진 뒤 점이 톡 튀어나온다. */
 @media all {
   .forecast-chart .forecast-band {
     animation: forecast-band-in 720ms var(--ui-ease, ease-out) both;
@@ -93,7 +89,7 @@
     animation-delay: calc(390ms + var(--i, 0) * 110ms);
   }
 }
-/* 7일 날씨: 날짜 순서대로 떠오른다. (motion-item은 motion.css) */
+/* motion-item 키프레임은 motion.css에 있다. */
 @media all {
   :is(.weather-days, .rail-weather-week) > * {
     animation: motion-item 450ms var(--ui-ease, ease-out) backwards;

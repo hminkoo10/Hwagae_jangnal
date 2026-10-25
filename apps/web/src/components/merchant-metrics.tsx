@@ -36,7 +36,6 @@ const titles: Record<Detail, string> = {
 
 export function MerchantMetrics(props: Props) {
   const [detail, setDetail] = useState<Detail | null>(null);
-  // 닫히는 동안에도 마지막 내용을 보여준다.
   const [shown, closing] = usePresence(detail);
   const summary = merchantSummary(
     props.products,

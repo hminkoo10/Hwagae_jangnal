@@ -38,7 +38,6 @@ export function SalesPanel({
   products: Product[];
   sales: SalesData;
   today: string;
-  /** 판매 기록 입력 권한이 없는 직원은 기록만 본다. */
   readOnly?: boolean;
 }) {
   const [file, setFile] = useState<File | null>(null);

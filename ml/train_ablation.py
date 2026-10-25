@@ -62,8 +62,7 @@ def write_json(path, value):
 
 
 def prepare_output_dir(path):
-    # Refuse before preprocessing writes its state or provenance. A failed
-    # rerun must not replace the evidence belonging to an existing checkpoint.
+    # Refuse before any write, so a failed rerun cannot replace an existing run's artifacts.
     if path.exists() and (not path.is_dir() or any(path.iterdir())):
         raise ValueError("output directory must be new or empty; existing run artifacts are preserved")
     path.mkdir(parents=True, exist_ok=True)
@@ -119,8 +118,8 @@ def prepare(args):
                      key_raw=load_csv(args.data_dir, "key.csv"))
     if args.num_workers is not None:
         namespace["NUM_WORKERS"] = args.num_workers
-    # These two reviewed cells contain schema validation, chronological splits,
-    # training-only selection/imputation and the causal daily panel, no training.
+    # Cells 7-8: schema validation, chronological splits, training-only
+    # selection/imputation and the causal daily panel; no training.
     exec(compile(source(7), str(NOTEBOOK), "exec"), namespace)
     exec(compile(source(8), str(NOTEBOOK), "exec"), namespace)
     expected = pd.read_csv(args.reference_run / "selected_series.csv", dtype=str)
@@ -148,8 +147,7 @@ def prepare(args):
 
 
 def create_model(dataset, config, *, training_seed=None):
-    # Override model initialization/shuffling only. Cohort preparation continues
-    # to use the unchanged reference configuration and selected-series guard.
+    # Seed overrides model init/shuffling only; the cohort keeps the reference config.
     pl.seed_everything(config["SEED"] if training_seed is None else training_seed, workers=True)
     return TemporalFusionTransformer.from_dataset(
         dataset, learning_rate=1e-3, hidden_size=config["HIDDEN_SIZE"], attention_head_size=4,

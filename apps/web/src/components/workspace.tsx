@@ -122,7 +122,6 @@ const mobileOrder: Tab[] = [
 const desktopOrder = tabs.map((item) => item.id);
 
 type Direction = "forward" | "back";
-/** 메뉴에서 뒤쪽 화면으로 가면 forward(오른쪽에서 들어옴), 앞쪽이면 back. */
 function tabDirection(from: Tab, to: Tab): Direction | null {
   if (from === to) return null;
   const order = window.matchMedia("(max-width: 900px)").matches
@@ -140,10 +139,6 @@ function useCssEntrance() {
   return entrance;
 }
 
-/**
- * 메뉴·매장을 바꿀 때 본문만 방향에 맞게 밀며 바뀐다(View Transitions API).
- * 지원하지 않으면 바로 바꾸고, 새 화면은 .view-enter로 나타난다.
- */
 function transitionView(direction: Direction | null, update: () => void) {
   if (!direction || typeof document.startViewTransition !== "function") {
     update();
@@ -186,7 +181,6 @@ function transitionView(direction: Direction | null, update: () => void) {
   window.setTimeout(settle, 600);
 }
 
-/** 탭 본문. 전환 중에 붙었으면 브라우저가 이미 움직였으므로 .view-enter를 생략한다. */
 function ViewStage({
   updating,
   children,
@@ -209,7 +203,6 @@ function ViewStage({
   );
 }
 
-/** 선택된 메뉴 뒤 배경. 전환 중에는 이전 메뉴 위치에서 미끄러져 오고, 아니면 살짝 커지며 나타난다. */
 function NavPill() {
   const entrance = useCssEntrance();
   return (
@@ -459,7 +452,6 @@ export default function Workspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  // 알림이 사라질 때도 잠깐 남겨 아래로 내려가며 사라지게 한다.
   const [toast, toastLeaving] = usePresence(notice);
   const [search, setSearch] = useState("");
   const [productCategory, setProductCategory] = useState("all");
@@ -564,7 +556,6 @@ export default function Workspace() {
 
   const ownsStore = stores.find((item) => item.id === storeId)?.role === "owner";
   useEffect(() => {
-    // 직원으로 소속된 매장으로 바꾸면 점주 전용 직원 관리에서 나온다.
     if (tab === "staff" && !ownsStore) setTab("overview");
   }, [tab, ownsStore]);
 
@@ -1259,7 +1250,6 @@ export default function Workspace() {
                     const next = stores.find((item) => item.id === nextId);
                     const from = stores.findIndex((item) => item.id === storeId);
                     const to = stores.findIndex((item) => item.id === nextId);
-                    // 목록에서 아래쪽 매장으로 바꾸면 오른쪽에서, 위쪽이면 왼쪽에서 들어온다.
                     transitionView(
                       from === to ? null : to > from ? "forward" : "back",
                       () => {

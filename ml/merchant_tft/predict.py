@@ -137,7 +137,7 @@ def predict(context):
                 raw = model(tensors(np.stack(arrays)))["prediction"].numpy()
             if raw.shape != (len(arrays), HORIZON, len(QUANTILES)) or not np.isfinite(raw).all():
                 raise ValueError("merchant TFT returned malformed quantiles")
-            # Same explicit five-quantile nonnegativity/order postprocessing.
+            # Same clip-at-zero-then-sort quantile postprocessing as ml/predict.py.
             values = np.sort(np.maximum(raw, 0.0), axis=-1) * scales[:, None, None]
             if np.any(values > 1_000_000):
                 raise ValueError("merchant TFT output exceeds the API quantity boundary")
