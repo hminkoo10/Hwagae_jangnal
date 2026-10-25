@@ -265,10 +265,11 @@ def run_chain(application, database, instruction, prompt, validate=None):
     if not enabled:
         raise HTTPException(409, "서비스 운영자가 AI 연결을 아직 설정하지 않았어요.")
     attempts = []
-    deadline = monotonic() + 70
+    # Nginx and the app wait 80 s; a slow model gets most of that before the next connection is tried.
+    deadline = monotonic() + 75
     secrets_store = SecretStore(database)
     for connection in enabled:
-        timeout = min(25, deadline - monotonic())
+        timeout = min(70, deadline - monotonic())
         if timeout < 1:
             break
         key = None
