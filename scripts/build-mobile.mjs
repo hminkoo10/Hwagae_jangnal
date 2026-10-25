@@ -4,8 +4,19 @@ import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/p
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// node scripts/build-mobile.mjs [store|admin]
+// store: owners and staff (apps/mobile). admin: service operators (apps/mobile-admin).
+const apps = {
+  store: { project: "mobile", appId: "kr.milky.hwagae" },
+  admin: { project: "mobile-admin", appId: "kr.milky.hwagae.admin" },
+};
+const variant = process.argv[2] ?? "store";
+if (!Object.hasOwn(apps, variant)) {
+  throw new Error(`Unknown mobile app "${variant}". Use one of: ${Object.keys(apps).join(", ")}.`);
+}
+const app = apps[variant];
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const mobile = join(root, "apps", "mobile");
+const mobile = join(root, "apps", app.project);
 const web = join(root, "apps", "web");
 const destination = join(mobile, "www");
 const require = createRequire(import.meta.url);
@@ -31,8 +42,11 @@ async function removeGenerated(target) {
 
 try {
   await cp(join(web, "src"), join(staging, "src"), { recursive: true });
-  // The app is for owners and staff; the operator console stays on the web at /admin.
-  await rm(join(staging, "src", "app", "admin"), { recursive: true, force: true });
+  const pages = join(staging, "src", "app");
+  // The operator app opens straight into the console; no route imports the merchant workspace.
+  if (variant === "admin") await cp(join(pages, "admin", "page.tsx"), join(pages, "page.tsx"));
+  // The store app is for owners and staff; operators use the operator app or the web /admin.
+  await rm(join(pages, "admin"), { recursive: true, force: true });
   await cp(join(web, "tsconfig.json"), join(staging, "tsconfig.json"));
   await cp(join(web, "package.json"), join(staging, "package.json"));
   await cp(join(web, "public"), join(staging, "public"), { recursive: true }).catch((error) => {
@@ -46,7 +60,7 @@ try {
   const child = spawnSync(process.execPath, [require.resolve("next/dist/bin/next"), "build", staging], {
     cwd: root,
     stdio: "inherit",
-    env: { ...process.env, NEXT_PUBLIC_API_BASE_URL: apiBase,
+    env: { ...process.env, NEXT_PUBLIC_API_BASE_URL: apiBase, NEXT_PUBLIC_HWAGAE_APP: variant,
       NEXT_PUBLIC_DEMO_LOGIN_ENABLED: "false", NEXT_TELEMETRY_DISABLED: "1" },
   });
   if (child.error || child.status !== 0) throw child.error ?? new Error("Mobile web build failed.");
@@ -55,10 +69,10 @@ try {
   await removeGenerated(destination);
   await cp(output, destination, { recursive: true });
   await writeFile(join(destination, "mobile-build.json"), JSON.stringify({
-    schema_version: 1, app_id: "kr.milky.hwagae", api_base: apiBase,
+    schema_version: 1, app: variant, app_id: app.appId, api_base: apiBase,
     demo_login: false, built_at: new Date().toISOString(),
   }, null, 2) + "\n");
-  console.log("Mobile bundle ready: apps/mobile/www (production API; no website build overwritten)");
+  console.log(`Mobile bundle ready: apps/${app.project}/www (${variant} app; production API; no website build overwritten)`);
 } finally {
   await removeGenerated(staging);
 }

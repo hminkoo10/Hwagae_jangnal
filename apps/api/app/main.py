@@ -290,6 +290,7 @@ def create_app(db_path=None, seed=True):
             if not account_available(db, row["id"]):
                 raise HTTPException(403, "계정 이용이 중지됐거나 계약 기간이 아니에요. 운영자에게 문의하세요.")
             operator = is_operator(db, row["id"])
+            creator = can_create_store(db, row["id"])
             token = secrets.token_urlsafe(32)
             db.execute("DELETE FROM sessions WHERE expires_at<=?", (now_iso(),))
             expiry = (datetime.now(timezone.utc) + timedelta(hours=12)).isoformat()
@@ -300,7 +301,7 @@ def create_app(db_path=None, seed=True):
         return {
             "token": token,
             "expires_at": expiry,
-            "user": {"id": row["id"], "name": row["name"], "email": row["email"], "platform_role": "operator" if operator else "merchant"},
+            "user": {"id": row["id"], "name": row["name"], "email": row["email"], "platform_role": "operator" if operator else "merchant", "can_create_stores": creator},
         }
 
     @application.get("/model-demo", tags=["model demo"])
@@ -352,7 +353,10 @@ def create_app(db_path=None, seed=True):
 
     @application.get("/auth/me", tags=["accounts"])
     def me(user=Depends(authenticated)):
-        return {key: user[key] for key in ("id", "name", "email", "platform_role")}
+        # A contracted owner may not have a store yet; the app still treats them as an owner.
+        with database.connect() as db:
+            creator = can_create_store(db, user["id"])
+        return {**{key: user[key] for key in ("id", "name", "email", "platform_role")}, "can_create_stores": creator}
 
     @application.post("/auth/logout", tags=["accounts"])
     def logout(user=Depends(authenticated)):
@@ -740,7 +744,7 @@ def create_app(db_path=None, seed=True):
             logger.exception("Forecast validation failed for store %s", store_id)
             raise HTTPException(
                 503,
-                "예보 또는 모델 입력·출력 조건을 확인하세요. 최신 날씨와 56일 판매 기록이 필요합니다.",
+                "예보 또는 모델 입력·출력 조건을 확인하세요. 최신 날씨와 최근 2달 판매 기록이 필요합니다.",
             ) from None
         except Exception:
             logger.exception("Forecast provider failed for store %s", store_id)

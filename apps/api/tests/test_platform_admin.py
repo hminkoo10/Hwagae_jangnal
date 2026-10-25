@@ -71,6 +71,9 @@ def test_contract_invite_accept_first_store_and_tenant_isolation(service):
     new=login('new@example.com',PASSWORD)
     assert client.get('/admin/overview',headers=new).status_code==403
     assert client.get('/stores',headers=new).json()['stores']==[]
+    # A contracted owner without a store yet is still an owner who can add one.
+    assert client.get('/auth/me',headers=new).json()['can_create_stores'] is True
+    assert client.get('/auth/me',headers=operator).json()['can_create_stores'] is False
     assert client.get('/stores/gwangju/products',headers=new).status_code==403
     result=client.post('/stores',headers=new,json={'name':'새 매장','city':'서울','latitude':37.5,'longitude':127,'timezone':'Asia/Seoul'})
     assert result.status_code==201,result.text

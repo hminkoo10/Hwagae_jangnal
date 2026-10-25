@@ -3,6 +3,7 @@ export type User = {
   name: string;
   email: string;
   platform_role?: "operator" | "merchant";
+  can_create_stores?: boolean;
 };
 export type Store = {
   id: string;

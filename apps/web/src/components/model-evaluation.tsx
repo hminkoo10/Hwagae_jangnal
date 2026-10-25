@@ -216,8 +216,11 @@ export function ModelEvaluationPanel({
           <div className={styles.notes}>
             <p>
               <strong>평가 조건</strong> {report.evaluation_period.start} ~{" "}
-              {report.evaluation_period.end} · 최근 {report.method.history_days}
-              일로 {report.method.forecast_days}일 예측 · seed{" "}
+              {report.evaluation_period.end} · 최근{" "}
+              {report.method.history_days === 56
+                ? "2달"
+                : `${report.method.history_days}일`}
+              로 {report.method.forecast_days}일 예측 · seed{" "}
               {report.method.seed}. 미래 날씨는 마지막 관측값이 이어진다고
               가정해요. {report.method.sampling}
             </p>

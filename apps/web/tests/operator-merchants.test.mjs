@@ -133,6 +133,8 @@ test("management renders one semantic table with scoped headers and appropriate 
   assert.match(html, /legacy@example.com/);
   assert.match(html, /나 점주 초대 링크 재발급/);
   assert.match(html, /계약 연결/);
+  assert.equal((html.match(/점주 삭제<\/button>/g) || []).length, 3);
+  assert.match(html, /aria-label="다 점주 점주 삭제"/);
   assert.match(html, /aria-expanded="false"/);
   assert.doesNotMatch(html, /<article\b|responsive-table/);
   const empty = renderToStaticMarkup(
