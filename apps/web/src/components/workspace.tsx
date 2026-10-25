@@ -29,7 +29,7 @@ import { ModelDemo } from "./model-demo";
 import { NATIVE_BACK_EVENT } from "./native-shell";
 import { MerchantModelPanel } from "./merchant-model-panel";
 import { InitialData } from "./initial-data";
-import { AiSettings, AiExplanation } from "./ai-settings";
+import { AiExplanation } from "./ai-settings";
 import { AiAssistant, ASSISTANT_TASKS } from "./ai-assistant";
 import { AiSalesMemo } from "./ai-memo";
 import { OperatorDashboard } from "./operator-dashboard";
@@ -44,48 +44,42 @@ type Tab =
   | "inventory"
   | "products"
   | "orders"
-  | "ai-settings"
   | "model-demo";
 const tabs: { id: Tab; label: string; description: string }[] = [
   {
     id: "overview",
     label: "홈",
-    description: "오늘 필요한 수량을 확인해요.",
+    description: "오늘 할 일과 발주가 필요한 상품을 한눈에 봐요.",
   },
   {
     id: "forecast",
     label: "7일 판매 예측",
-    description: "앞으로 7일, 얼마나 팔릴지 확인해요.",
+    description: "상품별로 앞으로 7일 판매량과 날씨를 확인해요.",
   },
   {
     id: "sales",
     label: "판매 기록",
-    description: "날짜별로 팔린 개수를 모아요.",
+    description: "날짜별로 팔린 개수를 입력하고 확인해요.",
   },
   {
     id: "inventory",
     label: "재고 확인",
-    description: "남은 수량과 도착할 상품을 확인해요.",
+    description: "지금 남은 수량을 입력하고 도착할 상품을 확인해요.",
   },
   {
     id: "products",
     label: "상품 · 공급사",
-    description: "상품 가격과 유통기한·발주 주기를 관리해요.",
+    description: "파는 상품과 가격, 공급사, 발주 주기를 관리해요.",
   },
   {
     id: "orders",
     label: "발주 계획",
-    description: "발주할 수량을 정하고 발주서를 만들어요.",
-  },
-  {
-    id: "ai-settings",
-    label: "AI 도우미",
-    description: "발주 이유를 쉬운 말로 설명받아요. 연결은 선택사항이에요.",
+    description: "추천 수량을 보고 발주할 양을 정해요.",
   },
   {
     id: "model-demo",
     label: "TFT 모델 체험",
-    description: "과거 공개 데이터로 학습한 모델의 예측을 직접 실행해보세요.",
+    description: "공개 판매 자료로 배운 예측 모델을 직접 돌려봐요.",
   },
 ];
 type Bundle = {
@@ -966,11 +960,7 @@ export default function Workspace() {
         <div className="workspace-label">매장 운영</div>
         <nav className="desktop-navigation" aria-label="주 메뉴">
           {tabs
-            .filter(
-              (item) =>
-                item.id !== "model-demo" &&
-                (item.id !== "ai-settings" || owner),
-            )
+            .filter((item) => item.id !== "model-demo")
             .map((item) => (
               <button
                 key={item.id}
@@ -992,10 +982,9 @@ export default function Workspace() {
           {([ ["overview", "홈"], ["forecast", "예측"], ["inventory", "재고"], ["orders", "발주"] ] as const).map(([id, label]) =>
             <button key={id} type="button" className={`nav-item ${tab === id ? "active" : ""}`} aria-current={tab === id ? "page" : undefined}
               disabled={busy} onClick={() => navigate(id)}><Icon name={id} size={19} /><span>{label}</span></button>)}
-          <Select aria-label="더보기 메뉴" value={(["sales", "products", "ai-settings"] as string[]).includes(tab) ? tab : ""}
+          <Select aria-label="더보기 메뉴" value={(["sales", "products"] as string[]).includes(tab) ? tab : ""}
             disabled={busy} onChange={event => navigate(event.target.value as Tab)}>
             <option value="" disabled>더보기</option><option value="sales">판매 기록</option><option value="products">상품</option>
-            {owner && <option value="ai-settings">AI 연결</option>}
           </Select>
         </nav>
         <div className="sidebar-bottom">
@@ -1049,7 +1038,7 @@ export default function Workspace() {
                   ? (store?.name ?? "우리 매장")
                   : currentTab.label}
               </h1>
-              {tab !== "overview" && <p>{currentTab.description}</p>}
+              <p>{currentTab.description}</p>
               {!modelDemo && store?.timezone && (
                 <p>
                   {store.city} · {today} 마감 기준
@@ -1070,8 +1059,6 @@ export default function Workspace() {
                     recommendationRequest.current?.abort();
                     setRecommendation(null);
                     setStoreId(event.target.value);
-                    if (tab === "ai-settings" && next?.role !== "owner")
-                      setTab("overview");
                     setSearch("");
                     setAsOf(next?.local_today ?? serverToday);
                     setInventoryProduct(null);
@@ -1149,17 +1136,8 @@ export default function Workspace() {
               asOf={asOf}
               today={today}
               weatherMode={forecast?.weather.mode}
-              owner={owner}
               busy={busy}
-              onBusyChange={setBusy}
               onSessionExpired={clearSession}
-              onChanged={() => {
-                setForecastResult(null);
-                setRecommendation(null);
-                setAsOf(today);
-                setReload((value) => value + 1);
-                setNotice("예측 방식을 바꿨어요. 새 모델로 다시 계산해요.");
-              }}
             />
           )}
           {!modelDemo &&
@@ -1200,29 +1178,20 @@ export default function Workspace() {
                 )}
               </div>
             )}
-          {tab === "ai-settings" && owner && store && (
-            <AiSettings
-              key={`${token}:${storeId}`}
-              token={token}
-              storeId={storeId}
-              onExpired={clearSession}
-              onChanged={() => setAiReload(value => value + 1)}
-            />
-          )}
-          {!modelDemo && store && tab !== "ai-settings" && !aiReady && (
+          {!modelDemo && store && !aiReady && (
             <section className="panel ai-required" aria-live="polite">
-              <Icon name="ai-settings" size={26} /><h2>매장 도우미를 먼저 연결해주세요</h2>
-              <p>{aiStatus?.storeId === storeId ? aiStatus.error ?? (owner ? "처음 한 번 연결하면 판매 기록과 발주 이유를 함께 정리해드려요." : "점주가 AI를 연결하면 이용할 수 있어요.") : "매장 연결을 확인하고 있어요…"}</p>
-              {owner && <button type="button" className="button primary" onClick={() => navigate("ai-settings")}>AI 연결하기</button>}
-              {aiStatus?.error && <button type="button" className="text-button" onClick={() => setAiReload(value => value + 1)}>다시 확인</button>}
+              <Icon name="ai-settings" size={26} /><h2>AI 도우미가 아직 준비되지 않았어요</h2>
+              <p>{aiStatus?.storeId === storeId ? aiStatus.error ?? "서비스 운영자가 AI를 연결하면 바로 사용할 수 있어요." : "매장 연결을 확인하고 있어요…"}</p>
+              {aiStatus?.storeId === storeId && <button type="button" className="text-button" onClick={() => setAiReload(value => value + 1)}>다시 확인</button>}
             </section>
           )}
-          {!modelDemo && data && (aiReady || tab === "ai-settings") && (
+          {!modelDemo && data && aiReady && (
             <div
-              className={loading ? "content-updating" : undefined}
+              key={`${storeId}:${tab}`}
+              className={loading ? "view-enter content-updating" : "view-enter"}
               aria-busy={loading}
             >
-              {!allData?.products.length && owner && tab !== "ai-settings" && (
+              {!allData?.products.length && owner && (
                 <InitialData
                   key={storeId}
                   token={token}
@@ -1237,7 +1206,7 @@ export default function Workspace() {
                   token={token} storeId={storeId} onExpired={clearSession}
                   tab={tab as keyof typeof ASSISTANT_TASKS} asOf={asOf}
                   forecastId={forecast?.as_of === asOf ? forecast.id : undefined}
-                  disabled={busy || loading} onSetup={() => navigate("ai-settings")}
+                  disabled={busy || loading}
                 /></details>
               )}
               {tab === "overview" && store && data.products.length > 0 && (
@@ -1396,21 +1365,24 @@ export default function Workspace() {
                         </p>
                       </div>
                       <div className="forecast-controls">
-                        <Select
-                          aria-label="예측 상품 선택"
-                          value={selectedForecast?.product_id ?? ""}
-                          onChange={(event) =>
-                            setSelectedProduct(event.target.value)
-                          }
-                        >
-                          {data.products.map((product) => (
-                            <option key={product.id} value={product.id}>
-                              {product.name}
-                            </option>
-                          ))}
-                        </Select>
-                        <label className="date-picker">
-                          판매 기준일
+                        <label className="forecast-field forecast-product">
+                          <span>상품</span>
+                          <Select
+                            aria-label="예측 상품 선택"
+                            value={selectedForecast?.product_id ?? ""}
+                            onChange={(event) =>
+                              setSelectedProduct(event.target.value)
+                            }
+                          >
+                            {data.products.map((product) => (
+                              <option key={product.id} value={product.id}>
+                                {product.name}
+                              </option>
+                            ))}
+                          </Select>
+                        </label>
+                        <label className="forecast-field forecast-date">
+                          <span>판매 기준일</span>
                           <DateField
                             aria-label="예측 기준일"
                             value={asOf}
@@ -1427,7 +1399,9 @@ export default function Workspace() {
                         </label>
                         {replay && (
                           <button
-                            className="button secondary small"
+                            type="button"
+                            className="button secondary forecast-today"
+                            disabled={busy}
                             onClick={() => setAsOf(today)}
                           >
                             오늘로

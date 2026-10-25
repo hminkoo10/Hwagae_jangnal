@@ -1,4 +1,4 @@
-"""Owner permissions, credential boundaries, provider adapters and real failover."""
+"""Operator permissions, credential boundaries, provider adapters and real failover."""
 
 import json
 import os
@@ -25,6 +25,13 @@ def service(tmp_path, monkeypatch):
         for role in ("owner", "staff"):
             response = client.post("/auth/login", json={"email": f"{role}@hwagae.local", "password": "hwagae-demo"})
             auth[role] = {"Authorization": "Bearer " + response.json()["token"]}
+        with app.state.database.connect() as db:
+            # The service operator manages one AI connection list for every store.
+            row = db.execute("SELECT * FROM users WHERE id='demo-owner'").fetchone()
+            db.execute("INSERT INTO users VALUES (?,?,?,?,?)", ("operator", "operator@example.com", "운영자", row["salt"], row["password_hash"]))
+            db.execute("INSERT INTO platform_operators VALUES (?)", ("operator",))
+        response = client.post("/auth/login", json={"email": "operator@example.com", "password": "hwagae-demo"})
+        auth["operator"] = {"Authorization": "Bearer " + response.json()["token"]}
         yield app, client, auth
 
 
@@ -34,8 +41,8 @@ def config(name="기본 AI", key=KEY1, **kwargs):
             "enabled": True, **kwargs}
 
 
-def save(client, auth, connections, revision=0, store="gwangju"):
-    return client.put(f"/stores/{store}/ai/settings", headers=auth, json={"revision": revision, "connections": connections})
+def save(client, auth, connections, revision=0):
+    return client.put("/platform/ai/settings", headers=auth, json={"revision": revision, "connections": connections})
 
 
 def ok(text="연결됐어요"):
@@ -44,24 +51,28 @@ def ok(text="연결됐어요"):
 
 def test_permissions_and_read_only_empty_settings(service):
     app, client, auth = service
-    assert client.get("/stores/gwangju/ai/settings").status_code == 401
-    assert client.get("/stores/gwangju/ai/settings", headers=auth["staff"]).status_code == 403
-    assert client.get("/stores/gwangju/ai/settings", headers=auth["owner"]).json() == {"revision": 0, "connections": []}
+    assert client.get("/platform/ai/settings").status_code == 401
+    for role in ("staff", "owner"):
+        assert client.get("/platform/ai/settings", headers=auth[role]).status_code == 403
+        for endpoint in ("models", "test"):
+            assert client.post("/platform/ai/" + endpoint, headers=auth[role], json={"gateway": "https://example.com", "api_key": KEY1}).status_code == 403
+        assert save(client, auth[role], [config()]).status_code == 403
+        assert client.get("/stores/gwangju/ai/settings", headers=auth[role]).status_code in (404, 405)
+    assert client.get("/platform/ai/settings", headers=auth["operator"]).json() == {"revision": 0, "connections": []}
+    assert client.get("/stores/gwangju/ai/status", headers=auth["staff"]).json() == {"ready": False}
     assert not (app.state.database.path.parent / "ai-master.key").exists()
-    for endpoint in ("models", "test", "explain/unknown"):
-        assert client.post("/stores/gwangju/ai/" + endpoint, headers=auth["staff"], json={"gateway": "https://example.com", "api_key": KEY1}).status_code == 403
-    assert save(client, auth["staff"], [config()]).status_code == 403
+    assert client.post("/stores/gwangju/ai/explain/unknown", headers=auth["staff"]).status_code == 403
 
 
 def test_keys_encrypted_and_not_returned_and_edits_keep_old_key(service):
     app, client, auth = service
-    result = save(client, auth["owner"], [config(), config("예비 AI", KEY2)])
+    result = save(client, auth["operator"], [config(), config("예비 AI", KEY2)])
     assert result.status_code == 200, result.text
     assert KEY1 not in result.text and KEY2 not in result.text and "encrypted_key" not in result.text
     settings = result.json()
     assert all(c["key_set"] for c in settings["connections"])
     with app.state.database.connect() as db:
-        payload = db.execute("SELECT payload FROM ai_settings WHERE store_id='gwangju'").fetchone()[0]
+        payload = db.execute("SELECT payload FROM platform_ai_settings WHERE id=1").fetchone()[0]
     assert KEY1 not in payload and KEY2 not in payload
     cipher = json.loads(payload)[0]["encrypted_key"]
     assert SecretStore(app.state.database).decrypt(cipher) == KEY1
@@ -70,14 +81,14 @@ def test_keys_encrypted_and_not_returned_and_edits_keep_old_key(service):
         assert path.stat().st_mode & 0o777 == 0o600
     rows = [{k: v for k, v in c.items() if k != "key_set"} for c in settings["connections"]]
     rows.reverse(); rows[0]["model"] = "another-model"
-    result = save(client, auth["owner"], rows, revision=1)
+    result = save(client, auth["operator"], rows, revision=1)
     assert result.status_code == 200
     assert [c["name"] for c in result.json()["connections"]] == ["예비 AI", "기본 AI"]
-    assert save(client, auth["owner"], [], revision=1).status_code == 409
+    assert save(client, auth["operator"], [], revision=1).status_code == 409
     rows[0]["gateway"] = "https://different.example/v1"
-    assert save(client, auth["owner"], rows, revision=2).status_code == 400
+    assert save(client, auth["operator"], rows, revision=2).status_code == 400
     rows[0]["api_key"] = "replacement-key-not-real"
-    assert save(client, auth["owner"], rows, revision=2).status_code == 200
+    assert save(client, auth["operator"], rows, revision=2).status_code == 200
 
 
 def test_models_draft_and_existing_keys_do_not_cross_gateways_or_stores(service):
@@ -87,19 +98,17 @@ def test_models_draft_and_existing_keys_do_not_cross_gateways_or_stores(service)
         calls.append((gateway, key, endpoint))
         return {"data": [{"id": "model-b"}, {"id": "model-a"}, {"id": "model-a"}, {"id": key}]}
     app.state.ai_request = provider
-    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://gateway.example/v1/", "api_key": KEY1})
+    result = client.post("/platform/ai/models", headers=auth["operator"], json={"gateway": "https://gateway.example/v1/", "api_key": KEY1})
     assert result.json() == {"models": ["model-a", "model-b"]}
-    assert client.get("/stores/gwangju/ai/settings", headers=auth["owner"]).json()["connections"] == []
-    connection = save(client, auth["owner"], [config()]).json()["connections"][0]
+    assert client.get("/platform/ai/settings", headers=auth["operator"]).json()["connections"] == []
+    connection = save(client, auth["operator"], [config()]).json()["connections"][0]
     payload = {"gateway": connection["gateway"], "connection_id": connection["id"]}
-    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json=payload)
+    result = client.post("/platform/ai/models", headers=auth["operator"], json=payload)
     assert result.status_code == 200 and calls[-1][1] == KEY1
     count = len(calls)
-    assert client.post("/stores/busan/ai/models", headers=auth["owner"], json=payload).status_code == 400
     payload["gateway"] = "https://other.example/v1"
-    assert client.post("/stores/gwangju/ai/models", headers=auth["owner"], json=payload).status_code == 400
+    assert client.post("/platform/ai/models", headers=auth["operator"], json=payload).status_code == 400
     assert len(calls) == count
-    assert client.get("/stores/busan/ai/settings", headers=auth["owner"]).json()["connections"] == []
 
 
 def test_official_claude_root_uses_v1_models_and_native_protocol_without_saving(service):
@@ -111,17 +120,17 @@ def test_official_claude_root_uses_v1_models_and_native_protocol_without_saving(
             raise GatewayFailure("request")
         return {"data": [{"id": "claude-fixture-model"}]}
     app.state.ai_request = provider
-    response = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://api.anthropic.com", "api_key": KEY1})
+    response = client.post("/platform/ai/models", headers=auth["operator"], json={"gateway": "https://api.anthropic.com", "api_key": KEY1})
     assert response.status_code == 200, response.text
     assert response.json() == {"models": ["claude-fixture-model"]}
     assert calls == [("https://api.anthropic.com/v1", "/models", "anthropic")]
-    assert client.get("/stores/gwangju/ai/settings", headers=auth["owner"]).json()["connections"] == []
+    assert client.get("/platform/ai/settings", headers=auth["operator"]).json()["connections"] == []
     assert KEY1 not in response.text
 
 
 def test_claude_native_message_and_incomplete_fallback(service):
     app, client, auth = service
-    response = save(client, auth["owner"], [config(gateway="https://api.anthropic.com", protocol="anthropic", reasoning_effort="medium"), config("예비", KEY2)])
+    response = save(client, auth["operator"], [config(gateway="https://api.anthropic.com", protocol="anthropic", reasoning_effort="medium"), config("예비", KEY2)])
     assert response.status_code == 200, response.text
     assert response.json()["connections"][0]["gateway"] == "https://api.anthropic.com/v1"
     calls = []
@@ -132,7 +141,7 @@ def test_claude_native_message_and_incomplete_fallback(service):
             return ok("예비 연결 성공")
         return {"type": "message", "role": "assistant", "stop_reason": state["stop"], "content": [{"type": "thinking", "thinking": "숨은 추론"}, {"type": "text", "text": "Claude 연결 성공"}]}
     app.state.ai_request = provider
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 200, result.text
     assert result.json()["text"] == "Claude 연결 성공"
     endpoint, options = calls[0]
@@ -142,24 +151,24 @@ def test_claude_native_message_and_incomplete_fallback(service):
     assert body["max_tokens"] == 8192 and body["output_config"] == {"effort": "medium"}
     assert not {"store", "reasoning_effort", "max_completion_tokens"} & body.keys()
     state["stop"] = "max_tokens"
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 200 and result.json()["fallback_used"]
     assert [item["status"] for item in result.json()["attempts"]] == ["invalid_response", "ok"]
 
 
 def test_official_claude_old_client_is_detected_and_custom_provider_uses_its_saved_protocol(service):
     app, client, auth = service
-    saved = save(client, auth["owner"], [config(gateway="https://api.anthropic.com", reasoning_effort="default")])
+    saved = save(client, auth["operator"], [config(gateway="https://api.anthropic.com", reasoning_effort="default")])
     assert saved.status_code == 200
     assert saved.json()["connections"][0]["protocol"] == "anthropic"
     provider = Mock(return_value={"type": "message", "role": "assistant", "stop_reason": "end_turn", "content": [{"type": "text", "text": "정상"}]})
     app.state.ai_request = provider
-    assert client.post("/stores/gwangju/ai/test", headers=auth["owner"]).status_code == 200
+    assert client.post("/platform/ai/test", headers=auth["operator"]).status_code == 200
     assert "output_config" not in provider.call_args.kwargs["payload"]
     assert provider.call_args.args[2] == "/messages"
-    saved = save(client, auth["owner"], [config(protocol="anthropic", reasoning_effort="default")], revision=1).json()["connections"][0]
+    saved = save(client, auth["operator"], [config(protocol="anthropic", reasoning_effort="default")], revision=1).json()["connections"][0]
     provider.return_value = {"data": [{"id": "claude-test"}]}
-    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": saved["gateway"], "connection_id": saved["id"]})
+    result = client.post("/platform/ai/models", headers=auth["operator"], json={"gateway": saved["gateway"], "connection_id": saved["id"]})
     assert result.status_code == 200
     assert provider.call_args.kwargs["protocol"] == "anthropic"
     assert "api_key" not in result.text and KEY1 not in result.text
@@ -168,18 +177,18 @@ def test_official_claude_old_client_is_detected_and_custom_provider_uses_its_sav
 @pytest.mark.parametrize("stop,content", [("max_tokens", [{"type":"text","text":"부분 응답"}]), ("end_turn", [{"type":"thinking","thinking":"숨은 추론"}]), ("end_turn", [{"type":"text","text":KEY1}]), ("tool_use", [{"type":"text","text":"도구 요청"}])])
 def test_claude_rejects_incomplete_thinking_only_or_secret_echo(service, stop, content):
     app, client, auth = service
-    assert save(client, auth["owner"], [config(protocol="anthropic", reasoning_effort="default")]).status_code == 200
+    assert save(client, auth["operator"], [config(protocol="anthropic", reasoning_effort="default")]).status_code == 200
     app.state.ai_request = Mock(return_value={"type": "message", "role": "assistant", "stop_reason": stop, "content": content})
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 503 and KEY1 not in result.text
     assert result.json()["detail"]["attempts"][0]["status"] == "invalid_response"
 
 
 def test_claude_unsupported_effort_does_not_silently_change_the_requested_value(service):
     app, client, auth = service
-    assert save(client, auth["owner"], [config(protocol="anthropic", reasoning_effort="minimal"), config("예비", KEY2)]).status_code == 200
+    assert save(client, auth["operator"], [config(protocol="anthropic", reasoning_effort="minimal"), config("예비", KEY2)]).status_code == 200
     app.state.ai_request = Mock(return_value=ok())
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 200 and result.json()["fallback_used"]
     assert app.state.ai_request.call_count == 1
     assert app.state.ai_request.call_args.args[1] == KEY2
@@ -190,7 +199,7 @@ def test_claude_unsupported_effort_does_not_silently_change_the_requested_value(
 def test_model_lookup_failure_explains_the_safe_cause(service, kind, wording):
     app, client, auth = service
     app.state.ai_request = Mock(side_effect=GatewayFailure(kind))
-    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
+    result = client.post("/platform/ai/models", headers=auth["operator"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
     # Cloudflare replaces origin 502 bodies; expected provider failures must
     # survive the edge so the merchant can see the actual corrective action.
     assert result.status_code == 424
@@ -201,7 +210,7 @@ def test_model_lookup_failure_explains_the_safe_cause(service, kind, wording):
 def test_unreadable_model_list_preserves_safe_dependency_error(service):
     app, client, auth = service
     app.state.ai_request = Mock(return_value=None)
-    result = client.post("/stores/gwangju/ai/models", headers=auth["owner"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
+    result = client.post("/platform/ai/models", headers=auth["operator"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
     assert result.status_code == 424
     assert "목록" in result.json()["detail"]
     assert KEY1 not in result.text
@@ -210,7 +219,7 @@ def test_unreadable_model_list_preserves_safe_dependency_error(service):
 @pytest.mark.parametrize("failure", ["authentication", "rate_limit", "timeout", "network", "provider", "request", "invalid_response", "blocked_address"])
 def test_ordered_fallback_skips_disabled_connections(service, failure):
     app, client, auth = service
-    save(client, auth["owner"], [config(), config("제외", "disabled-key-not-real", enabled=False), config("예비", KEY2)])
+    save(client, auth["operator"], [config(), config("제외", "disabled-key-not-real", enabled=False), config("예비", KEY2)])
     calls = []
     def provider(gateway, key, endpoint, **kwargs):
         calls.append((key, kwargs))
@@ -218,7 +227,7 @@ def test_ordered_fallback_skips_disabled_connections(service, failure):
             raise GatewayFailure(failure)
         return ok("예비 AI 응답")
     app.state.ai_request = provider
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 200, result.text
     assert result.json()["fallback_used"] is True
     assert [a["status"] for a in result.json()["attempts"]] == [failure, "ok"]
@@ -231,17 +240,17 @@ def test_ordered_fallback_skips_disabled_connections(service, failure):
 
 def test_success_stops_chain_and_default_effort_is_omitted(service):
     app, client, auth = service
-    save(client, auth["owner"], [config(reasoning_effort="default"), config("예비", KEY2)])
+    save(client, auth["operator"], [config(reasoning_effort="default"), config("예비", KEY2)])
     provider = Mock(return_value=ok())
     app.state.ai_request = provider
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.json()["fallback_used"] is False and provider.call_count == 1
     assert "reasoning_effort" not in provider.call_args.kwargs["payload"]
 
 
 def test_responses_wire_format_and_incomplete_response_fallback(service):
     app, client, auth = service
-    save(client, auth["owner"], [config(protocol="responses"), config("예비", KEY2, protocol="responses", reasoning_effort="max")])
+    save(client, auth["operator"], [config(protocol="responses"), config("예비", KEY2, protocol="responses", reasoning_effort="max")])
     calls = []
     def provider(gateway, key, endpoint, **kwargs):
         calls.append((endpoint, kwargs["payload"]))
@@ -249,7 +258,7 @@ def test_responses_wire_format_and_incomplete_response_fallback(service):
             return {"status": "incomplete", "output": []}
         return {"status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "성공"}]}]}
     app.state.ai_request = provider
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 200 and result.json()["fallback_used"]
     assert calls[1][0] == "/responses" and calls[1][1]["reasoning"] == {"effort": "max"}
     assert "reasoning_effort" not in calls[1][1]
@@ -259,20 +268,20 @@ def test_no_enabled_models_and_invalid_outputs(service):
     app, client, auth = service
     provider = Mock(return_value=ok(KEY1))
     app.state.ai_request = provider
-    assert client.post("/stores/gwangju/ai/test", headers=auth["owner"]).status_code == 409
+    assert client.post("/platform/ai/test", headers=auth["operator"]).status_code == 409
     assert provider.call_count == 0
-    save(client, auth["owner"], [config()])
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    save(client, auth["operator"], [config()])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 503 and KEY1 not in result.text
     assert result.json()["detail"]["attempts"][0]["status"] == "invalid_response"
 
 
 def test_missing_master_key_is_not_silently_regenerated(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     path = app.state.database.path.parent / "ai-master.key"
     path.rename(path.with_suffix(".offline"))
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 503 and not path.exists()
     assert result.json()["detail"]["attempts"][0]["status"] == "credential"
 
@@ -280,23 +289,23 @@ def test_missing_master_key_is_not_silently_regenerated(service):
 @pytest.mark.parametrize("gateway", ["http://example.com/v1", "https://user:pass@example.com/v1", "https://example.com/v1?secret=1", "https://example.com/v1#secret", "https://example.com/v1\r\nX-Evil: yes", "https://example.com/v1/chat/completions"])
 def test_settings_validation_never_echoes_submitted_keys(service, gateway):
     _, client, auth = service
-    result = save(client, auth["owner"], [config(gateway=gateway)])
+    result = save(client, auth["operator"], [config(gateway=gateway)])
     assert result.status_code == 422 and KEY1 not in result.text
 
 
 def test_invalid_secret_and_duplicate_ids_preserve_configuration(service):
     _, client, auth = service
-    result = save(client, auth["owner"], [config(key="x")])
+    result = save(client, auth["operator"], [config(key="x")])
     assert result.status_code == 400 and "api_key" not in result.text
-    row = save(client, auth["owner"], [config()]).json()["connections"][0]
+    row = save(client, auth["operator"], [config()]).json()["connections"][0]
     row.pop("key_set")
-    assert save(client, auth["owner"], [row, row], revision=1).status_code == 400
-    assert save(client, auth["owner"], [config()] * 9, revision=1).status_code == 422
+    assert save(client, auth["operator"], [row, row], revision=1).status_code == 400
+    assert save(client, auth["operator"], [config()] * 9, revision=1).status_code == 422
 
 
 def test_explanation_uses_saved_facts_and_never_changes_order_quantities(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     with app.state.database.connect() as db:
         db.execute("INSERT INTO forecasts VALUES (?,?,?,?,?,?)", ("ai-forecast", "gwangju", "2026-10-24", 0, encode({"weather": {"days": []}}), now_iso()))
         rec = {"forecast_id": "ai-forecast", "order_date": "2026-10-26", "assumptions": "FEFO", "rows": [{"name": "샌드위치", "quantity": 24, "current_stock": 3}]}
@@ -332,14 +341,14 @@ def test_mixed_public_private_dns_cannot_rebind(monkeypatch):
 
 def test_total_chain_deadline_limits_requests(service, monkeypatch):
     app, client, auth = service
-    save(client, auth["owner"], [config(), config("예비", KEY2), config("세 번째", "third-key-not-real")])
+    save(client, auth["operator"], [config(), config("예비", KEY2), config("세 번째", "third-key-not-real")])
     clock = {"now": 0}
     monkeypatch.setattr("app.ai_gateway.monotonic", lambda: clock["now"])
     def provider(*args, **kwargs):
         clock["now"] += 40
         raise GatewayFailure("timeout")
     app.state.ai_request = provider
-    result = client.post("/stores/gwangju/ai/test", headers=auth["owner"])
+    result = client.post("/platform/ai/test", headers=auth["operator"])
     assert result.status_code == 503
     assert len(result.json()["detail"]["attempts"]) == 2
 

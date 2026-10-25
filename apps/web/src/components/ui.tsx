@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { shortDate, units, type ProductForecast } from "@/lib/api";
 import { forecastHelp } from "@/lib/merchant-language";
@@ -217,7 +217,7 @@ export function ForecastChart({
   const points = forecast.points;
   const max =
     Math.max(
-      ...points.map((point) => Math.max(point.p50, point.actual ?? 0)),
+      ...points.map((point) => Math.max(point.p90, point.actual ?? 0)),
       1,
     ) * 1.2;
   const x = (index: number) => 44 + index * 96;
@@ -226,7 +226,17 @@ export function ForecastChart({
     points
       .map((point, index) => `${index ? "L" : "M"}${x(index)},${y(point[key])}`)
       .join(" ");
+  const band =
+    path("p90") +
+    [...points]
+      .reverse()
+      .map(
+        (point, index) => ` L${x(points.length - 1 - index)},${y(point.p10)}`,
+      )
+      .join("") +
+    " Z";
   const actual = points.filter((point) => point.actual !== null);
+  const order = (index: number) => ({ "--i": index }) as CSSProperties;
   return (
     <div className="chart-wrap">
       <p className="chart-scroll-hint">좌우로 밀어 7일 예측을 확인하세요.</p>
@@ -237,10 +247,11 @@ export function ForecastChart({
         aria-label="7일 판매 예측 그래프"
       >
         <svg
+          key={`${forecast.product_id}:${points[0].date}`}
           className="forecast-chart"
           viewBox="0 0 664 232"
           role="img"
-          aria-label={`${forecast.name}의 7일 예상 판매량이에요. 수량 범위는 7일 판매 예측 메뉴의 표에서 확인할 수 있어요.`}
+          aria-label={`${forecast.name}의 7일 예상 판매량과 예상 범위(P10~P90)예요. 날짜별 수량은 7일 판매 예측 메뉴의 표에서 확인할 수 있어요.`}
         >
           {[0, 1, 2, 3].map((level) => (
             <g key={level}>
@@ -263,7 +274,14 @@ export function ForecastChart({
             </g>
           ))}
           <path
+            className="forecast-band"
+            d={band}
+            fill="var(--chart-band, #e0f4ee)"
+          />
+          <path
+            className="forecast-line"
             d={path("p50")}
+            pathLength={1}
             stroke="var(--chart-line, #18836b)"
             strokeWidth="3"
             fill="none"
@@ -271,6 +289,8 @@ export function ForecastChart({
           {points.map((point, index) => (
             <g key={point.date}>
               <circle
+                className="forecast-point"
+                style={order(index)}
                 cx={x(index)}
                 cy={y(point.p50)}
                 r="4"
@@ -291,6 +311,8 @@ export function ForecastChart({
           {actual.map((point) => (
             <circle
               key={point.date}
+              className="forecast-point"
+              style={order(points.indexOf(point))}
               cx={x(points.indexOf(point))}
               cy={y(point.actual!)}
               r="4"
@@ -305,6 +327,10 @@ export function ForecastChart({
         <span>
           <i className="legend-line" />
           예상 판매량
+        </span>
+        <span>
+          <i className="legend-band" />
+          예상 범위 (P10~P90)
         </span>
         {actual.length > 0 && (
           <span>

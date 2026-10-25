@@ -22,7 +22,7 @@ from openpyxl.styles import Font, PatternFill
 from pydantic import BaseModel
 
 from app import forecasting
-from app.database import Database, encode, now_iso, password_matches, today, store_today
+from app.database import Database, EARLIEST_SALES_DATE, encode, now_iso, password_matches, today, store_today
 from app.evaluation_report import evaluation_report
 from app.forecasting import run_forecast
 from app.imports import MAX_BYTES, parse_file
@@ -61,6 +61,8 @@ from app.walmart_scenarios import (
 )
 
 logger = logging.getLogger(__name__)
+# Stores forecast with the weather TFT; the weekday baseline remains for comparisons and tests.
+DEFAULT_FORECAST_PROVIDER = "merchant_tft"
 
 
 class HealthResponse(BaseModel):
@@ -199,7 +201,7 @@ def create_app(db_path=None, seed=True):
                 "SELECT provider FROM store_forecast_settings WHERE store_id=?",
                 (store_id,),
             ).fetchone()
-        return row[0] if row else "weekday"
+        return row[0] if row else DEFAULT_FORECAST_PROVIDER
 
     def forecast_settings_response(store):
         provider = forecast_provider(store["id"])
@@ -427,7 +429,7 @@ def create_app(db_path=None, seed=True):
                 "SELECT provider FROM store_forecast_settings WHERE store_id=?",
                 (store_id,),
             ).fetchone()
-            if (current[0] if current else "weekday") != payload.provider:
+            if (current[0] if current else DEFAULT_FORECAST_PROVIDER) != payload.provider:
                 db.execute(
                     "INSERT INTO store_forecast_settings VALUES (?,?,?) ON CONFLICT(store_id) DO UPDATE SET provider=excluded.provider,updated_at=excluded.updated_at",
                     (store_id, payload.provider, now_iso()),
@@ -603,6 +605,8 @@ def create_app(db_path=None, seed=True):
         store = access(store_id, user)
         if any(row.date > store_today(store) for row in payload.rows):
             raise HTTPException(422, "미래 날짜의 판매 기록은 저장할 수 없습니다.")
+        if any(row.date < EARLIEST_SALES_DATE for row in payload.rows):
+            raise HTTPException(422, "2000년 이전 날짜의 판매 기록은 저장할 수 없습니다.")
         if len({(row.date, row.product_id) for row in payload.rows}) != len(
             payload.rows
         ):

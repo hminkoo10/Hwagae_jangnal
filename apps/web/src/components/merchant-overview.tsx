@@ -80,6 +80,53 @@ export function MerchantOverview({
     weekday: "long",
     timeZone: "Asia/Seoul",
   }).format(new Date(`${today}T12:00:00+09:00`));
+  const salesCount = sales.summary.count;
+  const readyCount =
+    forecast?.products.filter(
+      (item) => item.status === "ready" && item.points.length > 0,
+    ).length ?? 0;
+  const todayOrder = orders.find(
+    (order) => order.as_of === today && !order.stale,
+  );
+  const steps: {
+    title: string;
+    hint: string;
+    done: boolean;
+    target: Destination;
+  }[] = [
+    {
+      title: "자료 올리기",
+      target: "sales",
+      done: salesCount > 0,
+      hint: salesCount
+        ? `판매 기록 ${salesCount.toLocaleString()}건`
+        : "엑셀·CSV로 올려요",
+    },
+    {
+      title: "7일 판매 예측",
+      target: "forecast",
+      done: readyCount > 0,
+      hint: readyCount ? `${readyCount}개 상품 예측 완료` : "예측 결과 보기",
+    },
+    {
+      title: "재고 확인",
+      target: "inventory",
+      done: missing === 0,
+      hint: missing ? `${missing}개 남았어요` : "오늘 확인 완료",
+    },
+    {
+      title: "발주 계획",
+      target: "orders",
+      done: !!todayOrder,
+      hint: todayOrder
+        ? todayOrder.status === "confirmed"
+          ? "오늘 발주 확정"
+          : "초안 저장했어요"
+        : "추천 수량으로 만들어요",
+    },
+  ];
+  const nextStep = steps.findIndex((step) => !step.done);
+  const doneCount = steps.filter((step) => step.done).length;
 
   return (
     <div className="merchant-overview">
@@ -99,52 +146,46 @@ export function MerchantOverview({
           </span>
         </div>
 
-        <div className="merchant-actions">
-          <button
-            className="action-card featured"
-            onClick={() => onNavigate("inventory")}
-          >
-            <span className="action-icon">
-              <Icon name="inventory" size={25} />
+        <details className="merchant-guide" open={nextStep !== -1}>
+          <summary>
+            <strong>이렇게 쓰면 돼요</strong>
+            <span className="merchant-guide-count">
+              {nextStep === -1
+                ? "오늘 할 일 끝"
+                : `${doneCount} / ${steps.length} 완료`}
             </span>
-            <span className="merchant-status warning">
-              {missing > 0 ? `${missing}개 상품 확인 필요` : "오늘의 재고 확인"}
-            </span>
-            <strong>남은 재고 확인</strong>
-            <p>남은 만큼 빼고 발주해요.</p>
-            <span className="action-link">
-              재고 확인하기 <Icon name="arrow" size={15} />
-            </span>
-          </button>
-          <button className="action-card" onClick={() => onNavigate("sales")}>
-            <span className="action-icon">
-              <Icon name="sales" size={25} />
-            </span>
-            <span className="merchant-status muted">
-              CSV · 엑셀 · 직접 입력
-            </span>
-            <strong>판매 기록 입력</strong>
-            <p>파일로 올리거나 직접 적어요.</p>
-            <span className="action-link">
-              판매 기록 입력 <Icon name="arrow" size={15} />
-            </span>
-          </button>
-          <button className="action-card" onClick={() => onNavigate("orders")}>
-            <span className="action-icon">
-              <Icon name="orders" size={25} />
-            </span>
-            <span className="merchant-status muted">
-              {drafts.length
-                ? `저장한 초안 ${drafts.length}건`
-                : "수정부터 내보내기까지"}
-            </span>
-            <strong>발주 계획 만들기</strong>
-            <p>수량을 정하고 파일로 저장해요.</p>
-            <span className="action-link">
-              발주 계획 보기 <Icon name="arrow" size={15} />
-            </span>
-          </button>
-        </div>
+          </summary>
+          <ol className="guide-steps">
+            {steps.map((step, index) => {
+              const state = step.done
+                ? "done"
+                : index === nextStep
+                  ? "next"
+                  : "todo";
+              return (
+                <li key={step.target}>
+                  <button
+                    type="button"
+                    className={`guide-step ${state}`}
+                    aria-current={state === "next" ? "step" : undefined}
+                    onClick={() => onNavigate(step.target)}
+                  >
+                    <span className="guide-step-mark">
+                      {step.done ? <Icon name="check" size={14} /> : index + 1}
+                    </span>
+                    <span className="guide-step-copy">
+                      <strong>
+                        {step.title}
+                        {step.done && <span className="sr-only"> 완료</span>}
+                      </strong>
+                      <small>{step.hint}</small>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </details>
 
         <MerchantMetrics
           products={products}
@@ -168,7 +209,7 @@ export function MerchantOverview({
             <div className="merchant-card-heading">
               <div>
                 <h2>상품별 7일 판매 예측</h2>
-                <p>얼마나 준비하면 좋을까요?</p>
+                <p>상품을 고르면 7일 동안 팔 양이 보여요.</p>
               </div>
               <Select
                 aria-label="홈 예측 상품 선택"
@@ -190,13 +231,11 @@ export function MerchantOverview({
             ) : (
               <Empty
                 title={
-                  products.length
-                    ? "예측 결과를 기다리고 있어요"
-                    : "등록된 상품이 없어요"
+                  products.length ? "아직 예측이 없어요" : "등록된 상품이 없어요"
                 }
               >
                 {products.length
-                  ? "모델 연결과 판매 기록을 확인해주세요."
+                  ? "판매 기록을 올리면 7일 예측이 나와요."
                   : "상품을 등록하면 예측을 시작할 수 있어요."}
               </Empty>
             )}
@@ -204,9 +243,9 @@ export function MerchantOverview({
               <span>
                 {forecast
                   ? forecast.model.uses_weather
-                    ? "날씨 반영 판매 예측"
-                    : "요일별 판매 예측"
-                  : "아직 예측이 완료되지 않았어요"}
+                    ? "날씨까지 반영한 예측이에요"
+                    : "요일별 판매로 예측했어요"
+                  : "아직 예측 전이에요"}
               </span>
               <button
                 className="text-button"
@@ -219,8 +258,8 @@ export function MerchantOverview({
           <section className="merchant-card merchant-readiness">
             <div className="merchant-card-heading">
               <div>
-                <h2>오늘 재고 확인 현황</h2>
-                <p>입력한 상품부터 발주 준비</p>
+                <h2>오늘 재고 확인</h2>
+                <p>재고를 적은 상품부터 발주할 수 있어요.</p>
               </div>
             </div>
             <svg
@@ -258,10 +297,10 @@ export function MerchantOverview({
             </svg>
             <div className="readiness-legend">
               <span>
-                오늘 확인한 상품 <strong>{checked}개</strong>
+                확인 완료 <strong>{checked}개</strong>
               </span>
               <span>
-                확인할 상품 <strong>{missing}개</strong>
+                남은 상품 <strong>{missing}개</strong>
               </span>
             </div>
             <button
@@ -280,7 +319,7 @@ export function MerchantOverview({
                 상품별 준비 현황{" "}
                 <span className="count-label">{products.length}</span>
               </h2>
-              <p>판매 예측과 실제 발주량은 달라요. 재고를 먼저 확인해주세요.</p>
+              <p>내일 팔 양과 남은 재고를 비교해요.</p>
             </div>
             <button
               className="text-button"
@@ -298,7 +337,7 @@ export function MerchantOverview({
                     <th className="number">
                       {nextDay ? shortDate(nextDay) : "내일"} 예상 판매
                     </th>
-                    <th className="number">내일 판매 가능한 재고</th>
+                    <th className="number">내일 팔 수 있는 재고</th>
                     <th>확인 상태</th>
                     <th>
                       <span className="sr-only">작업</span>
@@ -342,7 +381,7 @@ export function MerchantOverview({
                           <span
                             className={`merchant-status ${fresh ? "ready" : "warning"}`}
                           >
-                            {fresh ? "재고 확인 완료" : "재고 확인 필요"}
+                            {fresh ? "확인 완료" : "확인 필요"}
                           </span>
                         </td>
                         <td>
@@ -362,12 +401,12 @@ export function MerchantOverview({
             </div>
           ) : (
             <div className="merchant-empty">
-              등록된 상품이 없어요.
+              상품을 먼저 등록해주세요.
               <button
                 className="text-button"
                 onClick={() => onNavigate("products")}
               >
-                상품 관리로 이동
+                상품 등록하기
               </button>
             </div>
           )}
@@ -478,7 +517,7 @@ export function MerchantOverview({
               </span>
               <span className="task-copy">
                 <strong>재고 확인</strong>
-                <small>남은 수량과 입고 예정</small>
+                <small>남은 개수와 입고 예정</small>
               </span>
               <span className="task-count">{missing}개</span>
               <Icon name="arrow" size={14} />
@@ -492,7 +531,7 @@ export function MerchantOverview({
                 <small>
                   {sales.summary.last_date
                     ? `최근 ${shortDate(sales.summary.last_date)} 입력`
-                    : "첫 기록을 입력해주세요"}
+                    : "첫 기록을 올려주세요"}
                 </small>
               </span>
               <Icon name="arrow" size={14} />
@@ -503,7 +542,7 @@ export function MerchantOverview({
               </span>
               <span className="task-copy">
                 <strong>발주 초안 확인</strong>
-                <small>수량 확인 후 점주 확정</small>
+                <small>수량을 보고 확정해요</small>
               </span>
               <span className="task-count">{drafts.length}건</span>
               <Icon name="arrow" size={14} />
@@ -546,12 +585,12 @@ export function MerchantOverview({
           ) : (
             <div className="merchant-empty">
               <Icon name="orders" size={28} />
-              <p>아직 저장한 발주 계획이 없어요.</p>
+              <p>추천 수량으로 첫 발주 계획을 만들어보세요.</p>
               <button
                 className="text-button"
                 onClick={() => onNavigate("orders")}
               >
-                첫 발주 준비하기 <Icon name="arrow" size={14} />
+                발주 계획 만들기 <Icon name="arrow" size={14} />
               </button>
             </div>
           )}

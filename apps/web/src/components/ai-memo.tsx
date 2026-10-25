@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { type CSSProperties, useRef, useState } from "react";
 import { api, type Product, won } from "@/lib/api";
 import { DateField, ResponsiveTable, Select } from "./controls";
+import { AiThinking } from "./ai-answer";
 import {
   AiError,
   type AiAccess,
@@ -17,6 +18,42 @@ type SalesDraft = {
   existing: { date: string; product_id: string }[];
 };
 type EditableRow = Omit<SalesRow, "units_sold"> & { units_sold: string };
+
+const stagger = (index: number) =>
+  ({ "--ai-delay": `${Math.min(index, 8) * 60}ms` }) as CSSProperties;
+
+// "2026-10-30 콜라 3개: 기준일 이후 날짜라 기록할 수 없어요." → line + reason.
+function skippedLine(item: string, today: string) {
+  const text = item.replace(
+    /(\d{4})-(\d{2})-(\d{2})/g,
+    (_, year: string, month: string, day: string) =>
+      `${year === today.slice(0, 4) ? "" : `${year}년 `}${Number(month)}월 ${Number(day)}일`,
+  );
+  const at = text.indexOf(": ");
+  return at > 0 && at < text.length - 2
+    ? { line: text.slice(0, at), reason: text.slice(at + 2) }
+    : { line: "", reason: text };
+}
+
+function SkippedLines({ items, today }: { items: string[]; today: string }) {
+  return (
+    <div className="assistant-skipped" role="note">
+      <strong>아래 내용은 표에 넣지 않았어요</strong>
+      <ul>
+        {items.map((item, index) => {
+          const { line, reason } = skippedLine(item, today);
+          return (
+            <li key={index} style={stagger(index)}>
+              {line && <b>{line}</b>}
+              <span>{reason}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p>저장되지 않아요. 필요하면 메모를 고쳐 다시 정리해주세요.</p>
+    </div>
+  );
+}
 
 export function AiSalesMemo({
   products,
@@ -95,9 +132,10 @@ export function AiSalesMemo({
           <p>상품 이름과 팔린 개수를 적으면 입력할 표로 정리해요.</p>
         </div>
       </div>
-      <label>
+      <label className="assistant-label">
         판매 메모
         <textarea
+          className="assistant-field"
           rows={3}
           value={text}
           maxLength={6000}
@@ -137,23 +175,26 @@ export function AiSalesMemo({
             );
         }}
       >
-        {assistant.busy ? "메모 정리 중…" : "입력할 내용 정리"}
+        {assistant.busy ? "정리하는 중…" : "입력할 내용 정리"}
       </button>
+      {assistant.busy && <AiThinking label="메모를 표로 정리하고 있어요" />}
       <AiError error={assistant.error || saveError} />
       {assistant.result && (
         <div className="assistant-preview">
+          {assistant.result.draft.rows.length > 0 && (
+            <p className="assistant-draft-note">
+              메모에서 판매 기록 {assistant.result.draft.rows.length}건을
+              찾았어요. 확인한 뒤 저장해주세요.
+            </p>
+          )}
           {assistant.result.draft.unresolved.length > 0 && (
-            <div className="warning-banner">
-              <strong>따로 확인할 내용</strong>
-              <ul>
-                {assistant.result.draft.unresolved.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
+            <SkippedLines
+              items={assistant.result.draft.unresolved}
+              today={today}
+            />
           )}
           {duplicate && (
-            <p className="warning-banner">
+            <p className="assistant-notice">
               이미 저장된 날짜·상품이 있어요. 해당 줄을 삭제하거나 날짜·상품을
               확인해주세요. 덮어쓰지 않아요.
             </p>
@@ -280,9 +321,10 @@ export function AiProductMemo({
   return (
     <details className="assistant-product">
       <summary>상품 설명으로 입력 줄이기</summary>
-      <label>
+      <label className="assistant-label">
         상품 메모
         <textarea
+          className="assistant-field"
           rows={3}
           value={text}
           maxLength={6000}
@@ -307,14 +349,15 @@ export function AiProductMemo({
           void assistant.run("draft-product", { text: text.trim() });
         }}
       >
-        {assistant.busy ? "상품 설명 읽는 중…" : "입력할 내용 정리"}
+        {assistant.busy ? "읽는 중…" : "입력할 내용 정리"}
       </button>
+      {assistant.busy && <AiThinking label="상품 설명을 읽고 있어요" />}
       <AiError error={assistant.error} />
       {assistant.result && (
         <div className="assistant-preview">
           <dl className="assistant-fields">
-            {Object.entries(assistant.result.draft).map(([field, value]) => (
-              <div key={field}>
+            {Object.entries(assistant.result.draft).map(([field, value], index) => (
+              <div key={field} style={stagger(index)}>
                 <dt>{FIELD_NAMES[field]}</dt>
                 <dd>
                   {typeof value === "number"

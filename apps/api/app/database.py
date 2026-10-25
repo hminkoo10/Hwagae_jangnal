@@ -8,7 +8,7 @@ import os
 import secrets
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -26,6 +26,10 @@ def today():
 def store_today(store):
     """Use the merchant's business date, including US daylight saving time."""
     return datetime.now(ZoneInfo(store.get("timezone", "Asia/Seoul"))).date()
+
+
+# Earlier sales dates are typos (e.g. year 1000), not usable history.
+EARLIEST_SALES_DATE = date(2000, 1, 1)
 
 
 def password_hash(password: str, salt: str) -> str:
@@ -87,6 +91,11 @@ class Database:
                 );
                 CREATE TABLE IF NOT EXISTS ai_settings (
                     store_id TEXT PRIMARY KEY REFERENCES stores(id), revision INTEGER NOT NULL,
+                    payload TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
+                -- One operator-managed AI connection list for every store; ai_settings is no longer read.
+                CREATE TABLE IF NOT EXISTS platform_ai_settings (
+                    id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL,
                     payload TEXT NOT NULL, updated_at TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS store_locales (
@@ -169,6 +178,8 @@ class Database:
             """)
             from app.platform_admin import initialize_platform
             initialize_platform(db)
+            # The weekday-only choice was removed from the product; every store forecasts with weather.
+            db.execute("UPDATE store_forecast_settings SET provider='merchant_tft' WHERE provider='weekday'")
             if seed and not db.execute("SELECT 1 FROM users LIMIT 1").fetchone():
                 self._seed(db)
 

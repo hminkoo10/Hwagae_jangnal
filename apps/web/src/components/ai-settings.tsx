@@ -6,7 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { explainOrder } from "@/lib/ai-explanations";
 import { Modal } from "./ui";
+import { AiAnswer, AiThinking } from "./ai-answer";
 import { protocolForAddress, type AiProtocol } from "@/lib/ai-provider";
+import styles from "./operator-ai.module.css";
 
 type Connection = {
   id: string;
@@ -51,18 +53,23 @@ const labels: Record<string, string> = {
   credential: "저장 키 확인",
   invalid_response: "응답 형식 오류",
 };
+const services: Record<AiProtocol, string> = {
+  chat_completions: "OpenAI 호환",
+  responses: "OpenAI Responses",
+  anthropic: "Claude (Anthropic)",
+};
 const message = (e: unknown) =>
   e instanceof Error ? e.message : "요청을 완료하지 못했어요.";
 
 function Result({ result }: { result: Run }) {
   return (
-    <div className="ai-result" role="status">
+    <div className={styles.result} role="status">
       <strong>
-        {result.fallback_used ? "다음 순위 AI로 전환했어요" : "AI가 응답했어요"}
+        {result.fallback_used ? "다음 순서 연결이 답했어요" : "AI가 답했어요"}
       </strong>
-      <p className="ai-output">{result.text}</p>
-      <p className="helper">
-        사용 연결: {result.connection.name} · {result.connection.model}
+      <p className={styles.answer}>{result.text}</p>
+      <p className={styles.meta}>
+        답한 연결: {result.connection.name} · {result.connection.model}
       </p>
       <ol>
         {result.attempts.map((a) => (
@@ -75,49 +82,58 @@ function Result({ result }: { result: Run }) {
   );
 }
 
-export function AiSetupGuide() {
+function SetupSteps({
+  disabled,
+  onStart,
+}: {
+  disabled: boolean;
+  onStart: () => void;
+}) {
   return (
-    <aside className="ai-beginner-guide" aria-label="AI 도우미 사용 안내">
-      <strong>매장 도우미를 먼저 연결해주세요</strong>
-      <p>처음 한 번 연결하면 발주 이유와 매장 기록을 함께 정리해줘요.</p>
-      <ol>
+    <section className={styles.guide} aria-label="처음 연결 순서">
+      <strong>이 순서대로 넣어주세요</strong>
+      <ol className={styles.steps}>
         <li>
-          <strong>연결 정보 받기</strong>
-          <span>AI 서비스에서 주소와 연결 키를 받아요.</span>
+          <strong>서비스 고르기</strong>
+          <span>OpenAI 호환, OpenAI Responses, Claude 중에서 골라요.</span>
         </li>
         <li>
-          <strong>사용할 AI 고르기</strong>
-          <span>‘도우미 연결하기’에서 정보를 붙여넣고 AI를 골라요.</span>
+          <strong>주소와 API 키 넣기</strong>
+          <span>AI 서비스에서 받은 기본 주소와 키를 붙여넣어요.</span>
         </li>
         <li>
-          <strong>응답 확인하기</strong>
-          <span>
-            저장 후 ‘AI 응답 확인’을 눌러요. 연결된 순서대로 사용해요.
-          </span>
+          <strong>모델 고르기</strong>
+          <span>‘모델 찾기’를 누르고 목록에서 골라요.</span>
+        </li>
+        <li>
+          <strong>저장하고 응답 확인</strong>
+          <span>저장한 뒤 ‘응답 확인’으로 답이 오는지 봐요.</span>
         </li>
       </ol>
-      <details>
-        <summary>설정이 어렵다면</summary>
-        <p>
-          서비스 담당자에게 연결을 도와달라고 요청해주세요. 필요한 정보는 서비스
-          주소, API 키, 사용할 AI 이름이에요.
-        </p>
-      </details>
-    </aside>
+      <button
+        type="button"
+        className="button primary"
+        disabled={disabled}
+        onClick={onStart}
+      >
+        첫 연결 추가하기
+      </button>
+      <p>매장에서 따로 넣었던 키는 더 이상 쓰지 않아요. 여기서 한 번만 넣어주세요.</p>
+    </section>
   );
 }
 
 function ConnectionModal({
   connection,
+  defaultName,
   token,
-  storeId,
   onSave,
   onClose,
   onExpired,
 }: {
   connection: Connection | null;
+  defaultName: string;
   token: string;
-  storeId: string;
   onSave: (draft: Draft) => Promise<void>;
   onClose: () => void;
   onExpired: () => void;
@@ -134,7 +150,7 @@ function ConnectionModal({
           enabled: connection.enabled,
         }
       : {
-          name: "",
+          name: defaultName,
           gateway: "",
           model: "",
           protocol: "chat_completions",
@@ -149,6 +165,8 @@ function ConnectionModal({
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
+  const keyRequired =
+    !connection || !connection.key_set || draft.gateway !== connection.gateway;
   async function fetchModels() {
     if (busy) return;
     const request = new AbortController();
@@ -157,7 +175,7 @@ function ConnectionModal({
     setError("");
     try {
       const result = await api<{ models: string[] }>(
-        `/stores/${storeId}/ai/models`,
+        "/platform/ai/models",
         token,
         {
           method: "POST",
@@ -175,7 +193,7 @@ function ConnectionModal({
       if (!result.models.length) {
         setManual(true);
         setError(
-          "AI 목록이 비어 있어요. 서비스에서 안내받은 AI 이름을 직접 입력해주세요.",
+          "모델 목록이 비어 있어요. 서비스에서 안내받은 모델 이름을 직접 넣어주세요.",
         );
         return;
       }
@@ -192,7 +210,7 @@ function ConnectionModal({
   }
   return (
     <Modal
-      title={connection ? "도우미 연결 수정" : "AI 도우미 연결하기"}
+      title={connection ? "연결 수정" : "AI 연결 추가"}
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -219,21 +237,7 @@ function ConnectionModal({
           </div>
         )}
         <fieldset className="ai-setup-step">
-          <legend>1. 받은 연결 정보를 입력해요</legend>
-          <p className="helper">
-            AI 서비스에서 받은 주소와 연결 키를 붙여넣어주세요.
-          </p>
-          <label>
-            알아보기 쉬운 이름
-            <input
-              value={draft.name}
-              maxLength={60}
-              required
-              disabled={busy}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder="예: 기본 AI / 예비 AI"
-            />
-          </label>
+          <legend>1. 서비스와 키 넣기</legend>
           <label>
             연결할 서비스
             <Select
@@ -290,43 +294,42 @@ function ConnectionModal({
           </label>
           <p className="helper">
             {draft.protocol === "anthropic"
-              ? "Claude 공식 API에 바로 연결해요. 서비스 주소는 https://api.anthropic.com 을 입력해주세요."
-              : "이용 중인 서비스에서 안내받은 기본 주소를 입력해주세요."}
+              ? "Claude는 https://api.anthropic.com 을 넣으면 돼요."
+              : "서비스에서 받은 기본 주소예요. 끝에 /v1 까지 넣어주세요."}
           </p>
           <label>
-            연결 키 (API 키)
+            API 키
             <input
               type="password"
               autoComplete="new-password"
               spellCheck={false}
               value={key}
               disabled={busy}
-              required={!connection || draft.gateway !== connection.gateway}
+              required={keyRequired}
               onChange={(e) => {
                 setKey(e.target.value);
                 setModels([]);
-                setManual(true);
+                if (draft.model) setManual(true);
               }}
-              placeholder={connection ? "변경할 때만 입력" : "API 키 입력"}
+              placeholder={keyRequired ? "API 키 붙여넣기" : "바꿀 때만 입력"}
             />
           </label>
           <p className="helper">
-            키는 암호화해 보관해요. 주소를 바꾸면 키를 다시 입력해주세요.
+            {keyRequired
+              ? "저장하면 암호화해 보관하고, 다시 보여주지 않아요."
+              : "저장된 키를 그대로 써요. 주소를 바꾸면 키도 다시 넣어주세요."}
           </p>
         </fieldset>
         <fieldset className="ai-setup-step">
-          <legend>2. 사용할 AI를 골라요</legend>
-          <p className="helper">
-            아래 버튼으로 목록을 가져온 뒤, 안내받은 AI를 골라주세요.
-          </p>
+          <legend>2. 모델 고르기</legend>
           <div className="split-actions">
             <button
               type="button"
               className="button secondary"
-              disabled={busy || !draft.gateway || (!key && !connection)}
+              disabled={busy || !draft.gateway || (!key && keyRequired)}
               onClick={() => void fetchModels()}
             >
-              {busy ? "목록 가져오는 중…" : "사용할 AI 찾기"}
+              {busy ? "찾는 중…" : "모델 찾기"}
             </button>
             <label className="checkbox">
               <input
@@ -335,11 +338,11 @@ function ConnectionModal({
                 disabled={busy}
                 onChange={(e) => setManual(e.target.checked)}
               />
-              AI 이름 직접 입력
+              직접 입력
             </label>
           </div>
           <label>
-            사용할 AI
+            사용할 모델
             {manual ? (
               <input
                 value={draft.model}
@@ -347,7 +350,7 @@ function ConnectionModal({
                 required
                 disabled={busy}
                 onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-                placeholder="서비스에서 안내받은 AI 이름"
+                placeholder="서비스에서 안내받은 모델 이름"
               />
             ) : (
               <Select
@@ -357,7 +360,7 @@ function ConnectionModal({
                 onChange={(e) => setDraft({ ...draft, model: e.target.value })}
               >
                 <option value="" disabled>
-                  먼저 AI 목록을 가져와주세요
+                  ‘모델 찾기’를 먼저 눌러주세요
                 </option>
                 {models.map((m) => (
                   <option key={m} value={m}>
@@ -369,10 +372,9 @@ function ConnectionModal({
           </label>
         </fieldset>
         <details className="ai-advanced">
-          <summary>고급 설정 · 필요한 경우에만 변경</summary>
-          <p className="helper">서비스에서 별도 안내를 받았다면 바꿔주세요.</p>
+          <summary>고급 설정</summary>
           <label>
-            답변 고민 정도 (추론 강도)
+            추론 강도
             <Select
               value={draft.reasoning_effort}
               disabled={busy}
@@ -396,8 +398,18 @@ function ConnectionModal({
           <p className="helper">잘 모르겠다면 ‘모델 기본값’을 그대로 두세요.</p>
         </details>
         <fieldset className="ai-setup-step">
-          <legend>3. 저장하고 연결을 확인해요</legend>
-          <p className="helper">저장한 뒤 ‘AI 응답 확인’을 눌러보세요.</p>
+          <legend>3. 이름 붙이고 저장하기</legend>
+          <label>
+            연결 이름
+            <input
+              value={draft.name}
+              maxLength={60}
+              required
+              disabled={busy}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="예: 기본 AI"
+            />
+          </label>
           <label className="checkbox">
             <input
               type="checkbox"
@@ -421,20 +433,20 @@ function ConnectionModal({
   );
 }
 
+/** The one AI connection chain every store uses. Service operators only. */
 export function AiSettings({
   token,
-  storeId,
   onExpired,
   onChanged,
 }: {
   token: string;
-  storeId: string;
   onExpired: () => void;
   onChanged?: () => void;
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [reload, setReload] = useState(0);
   const [editing, setEditing] = useState<Connection | "new" | null>(null);
   const [removing, setRemoving] = useState<Connection | null>(null);
@@ -445,7 +457,7 @@ export function AiSettings({
     const c = new AbortController();
     setSettings(null);
     setError("");
-    api<Settings>(`/stores/${storeId}/ai/settings`, token, { signal: c.signal })
+    api<Settings>("/platform/ai/settings", token, { signal: c.signal })
       .then((s) => {
         if (!c.signal.aborted) setSettings(s);
       })
@@ -456,7 +468,7 @@ export function AiSettings({
         }
       });
     return () => c.abort();
-  }, [token, storeId, reload, onExpired]);
+  }, [token, reload, onExpired]);
   async function save(connections: (Connection | Draft)[]) {
     if (!settings || busy) throw new Error("설정을 불러온 뒤 다시 시도하세요.");
     const c = new AbortController();
@@ -468,18 +480,14 @@ export function AiSettings({
         const { key_set: _keySet, ...connection } = item as Connection & Draft;
         return connection;
       });
-      const saved = await api<Settings>(
-        `/stores/${storeId}/ai/settings`,
-        token,
-        {
-          method: "PUT",
-          signal: c.signal,
-          body: JSON.stringify({
-            revision: settings.revision,
-            connections: payload,
-          }),
-        },
-      );
+      const saved = await api<Settings>("/platform/ai/settings", token, {
+        method: "PUT",
+        signal: c.signal,
+        body: JSON.stringify({
+          revision: settings.revision,
+          connections: payload,
+        }),
+      });
       if (c.signal.aborted) return;
       setSettings(saved);
       onChanged?.();
@@ -503,10 +511,11 @@ export function AiSettings({
     const c = new AbortController();
     mutation.current = c;
     setBusy(true);
+    setTesting(true);
     setError("");
     setResult(null);
     try {
-      const data = await api<Run>(`/stores/${storeId}/ai/test`, token, {
+      const data = await api<Run>("/platform/ai/test", token, {
         method: "POST",
         signal: c.signal,
         timeoutMs: 80000,
@@ -518,31 +527,48 @@ export function AiSettings({
         if (e instanceof ApiError && e.status === 401) onExpired();
       }
     } finally {
-      if (!c.signal.aborted) setBusy(false);
+      if (!c.signal.aborted) {
+        setBusy(false);
+        setTesting(false);
+      }
     }
   }
-  const active = settings?.connections.filter((c) => c.enabled) ?? [];
+  const connections = settings?.connections ?? [];
+  const active = connections.filter((c) => c.enabled);
+  const ready = active.some((c) => c.key_set);
   return (
     <>
       <section className="panel ai-settings">
-        <div className="panel-heading">
+        <div className={styles.heading}>
           <div>
-            <h2>AI 도우미</h2>
-            <p>판매·재고 점검부터 메모 입력, 발주 설명까지 도와줘요.</p>
+            {settings && (
+              <span
+                className={`${styles.status} ${ready ? styles.ready : styles.waiting}`}
+              >
+                {ready
+                  ? "모든 매장에서 쓰는 중"
+                  : "연결 전 · 매장에서 AI를 쓸 수 없어요"}
+              </span>
+            )}
+            <h2>모든 매장이 함께 쓰는 AI</h2>
+            <p>매장 도우미 · 발주 이유 · 메모 정리에 이 연결을 써요.</p>
           </div>
-          <button
-            className="button primary"
-            disabled={busy || !settings || settings.connections.length >= 8}
-            onClick={() => setEditing("new")}
-          >
-            + 도우미 연결하기
-          </button>
+          {connections.length > 0 && (
+            <button
+              type="button"
+              className="button primary"
+              disabled={busy || connections.length >= 8}
+              onClick={() => setEditing("new")}
+            >
+              + 예비 연결 추가
+            </button>
+          )}
         </div>
-        <AiSetupGuide />
         {error && (
           <div className="error-banner" role="alert">
             {error}
             <button
+              type="button"
               className="text-button"
               disabled={busy}
               onClick={() => setReload((n) => n + 1)}
@@ -551,172 +577,208 @@ export function AiSettings({
             </button>
           </div>
         )}
-        <div className="ai-chain">
-          <strong>현재 사용 순서</strong>
-          <p>
-            {active.length
-              ? active.map((c) => c.name).join(" → ")
-              : "아직 연결된 도우미가 없어요."}
-          </p>
-          <button
-            className="button secondary"
-            disabled={busy || !active.length}
-            onClick={() => void test()}
-          >
-            {busy ? "응답 기다리는 중…" : "AI 응답 확인"}
-          </button>
-        </div>
-        {result && <Result result={result} />}
-        {!settings && !error && <p role="status">AI 설정을 불러오고 있어요…</p>}
-        {settings?.connections.length === 0 && (
-          <p className="empty-description">
-            위의 ‘도우미 연결하기’부터 시작해주세요.
+        {!settings && !error && (
+          <p className={styles.note} role="status">
+            AI 설정을 불러오고 있어요…
           </p>
         )}
-        <ol className="ai-connections">
-          {settings?.connections.map((c, i) => (
-            <li key={c.id}>
-              <div className="ai-card-heading">
-                <div>
-                  <span className={`pill ${c.enabled ? "mint" : "neutral"}`}>
-                    {c.enabled
-                      ? `${active.findIndex((a) => a.id === c.id) + 1}순위`
-                      : "사용 안 함"}
-                  </span>
-                  <h3>{c.name}</h3>
+        {settings && connections.length === 0 && (
+          <SetupSteps disabled={busy} onStart={() => setEditing("new")} />
+        )}
+        {connections.length > 0 && (
+          <div className={styles.chain}>
+            <div>
+              <span>사용 순서</span>
+              <strong>
+                {active.length
+                  ? active.map((c) => c.name).join(" → ")
+                  : "켜진 연결이 없어요"}
+              </strong>
+            </div>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy || !active.length}
+              onClick={() => void test()}
+            >
+              {testing ? "답을 기다리는 중…" : "응답 확인"}
+            </button>
+          </div>
+        )}
+        {result && <Result result={result} />}
+        {connections.length > 0 && (
+          <ol className={styles.list}>
+            {connections.map((c, i) => (
+              <li key={c.id}>
+                <div className={styles.cardHead}>
+                  <div>
+                    <span className={`pill ${c.enabled ? "mint" : "neutral"}`}>
+                      {c.enabled
+                        ? `${active.findIndex((a) => a.id === c.id) + 1}순위`
+                        : "꺼짐"}
+                    </span>
+                    <h3>{c.name}</h3>
+                  </div>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={c.enabled}
+                      disabled={busy}
+                      onChange={(e) =>
+                        change(
+                          connections.map((item) =>
+                            item.id === c.id
+                              ? { ...item, enabled: e.target.checked }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    사용
+                  </label>
                 </div>
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={c.enabled}
+                <p className={styles.model}>
+                  {c.model} ·{" "}
+                  {efforts.find(([v]) => v === c.reasoning_effort)?.[1] ??
+                    "모델 기본값"}
+                </p>
+                <p className={styles.meta}>
+                  {services[c.protocol] ?? services.chat_completions} ·{" "}
+                  {c.gateway} ·{" "}
+                  {c.key_set ? (
+                    "키 저장됨"
+                  ) : (
+                    <span className={styles.keyMissing}>키를 다시 넣어주세요</span>
+                  )}
+                </p>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    disabled={busy || i === 0}
+                    aria-label={`${c.name} 순서 올리기`}
+                    onClick={() => {
+                      const next = [...connections];
+                      [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                      change(next);
+                    }}
+                  >
+                    ↑ 위로
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    disabled={busy || i === connections.length - 1}
+                    aria-label={`${c.name} 순서 내리기`}
+                    onClick={() => {
+                      const next = [...connections];
+                      [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                      change(next);
+                    }}
+                  >
+                    ↓ 아래로
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary small"
                     disabled={busy}
-                    onChange={(e) =>
-                      change(
-                        settings.connections.map((item) =>
-                          item.id === c.id
-                            ? { ...item, enabled: e.target.checked }
-                            : item,
-                        ),
-                      )
-                    }
-                  />
-                  사용
-                </label>
-              </div>
-              <p>
-                <strong>{c.model}</strong> ·{" "}
-                {efforts.find(([v]) => v === c.reasoning_effort)?.[1]}
-              </p>
-              <p className="helper ai-gateway-url">
-                {c.gateway} ·{" "}
-                {c.protocol === "anthropic"
-                  ? "Claude"
-                  : c.protocol === "responses"
-                    ? "Responses"
-                    : "Chat Completions"}{" "}
-                · 키 암호화 보관
-              </p>
-              <div className="ai-card-actions">
-                <button
-                  className="button secondary small"
-                  disabled={busy || i === 0}
-                  aria-label={`${c.name} 우선순위 올리기`}
-                  onClick={() => {
-                    const next = [...settings.connections];
-                    [next[i - 1], next[i]] = [next[i], next[i - 1]];
-                    change(next);
-                  }}
-                >
-                  ↑ 위로
-                </button>
-                <button
-                  className="button secondary small"
-                  disabled={busy || i === settings.connections.length - 1}
-                  aria-label={`${c.name} 우선순위 내리기`}
-                  onClick={() => {
-                    const next = [...settings.connections];
-                    [next[i], next[i + 1]] = [next[i + 1], next[i]];
-                    change(next);
-                  }}
-                >
-                  ↓ 아래로
-                </button>
-                <button
-                  className="button secondary small"
-                  disabled={busy}
-                  onClick={() => setEditing(c)}
-                >
-                  수정
-                </button>
-                <button
-                  className="text-button"
-                  disabled={busy}
-                  onClick={() => setRemoving(c)}
-                >
-                  삭제
-                </button>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <p className="helper">
-          최대 8개 연결을 등록할 수 있어요. 설정은 이 매장 점주만 변경해요. 연결
-          테스트·발주 설명은 선택한 게이트웨이에 요청하며 사용 요금이 발생할 수
-          있어요.
-        </p>
-        <details>
-          <summary>연결 방식·자동 전환 안내</summary>
-          <p className="helper">
-            공개 HTTPS 주소의 OpenAI 호환 API를 지원해요. 모델 목록이 제공되지
-            않으면 모델 ID를 직접 입력하세요. 호출 제한·인증 실패·시간
-            초과·잘못된 응답이면 다음 사용 중인 연결로 넘어가요. 추론 강도
-            오류도 다음 연결로 전환하며 설정을 임의로 바꾸지 않아요. 요청 한
-            번의 전체 대기는 최대 약 70초예요. 시간 초과된 요청도 공급사에서
-            처리·과금될 수 있어요. 발주 설명에는 상품·재고·입고·날씨 요약이 사용
-            중인 게이트웨이에 전달돼요.
+                    onClick={() => setEditing(c)}
+                  >
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      setRemoving(c);
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        {connections.length > 0 && (
+          <p className={styles.note}>
+            1순위가 답하지 못하면 다음 순서로 자동으로 넘어가요. 최대 8개까지
+            등록할 수 있어요.
           </p>
+        )}
+        <details className={styles.more}>
+          <summary>자동 전환·요금 안내</summary>
+          <ul>
+            <li>외부에서 접속할 수 있는 HTTPS 주소만 연결할 수 있어요.</li>
+            <li>
+              호출 제한·키 오류·시간 초과·잘못된 응답이면 다음 연결로 넘어가요.
+              설정은 바꾸지 않아요.
+            </li>
+            <li>
+              요청 한 번에 최대 약 70초를 기다려요. 시간이 지난 요청도 요금이
+              나갈 수 있어요.
+            </li>
+            <li>응답 확인과 매장의 AI 요청 모두 사용 요금이 생길 수 있어요.</li>
+            <li>
+              매장의 상품·재고·입고·날씨 요약과 메모 내용이 이 서비스로
+              전달돼요.
+            </li>
+          </ul>
         </details>
       </section>
       {editing && settings && (
         <ConnectionModal
           connection={editing === "new" ? null : editing}
+          defaultName={connections.length ? "예비 AI" : "기본 AI"}
           token={token}
-          storeId={storeId}
           onExpired={onExpired}
           onClose={() => setEditing(null)}
           onSave={async (draft) => {
             const next =
               editing === "new"
-                ? [...settings.connections, draft]
-                : settings.connections.map((c) =>
-                    c.id === draft.id ? draft : c,
-                  );
+                ? [...connections, draft]
+                : connections.map((c) => (c.id === draft.id ? draft : c));
             await save(next);
           }}
         />
       )}
       {removing && settings && (
         <Modal
-          title="AI 연결 삭제"
+          title="연결 삭제"
           onClose={() => {
             if (!busy) setRemoving(null);
           }}
         >
-          <p>{removing.name} 연결과 저장한 API 키를 삭제할까요?</p>
-          <button
-            className="button primary"
-            disabled={busy}
-            onClick={() =>
-              change(settings.connections.filter((c) => c.id !== removing.id))
-            }
-          >
-            연결 삭제
-          </button>
+          <div className="stack">
+            {error && (
+              <div className="error-banner" role="alert">
+                {error}
+              </div>
+            )}
+            <p>‘{removing.name}’ 연결을 지울까요? 저장한 API 키도 함께 지워져요.</p>
+            {removing.enabled && active.length === 1 && (
+              <p className="helper">지우면 모든 매장에서 AI를 쓸 수 없어요.</p>
+            )}
+            <button
+              type="button"
+              className="button primary"
+              disabled={busy}
+              onClick={() =>
+                change(connections.filter((c) => c.id !== removing.id))
+              }
+            >
+              {busy ? "지우는 중…" : "삭제하기"}
+            </button>
+          </div>
         </Modal>
       )}
     </>
   );
 }
+
+const explainFailed = "AI가 지금 답하지 못했어요. 잠시 후 다시 시도해주세요.";
 
 export function AiExplanation({
   token,
@@ -739,10 +801,25 @@ export function AiExplanation({
     setError("");
     setResult(null);
     const pending = explainOrder(token, storeId, recommendationId);
-    pending.then(value => { if (!cancelled) setResult(value); })
-      .catch(e => { if (!cancelled) { setError(message(e)); if (e instanceof ApiError && e.status === 401) onExpired(); } })
-      .finally(() => { if (!cancelled) setBusy(false); });
-    return () => { cancelled = true; };
+    pending
+      .then((value) => {
+        if (!cancelled) setResult(value);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        // 409 carries a plain reason (plan changed / not set up yet); every
+        // other failure gets one calm message with no connection details.
+        setError(
+          e instanceof ApiError && e.status === 409 ? e.message : explainFailed,
+        );
+        if (e instanceof ApiError && e.status === 401) onExpired();
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [token, storeId, recommendationId, onExpired, retry]);
   return (
     <section className="ai-explanation">
@@ -751,21 +828,24 @@ export function AiExplanation({
           <h3>이번 발주, 이렇게 잡았어요</h3>
           <p>처음 추천한 수량 기준이에요.</p>
         </div>
-        {error && <button
-          className="button secondary"
-          disabled={busy}
-          onClick={() => setRetry(value => value + 1)}
-        >
-          다시 정리
-        </button>}
+        {error && (
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => setRetry((value) => value + 1)}
+          >
+            다시 시도
+          </button>
+        )}
       </div>
       {error && (
         <div className="error-banner" role="alert">
           {error}
         </div>
       )}
-      {busy && <p className="helper" role="status">재고와 입고를 반영한 근거를 정리하고 있어요…</p>}
-      {result && <p className="assistant-text">{result.text}</p>}
+      {busy && <AiThinking label="재고와 입고를 보고 이유를 정리하고 있어요" />}
+      {result && <AiAnswer text={result.text} />}
     </section>
   );
 }

@@ -59,9 +59,9 @@ export function MerchantMetrics(props: Props) {
     },
     {
       key: "ready",
-      label: "예측 준비 상품",
+      label: "예측 가능한 상품",
       value: `${summary.ready.length} / ${props.products.length}개`,
-      hint: "가능한 상품과 빠진 기록 보기",
+      hint: "상품별로 보기",
       icon: "products",
     },
     {
@@ -111,19 +111,25 @@ export function MerchantMetrics(props: Props) {
         <Modal title={titles[detail]} onClose={() => setDetail(null)}>
           {detail === "demand" && (
             <p className="modal-description">
-              {summary.firstDate}에 팔릴 것으로 예상되는 수량이에요.{" "}
+              {summary.firstDate ? `${summary.firstDate}에` : "내일"} 팔릴
+              것으로 보는 수량이에요.{" "}
               {summary.demandCount}개 상품 합계{" "}
               <strong>{units(summary.demand)}개</strong>
             </p>
           )}
           {detail === "ready" && (
             <p className="modal-description">
-              상품별로 예측을 보거나 빠진 판매 기록을 채워주세요.
+              예측을 보거나, 기록이 부족한 상품은 판매 기록을 채워요.
             </p>
           )}
           {detail === "inventory" && (
             <p className="modal-description">
-              재고를 아직 입력하지 않았거나 오늘 확인이 필요한 상품이에요.
+              오늘 재고를 아직 적지 않은 상품이에요.
+            </p>
+          )}
+          {detail === "drafts" && (
+            <p className="modal-description">
+              저장만 하고 아직 확정하지 않은 발주예요.
             </p>
           )}
           {detail === "drafts" ? (
@@ -153,7 +159,9 @@ export function MerchantMetrics(props: Props) {
                   </button>
                 ))
               ) : (
-                <p className="helper">저장한 초안이 없어요.</p>
+                <p className="helper">
+                  저장한 초안이 없어요. 발주 계획에서 만들어보세요.
+                </p>
               )}
               <button
                 type="button"
@@ -211,8 +219,11 @@ export function MerchantMetrics(props: Props) {
               )}
               {detail === "demand" && !summary.demandCount && (
                 <p className="helper">
-                  판매 기록을 입력하면 상품별 예상 수량을 볼 수 있어요.
+                  판매 기록을 올리면 상품별 예상 수량이 나와요.
                 </p>
+              )}
+              {detail === "ready" && !summary.items.length && (
+                <p className="helper">상품을 등록하면 예측을 볼 수 있어요.</p>
               )}
             </div>
           )}

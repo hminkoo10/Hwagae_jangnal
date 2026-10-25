@@ -55,10 +55,7 @@ export function InitialData({
         { method: "POST", body, signal: controller.signal },
       );
       if (controller.signal.aborted) return;
-      if (save)
-        onSaved(
-          "상품·판매·재고를 저장했어요. 날씨를 반영해 판매 예측을 준비해요.",
-        );
+      if (save) onSaved("자료를 저장했어요. 7일 판매 예측을 준비할게요.");
       else {
         setPreview(result);
         setConfirmed(false);
@@ -72,6 +69,7 @@ export function InitialData({
       setBusy(false);
     }
   }
+  const step = preview ? 3 : file ? 2 : 1;
   return (
     <section
       className="panel onboarding-panel"
@@ -81,15 +79,24 @@ export function InitialData({
       <div className="panel-heading">
         <div>
           <span className="pill mint">처음 시작하기</span>
-          <h2>우리 매장 자료를 가져오세요</h2>
-          <p>상품·판매·재고가 담긴 엑셀 파일 하나로 시작할 수 있어요.</p>
+          <h2>매장 자료 올리기</h2>
+          <p>엑셀 파일 하나면 판매 예측과 발주를 바로 시작해요.</p>
         </div>
         <Icon name="upload" size={28} />
       </div>
       <ol className="onboarding-steps">
-        <li>매장 등록</li>
-        <li aria-current="step">자료 확인·저장</li>
-        <li>판매 예측·발주</li>
+        {["엑셀 파일 고르기", "내용 확인", "저장하고 시작"].map(
+          (label, index) => (
+            <li
+              key={label}
+              className={index + 1 < step ? "done" : undefined}
+              aria-current={index + 1 === step ? "step" : undefined}
+            >
+              {label}
+              {index + 1 < step && <Icon name="check" size={14} />}
+            </li>
+          ),
+        )}
       </ol>
       {error && (
         <div className="error-banner" role="alert">
@@ -97,8 +104,9 @@ export function InitialData({
         </div>
       )}
       <label className="file-zone">
-        <strong>{file?.name ?? "엑셀 파일 선택"}</strong>
-        <span>상품 / 판매 / 재고 시트 · XLSX · 최대 5MB</span>
+        <Icon name="upload" size={26} />
+        <strong>{file?.name ?? "엑셀 파일 고르기"}</strong>
+        <span>‘상품’·‘판매’·‘재고’ 시트가 있는 XLSX · 최대 5MB</span>
         <input
           aria-label="매장 자료 엑셀"
           type="file"
@@ -123,21 +131,11 @@ export function InitialData({
       )}
       {preview && (
         <div className="stack">
-          <div className="import-summary">
-            <div>
-              <span>상품</span>
-              <strong>{preview.product_count}개</strong>
-            </div>
-            <div>
-              <span>판매 기록</span>
-              <strong>{preview.sales_count.toLocaleString()}건</strong>
-            </div>
-            <div>
-              <span>재고 확인</span>
-              <strong>{preview.inventory_count}개 상품</strong>
-            </div>
-          </div>
           <p>
+            상품 <strong>{preview.product_count}개</strong> · 판매 기록{" "}
+            <strong>{preview.sales_count.toLocaleString()}건</strong> · 재고{" "}
+            <strong>{preview.inventory_count}개 상품</strong>
+            <br />
             판매 기간{" "}
             <strong>
               {preview.first_date} ~ {preview.last_date}
@@ -195,20 +193,19 @@ export function InitialData({
               disabled={busy}
               onChange={(e) => setConfirmed(e.target.checked)}
             />
-            현재 재고와 입고 예정 목록을 확인했어요. 파일의 수량으로 저장해요.
+            재고와 입고 예정이 맞아요. 이 수량으로 저장할게요.
           </label>
           <button
             className="button primary"
             disabled={!confirmed || busy}
             onClick={() => void upload(true)}
           >
-            {busy ? "저장 중…" : "확인한 자료 저장"}
+            {busy ? "저장 중…" : "저장하고 시작하기"}
           </button>
         </div>
       )}
       <p className="helper">
-        기존 기록을 덮어쓰지 않아요. 상품을 등록한 뒤에는 판매 기록 메뉴에서
-        일별 자료를 추가하세요.
+        이후 판매 기록은 ‘판매 기록’ 메뉴에서 더할 수 있어요.
       </p>
     </section>
   );

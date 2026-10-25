@@ -8,20 +8,21 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const folder = await mkdtemp(path.join(process.cwd(), "node_modules/.hwagae-assistant-"));
-let assistant, memo, requests;
+let assistant, answer, memo, requests;
 try {
-  for (const name of ["ui", "controls", "ai-assistant", "ai-memo", "merchant-language"]) {
+  for (const name of ["ui", "controls", "ai-answer", "ai-assistant", "ai-memo", "merchant-language"]) {
     const source = await readFile(new URL(name === "merchant-language" ? `../src/lib/${name}.ts` : `../src/components/${name}.tsx`, import.meta.url), "utf8");
     let code = ts.transpileModule(source, { compilerOptions: {
       module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022,
     } }).outputText;
-    for (const target of ["ui", "controls", "ai-assistant"]) code = code.replaceAll(`from "./${target}"`, `from "./${target}.mjs"`);
+    for (const target of ["ui", "controls", "ai-answer", "ai-assistant"]) code = code.replaceAll(`from "./${target}"`, `from "./${target}.mjs"`);
     code = code.replaceAll('from "@/lib/api"', 'from "./api.mjs"');
     code = code.replaceAll('from "@/lib/merchant-language"', 'from "./merchant-language.mjs"');
     await writeFile(path.join(folder, `${name}.mjs`), code);
   }
   await writeFile(path.join(folder, "api.mjs"), `export let requests=0; export const api=()=>{ requests++; throw new Error('Unexpected automatic request'); }; export class ApiError extends Error {} export const units=x=>x; export const shortDate=x=>x; export const won=x=>x+'원';`);
   assistant = await import(pathToFileURL(path.join(folder, "ai-assistant.mjs")).href);
+  answer = await import(pathToFileURL(path.join(folder, "ai-answer.mjs")).href);
   memo = await import(pathToFileURL(path.join(folder, "ai-memo.mjs")).href);
   requests = await import(pathToFileURL(path.join(folder, "api.mjs")).href);
 } finally {
@@ -44,14 +45,12 @@ test("all merchant summaries and questions wait for an explicit action", () => {
 });
 
 test("provider text is displayed as escaped text rather than executable markup", () => {
-  const html = renderToStaticMarkup(React.createElement(assistant.AiAnswer, { result: {
-    text: '<script>stealKey()</script>\n<img src=x onerror=stealKey()>',
-    connection: { name: "선택한 AI", model: "fixture" }, fallback_used: true,
-  }, copy: true }));
+  const html = renderToStaticMarkup(React.createElement(answer.AiAnswer, {
+    text: '<script>stealKey()</script>\n- <img src=x onerror=stealKey()> 10월 27일(화) 12개',
+  }));
   assert.ok(html.includes("&lt;script&gt;"));
   assert.ok(!html.includes("<script>") && !html.includes("<img"));
-  assert.ok(html.includes("다음 순위로 연결했어요"));
-  assert.ok(html.includes("문구 복사"));
+  assert.ok(html.includes("<li") && html.includes("12개"));
 });
 
 test("sales and product memo helpers do not save or populate fields on mount", () => {
