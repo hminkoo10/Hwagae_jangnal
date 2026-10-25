@@ -386,6 +386,7 @@ split.json         원본 해시와 기간
     guide.append(["상품", f"이 기간 처음과 끝 2주에 모두 팔렸고 발주 기록이 판매와 맞는 상품 중 판매량 상위 {len(chosen)}개."])
     guide.append(["재고", "실사 재고가 아닙니다. 구매현황(발주) 누적에서 판매 누적을 빼고 선입선출·종류별 유통기한 가정으로 추정했습니다."])
     guide.append(["가정값", f"원가는 발주 단가(합계÷수량). 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)·거래처명은 시연 가정입니다."])
+    guide.append(["날씨", f"date는 업로드한 날짜, sold_on은 실제로 판매한 날짜({shift.days}일 전)입니다. 기온(°C)·강수(mm)는 실제 판매일의 안산 와동 과거 재분석(Open-Meteo)이고, units_sold_total은 그날 이 {len(chosen)}개 상품 판매 합계입니다. 앱은 매장 위치의 날씨를 date 기준으로 따로 조회하므로 앱의 과거 날씨와 다를 수 있습니다. 업로드에는 쓰지 않는 참고 시트입니다."])
     products_sheet = book.create_sheet("상품")
     products_sheet.append(["id", "name", "category", "supplier", "price", "cost", "lead_days", "shelf_days", "review_days"])
     stocks = book.create_sheet("재고")
@@ -402,6 +403,11 @@ split.json         원본 해시와 기간
             stocks.append([pid, demo_date.isoformat(), quantity, expires_on.isoformat(), None])
         for day in window:
             sales_sheet.append([(day + shift).isoformat(), pid, sold[pid].get(day, 0)])
+    # 날짜를 옮겨도 판매와 날씨의 짝은 실제 판매일 기준으로 남긴다. 업로드에는 쓰지 않는 참고 시트다.
+    weather_sheet = book.create_sheet("날씨")
+    weather_sheet.append(["date", "sold_on", "weekday", "temp_max", "temp_min", "rain_mm", "units_sold_total"])
+    for day in window:
+        weather_sheet.append([(day + shift).isoformat(), day.isoformat(), "월화수목금토일"[day.weekday()], *weather[day][:3], sum(sold[pid].get(day, 0) for pid in chosen)])
     styled(book)
     guide.column_dimensions["B"].width = 100
     path = demo_dir / f"디미고매점_매장자료_{demo_date}.xlsx"
@@ -411,6 +417,7 @@ split.json         원본 해시와 기간
 1. 점주 계정으로 로그인 → 매장 선택 옆 + → 매장명 '디미고 매점' → 지역 검색 '한국디지털미디어고등학교' → 매장 추가.
 2. '우리 매장 자료를 가져오세요'에서 {path.name} 선택 → 내용 확인하기.
    상품 {len(chosen)}개, 판매 {len(window) * len(chosen)}건, 재고 기준일 {demo_date}를 확인합니다.
+   '날씨' 시트에는 날짜별 실제 판매일의 기온·강수와 판매 합계가 있습니다(발표 근거용, 업로드에는 쓰이지 않음).
 3. 현재 재고·입고 예정 확인에 체크 → 확인한 자료 저장.
 4. 7일 판매 예측 → 실제 안산 예보로 다음 7일 확인. 과거 날짜를 고르면 실제 판매와 비교됩니다.
 5. 발주 계획 → 발주량 계산 → 수량 수정·저장 → 발주 확정 → Excel/CSV.
