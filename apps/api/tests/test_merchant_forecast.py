@@ -1,7 +1,7 @@
 """Selected live-weather inference, explicit synthetic onboarding and order safety."""
 
 from copy import deepcopy
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -200,6 +200,9 @@ def test_settings_require_owner_invalidate_forecasts_and_persist(demo):
     result = client.put(url, headers=auth["owner"], json={"provider": "merchant_tft"})
     assert result.status_code == 200
     assert result.json()["requirements"]["history_days"] == 56
+    with database.connect() as db:
+        first = db.execute("SELECT MIN(date) FROM sales WHERE store_id='gwangju'").fetchone()[0]
+    assert result.json()["history_available_from"] == (date.fromisoformat(first) + timedelta(days=62)).isoformat()
     assert result.json()["runtime"]["status"] == "ready"
     assert client.get(url, headers=auth["owner"]).json()["provider"] == "merchant_tft"
     assert (

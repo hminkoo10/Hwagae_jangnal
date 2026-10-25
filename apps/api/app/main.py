@@ -252,7 +252,8 @@ def create_app(db_path=None, seed=True):
         return {
             "provider": provider,
             "model_kind": "walmart" if binding else "synthetic",
-            "history_available_from": (date.fromisoformat(history[0]) + timedelta(days=55 if provider == "merchant_tft" else 27)).isoformat() if history[0] else None,
+            # A week of slack past the bare minimum so products first sold a few days late still have full history.
+            "history_available_from": (date.fromisoformat(history[0]) + timedelta(days=(55 if provider == "merchant_tft" else 27) + 7)).isoformat() if history[0] else None,
             "history_available_to": history[1],
             "runtime": runtime,
             "model": model,
