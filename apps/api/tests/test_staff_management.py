@@ -175,11 +175,14 @@ def test_suspend_reactivate_and_remove(service):
     assert [s['id'] for s in client.get('/stores',headers=staff).json()['stores']]==['busan']
     assert client.post(member+'/remove',headers=owner).status_code==200
     assert client.post(member+'/remove',headers=owner).status_code==404
-    assert client.post('/stores/busan/staff/members/demo-staff/remove',headers=owner).status_code==200
+    removed=client.post('/stores/busan/staff/members/demo-staff/remove',headers=owner)
+    assert removed.status_code==200 and removed.json()['account_closed'] is True
     assert client.get('/auth/me',headers=staff).status_code==401
-    staff=login('staff@hwagae.local')
-    assert client.get('/stores',headers=staff).json()['stores']==[]
+    # Removed from its last store, the account itself is closed and the email can be invited afresh.
+    assert client.post('/auth/login',json={'email':'staff@hwagae.local','password':'hwagae-demo'}).status_code==401
     assert all(row['email']!='staff@hwagae.local' for row in client.get('/stores/gwangju/staff',headers=owner).json()['staff'])
+    again=invite(client,owner,email='staff@hwagae.local')
+    assert again.status_code==201 and again.json()['existing_account'] is False
 
 def test_existing_staff_get_default_permissions_on_migration(service):
     app,client,login=service

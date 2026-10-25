@@ -159,14 +159,16 @@ export function StaffManagement({
   function remove(row: StaffRow) {
     setConfirming(null);
     void action(async () => {
-      await api(
+      const result = await api<{ account_closed?: boolean }>(
         `${path(row)}/${row.kind === "member" ? "remove" : "cancel"}`,
         token,
         { method: "POST" },
       );
       onNotice(
         row.kind === "member"
-          ? `${row.name}님을 매장에서 제외했어요. 작성한 발주안은 남아 있어요.`
+          ? result.account_closed
+            ? `${row.name}님을 매장에서 제외하고 계정도 삭제했어요.`
+            : `${row.name}님을 매장에서 제외했어요. 다른 매장 계정은 그대로예요.`
           : "초대를 취소했어요. 보낸 링크는 더 이상 쓸 수 없어요.",
       );
     });
@@ -390,7 +392,7 @@ export function StaffManagement({
             <p>
               {confirming.kind === "invite"
                 ? `${confirming.name}님에게 보낸 초대 링크를 더 이상 쓸 수 없게 해요.`
-                : `${confirming.name}님은 이 매장에 더 이상 들어올 수 없어요. 계정과 작성한 발주안은 남아 있어요.`}
+                : `${confirming.name}님은 이 매장에 더 이상 들어올 수 없어요. 다른 매장 소속이 없으면 계정도 삭제돼요. 작성한 발주안은 남아 있어요.`}
             </p>
             <div className="split-actions">
               <button

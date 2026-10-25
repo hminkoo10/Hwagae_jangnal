@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field, field_validator
 
 from app.database import now_iso, password_hash
-from app.platform_admin import InviteAccept, InviteInput, SafeRoute, audit, is_operator, normalized_email
+from app.platform_admin import InviteAccept, InviteInput, SafeRoute, audit, is_operator, normalized_email, retire_account
 from app.schemas import Payload
 
 # Store settings, initial upload, forecast settings and staff management stay owner-only.
@@ -193,11 +193,15 @@ def mount_staff_routes(application, database, access, authenticated):
         with database.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             staff_member(db, store_id, member_id)
-            # The account and the orders it wrote stay; only this store's access goes.
             db.execute("DELETE FROM memberships WHERE store_id=? AND user_id=? AND role='staff'", (store_id, member_id))
-            drop_idle_sessions(db, member_id)
+            # A staff account with no other store or contract is closed too; orders it wrote keep pointing at it.
+            closed = not is_operator(db, member_id) and not db.execute("SELECT 1 FROM memberships WHERE user_id=? UNION SELECT 1 FROM merchant_contracts WHERE user_id=?", (member_id, member_id)).fetchone()
+            if closed:
+                retire_account(db, member_id, "삭제된 직원")
+            else:
+                drop_idle_sessions(db, member_id)
             audit(db, user["id"], "staff.remove", f"{store_id}:{member_id}")
-        return {"ok": True}
+        return {"ok": True, "account_closed": closed}
 
     @application.patch("/stores/{store_id}/staff/invites/{invite_id}", tags=["staff"])
     def update_invite(store_id: str, invite_id: str, payload: StaffPermissions, user=Depends(authenticated)):

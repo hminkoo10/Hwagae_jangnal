@@ -12,6 +12,9 @@ a.button { text-decoration: none; }
 .staff-table td > .pill + small { margin-top: 6px; }
 /* The permission list makes rows tall: keep every cell at the top and stack the actions under the right-aligned header. */
 .staff-table td { vertical-align: top; }
+@media (min-width: 1251px) {
+  .staff-table :is(th, td).number { width: 1%; white-space: nowrap; }
+}
 .staff-table td.number .row-actions { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; justify-content: flex-start; gap: 8px; }
 .staff-table td.number .row-actions > * { white-space: nowrap; }
 @media (max-width: 1250px) {
