@@ -29,6 +29,8 @@ import { NATIVE_BACK_EVENT } from "./native-shell";
 import { MerchantModelPanel } from "./merchant-model-panel";
 import { InitialData } from "./initial-data";
 import { AiSettings, AiExplanation } from "./ai-settings";
+import { AiAssistant, ASSISTANT_TASKS } from "./ai-assistant";
+import { AiSalesMemo } from "./ai-memo";
 import { OperatorDashboard } from "./operator-dashboard";
 import { categoryOptions, filterProducts } from "@/lib/merchant-language";
 import { WeatherSource } from "./weather-source";
@@ -1151,6 +1153,15 @@ export default function Workspace() {
                   onSessionExpired={clearSession}
                 />
               )}
+              {owner && store && tab in ASSISTANT_TASKS && (
+                <AiAssistant
+                  key={`${storeId}:${tab}:${reload}:${asOf}:${forecast?.id ?? ""}`}
+                  token={token} storeId={storeId} onExpired={clearSession}
+                  tab={tab as keyof typeof ASSISTANT_TASKS} asOf={asOf}
+                  forecastId={forecast?.as_of === asOf ? forecast.id : undefined}
+                  disabled={busy || loading} onSetup={() => navigate("ai-settings")}
+                />
+              )}
               {tab === "overview" && store && data.products.length > 0 && (
                 <MerchantOverview
                   store={store}
@@ -1409,6 +1420,9 @@ export default function Workspace() {
                 </>
               )}
               {tab === "sales" && (
+                <>
+                {owner && <AiSalesMemo key={`memo:${storeId}:${reload}`} token={token} storeId={storeId}
+                  products={data.products} today={today} onSaved={saved} onExpired={clearSession} />}
                 <SalesPanel
                   key={storeId}
                   token={token}
@@ -1418,6 +1432,7 @@ export default function Workspace() {
                   today={today}
                   onSaved={saved}
                 />
+                </>
               )}
               {tab === "inventory" && (
                 <>
@@ -1795,6 +1810,7 @@ export default function Workspace() {
       )}
       {orderDetail && (
         <OrderDetails
+          ai={owner ? { token, storeId, onExpired: clearSession } : undefined}
           order={
             data?.orders.find((order) => order.id === orderDetail.id) ??
             orderDetail

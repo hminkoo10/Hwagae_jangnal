@@ -26,6 +26,7 @@ try {
     "merchant-summary",
     "merchant-metrics",
     "order-details",
+    "ai-assistant",
   ]) {
     const source = await readFile(
       new URL(
@@ -46,6 +47,7 @@ try {
     code = code
       .replace('from "./ui"', 'from "./ui.mjs"')
       .replace('from "./controls"', 'from "./controls.mjs"')
+      .replace('from "./ai-assistant"', 'from "./ai-assistant.mjs"')
       .replace('from "@/lib/merchant-summary"', 'from "./merchant-summary.mjs"')
       .replace(
         'from "@/lib/merchant-language"',
@@ -56,7 +58,7 @@ try {
   }
   await writeFile(
     path.join(folder, "api.mjs"),
-    "export const shortDate=x=>x; export const units=x=>x; export const won=x=>x.toLocaleString('ko-KR')+'원';",
+    "export const shortDate=x=>x; export const units=x=>x; export const won=x=>x.toLocaleString('ko-KR')+'원'; export class ApiError extends Error {} export const api=()=>{throw new Error('Unexpected API request during render')};",
   );
   controls = await import(
     pathToFileURL(path.join(folder, "controls.mjs")).href

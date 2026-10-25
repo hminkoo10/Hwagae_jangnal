@@ -4,7 +4,7 @@ import { LocationPicker, type Location } from "./location-picker";
 
 import { Select, DateField, ResponsiveTable } from "./controls";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import {
   api,
   saveBlob,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import { Empty, Icon, Modal } from "./ui";
 import { PriceField, ProductCategoryField } from "./product-fields";
+import { AiProductMemo } from "./ai-memo";
 
 const message = (error: unknown) =>
   error instanceof Error ? error.message : "요청에 실패했어요.";
@@ -588,6 +589,9 @@ export function ProductModal({
 }: Common & { product?: Product; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const form = useRef<HTMLFormElement>(null);
+  const [fill, setFill] = useState<Record<string, string | number>>({});
+  const [fillVersion, setFillVersion] = useState(0);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -635,99 +639,136 @@ export function ProductModal({
         if (!busy) onClose();
       }}
     >
-      <form onSubmit={submit} className="stack">
+      <form ref={form} onSubmit={submit} className="stack">
         {error && (
           <div className="error-banner" role="alert">
             {error}
           </div>
         )}
-        {product ? (
-          <p className="modal-description">
-            {product.name} · {product.id}
-          </p>
-        ) : (
+        {!product && (
+          <AiProductMemo
+            token={token}
+            storeId={storeId}
+            onApply={(fields) => {
+              const current = form.current
+                ? Object.fromEntries(new FormData(form.current))
+                : {};
+              setFill({
+                ...Object.fromEntries(
+                  Object.entries(current)
+                    .filter(
+                      ([name, value]) =>
+                        !(
+                          ["price", "cost"].includes(name) &&
+                          String(value) === ""
+                        ),
+                    )
+                    .map(([name, value]) => [name, String(value)]),
+                ),
+                ...fields,
+              });
+              setFillVersion((value) => value + 1);
+            }}
+          />
+        )}
+        <div key={fillVersion} className="stack">
+          {product ? (
+            <p className="modal-description">
+              {product.name} · {product.id}
+            </p>
+          ) : (
+            <div className="form-grid">
+              {[
+                ["id", "상품 코드", "예: P001"],
+                ["name", "상품 이름", "예: 햄치즈 샌드위치"],
+                ["supplier", "상품을 받는 곳", "예: 화개푸드"],
+              ].map(([key, label, placeholder]) => (
+                <label key={key}>
+                  {label}
+                  <input
+                    name={key}
+                    defaultValue={fill[key]}
+                    placeholder={placeholder}
+                    maxLength={key === "id" ? 40 : 80}
+                    pattern={key === "id" ? "[A-Za-z0-9_-]+" : undefined}
+                    required
+                    disabled={busy}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="form-grid">
+            <ProductCategoryField
+              value={String(fill.category ?? product?.category ?? "")}
+              disabled={busy}
+            />
+          </div>
+          <div className="form-grid">
+            <PriceField
+              name="price"
+              label="판매 가격"
+              defaultValue={
+                fill.price === undefined ? product?.price : Number(fill.price)
+              }
+              disabled={busy}
+            />
+            <PriceField
+              name="cost"
+              label="한 개를 사오는 가격"
+              defaultValue={
+                fill.cost === undefined ? product?.cost : Number(fill.cost)
+              }
+              disabled={busy}
+            />
+          </div>
           <div className="form-grid">
             {[
-              ["id", "상품 코드", "예: P001"],
-              ["name", "상품 이름", "예: 햄치즈 샌드위치"],
-              ["supplier", "상품을 받는 곳", "예: 화개푸드"],
-            ].map(([key, label, placeholder]) => (
+              {
+                key: "lead_days",
+                label: "발주하면 며칠 뒤에 오나요?",
+                hint: "예: 다음 날 도착하면 1일",
+                min: 1,
+                max: 30,
+              },
+              {
+                key: "shelf_days",
+                label: "유통기한 (받은 날부터)",
+                hint: "예: 받은 날과 다음 날까지 판매하면 2일",
+                min: 1,
+                max: 365,
+              },
+              {
+                key: "review_days",
+                label: "며칠마다 발주하나요?",
+                hint: "예: 매일 발주하면 1일",
+                min: 1,
+                max: 7,
+              },
+            ].map(({ key, label, hint, min, max }) => (
               <label key={key}>
                 {label}
                 <input
                   name={key}
-                  placeholder={placeholder}
-                  maxLength={key === "id" ? 40 : 80}
-                  pattern={key === "id" ? "[A-Za-z0-9_-]+" : undefined}
+                  type="number"
+                  min={min}
+                  max={max}
+                  step="1"
                   required
                   disabled={busy}
+                  defaultValue={
+                    fill[key] ??
+                    (product
+                      ? product[key as keyof Product]
+                      : key.includes("days")
+                        ? 1
+                        : undefined)
+                  }
                 />
+                <small className="field-description">{hint}</small>
               </label>
             ))}
           </div>
-        )}
-        <div className="form-grid">
-          <ProductCategoryField value={product?.category} disabled={busy} />
-        </div>
-        <div className="form-grid">
-          <PriceField
-            name="price"
-            label="판매 가격"
-            defaultValue={product?.price}
-            disabled={busy}
-          />
-          <PriceField
-            name="cost"
-            label="한 개를 사오는 가격"
-            defaultValue={product?.cost}
-            disabled={busy}
-          />
-        </div>
-        <div className="form-grid">
-          {[
-            {
-              key: "lead_days",
-              label: "발주하면 며칠 뒤에 오나요?",
-              hint: "예: 다음 날 도착하면 1일",
-              min: 1,
-              max: 30,
-            },
-            {
-              key: "shelf_days",
-              label: "유통기한 (받은 날부터)",
-              hint: "예: 받은 날과 다음 날까지 판매하면 2일",
-              min: 1,
-              max: 365,
-            },
-            {
-              key: "review_days",
-              label: "며칠마다 발주하나요?",
-              hint: "예: 매일 발주하면 1일",
-              min: 1,
-              max: 7,
-            },
-          ].map(({ key, label, hint, min, max }) => (
-            <label key={key}>
-              {label}
-              <input
-                name={key}
-                type="number"
-                min={min}
-                max={max}
-                step="1"
-                required
-                disabled={busy}
-                defaultValue={
-                  product
-                    ? product[key as keyof Product]
-                    : key.includes("days")
-                      ? 1
-                      : undefined
-                }
-              />
-              <small className="field-description">{hint}</small>
-            </label>
-          ))}
         </div>
         <p className="helper">
           도착한 날부터 마지막 판매일 저녁까지 팔 수 있어요. 계산할 기간이 7일을

@@ -5,6 +5,7 @@ import "./globals.css";
 import "./responsive.css";
 import "./typography.css";
 import "./design.css";
+import "./assistant.css";
 
 const suit = localFont({
   src: "./fonts/SUIT-Variable.woff2",
