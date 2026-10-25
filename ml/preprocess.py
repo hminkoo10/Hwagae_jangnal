@@ -1,8 +1,8 @@
 """TFT inference inputs; feature rules match startup_thon_1.ipynb cells 7–10.
 
-Saved encoders, scalers and weather defaults are supplied by the caller. This
-module never fits preprocessing state. The notebook trains in Walmart's native
-units (degrees Fahrenheit, inches and miles/hour); SI input is converted first.
+Never fits preprocessing state: saved encoders, scalers and weather defaults come
+from the caller. The model uses Walmart's native units (°F, inches, mph); SI input
+is converted first.
 """
 
 from __future__ import annotations
@@ -66,9 +66,9 @@ def _weather_frame(
 ) -> pd.DataFrame:
     """Reindex, flag missing values, causal fill, then apply saved defaults.
 
-    Process the complete supplied prefix before selecting the last 56 days so
-    an older observation can fill a missing value at the encoder's left edge.
-    When that prefix is unavailable the persisted training median is used.
+    Fill runs over the whole supplied prefix before taking the last 56 days, so an
+    older observation can fill the encoder's left edge; otherwise the saved training
+    median applies.
     """
     if not isinstance(records, list):
         raise ValueError("model_input.history_weather must be a list")
@@ -124,9 +124,8 @@ def _weather_frame(
 def _forecast_weather_frame(records: object, units: str, forecast_dates: list[date]) -> pd.DataFrame:
     """Validate explicit scenario weather; never fill missing future values.
 
-    API forecasts have no observed NOAA trace flag. Numeric precipitation is
-    used as supplied and precip_trace=0 is an explicit experimental convention.
-    This does not assert that trace precipitation was observed to be absent.
+    Forecasts carry no NOAA trace flag, so precip_trace=0 is a convention, not an
+    observation.
     """
     if not isinstance(records, list) or len(records) != HORIZON:
         raise ValueError("model_input.forecast_weather must contain exactly seven days")
@@ -171,11 +170,9 @@ def prepare_context(
 ) -> tuple[pd.DataFrame | None, list[dict]]:
     """Return 56 encoder + 7 decoder rows per eligible requested product.
 
-    Missing sales are never fabricated. A registered series needs all 56 daily
-    sales observations through ``as_of``; otherwise its response is
-    ``insufficient_history``. Unknown Walmart pairs or absent explicit mapping
-    receive the same status with an actionable reason. New Korean identifiers
-    must never be silently assigned an unrelated Walmart embedding.
+    Missing sales are never fabricated: a series without all 56 daily observations
+    through ``as_of``, or without a trained Walmart mapping, is ``insufficient_history``.
+    New Korean identifiers must never be assigned an unrelated Walmart embedding.
     """
     if not isinstance(context, dict):
         raise ValueError("context must be an object")

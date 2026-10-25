@@ -27,11 +27,9 @@ _LOAD_LOCK = threading.Lock()
 
 
 class FrozenGroupEncoder(NaNLabelEncoder):
-    """PF 1.5 calls group-encoder fit even in from_parameters().
+    """PF 1.5 calls group-encoder fit even in from_parameters(); validate only.
 
-    Replace that vocabulary-extension hook with validation only. The saved
-    classes, indices and all transform behavior remain unchanged. No base fit
-    is called, and unknown groups cannot extend the checkpoint vocabulary.
+    Unknown groups must never extend the checkpoint vocabulary.
     """
 
     def fit(self, y, overwrite=False):
@@ -94,15 +92,13 @@ def _load_runtime(checkpoint_path: str, metadata_path: str, threads: int) -> Run
     for filename, expected in manifest["metadata_sha256"].items():
         if hashlib.sha256((root / filename).read_bytes()).hexdigest() != expected:
             raise ValueError(f"metadata checksum mismatch: {filename}")
-    # Only load the trusted, checksum-verified handoff. This is a Python pickle.
+    # Python pickle: only ever load the trusted, checksum-verified checkpoint.
     saved = torch.load(checkpoint, map_location="cpu", weights_only=False)
     hparams = dict(saved["hyper_parameters"])
     if hparams["output_size"] != 5 or list(hparams["loss"].quantiles) != QUANTILES:
         raise ValueError("checkpoint must predict the five agreed quantiles")
-    # load_from_checkpoint() restores __special_save__ TorchMetrics objects
-    # whose _device remains cuda:0 even with map_location='cpu'. Reconstruct
-    # the same architecture with fresh CPU metrics, then strictly load every
-    # weight. Optimizer, trainer and GPU metric state are unnecessary here.
+    # load_from_checkpoint() keeps TorchMetrics on cuda:0 even with map_location='cpu'.
+    # Rebuild with fresh CPU metrics, then strictly load every weight.
     hparams["loss"] = QuantileLoss(quantiles=QUANTILES)
     hparams["logging_metrics"] = torch.nn.ModuleList([SMAPE(), MAE(), RMSE(), MAPE()])
     torch.set_num_threads(threads)
@@ -130,12 +126,10 @@ def _runtime() -> Runtime:
 
 
 def predict_quantiles(context: dict) -> dict:
-    """Offline verification output containing all five postprocessed quantiles.
+    """All five postprocessed quantiles for offline checks; use predict() as FORECAST_PROVIDER.
 
-    Use predict(), not this helper, as FORECAST_PROVIDER. The supplied historical
-    weather must be available by the cutoff. The default persistence path keeps
-    the original evaluation unchanged. Explicit provided_forecast scenarios use
-    model_input.forecast_weather, outside the validated training distribution.
+    Historical weather must be available by the cutoff. provided_forecast scenarios
+    are outside the validated training distribution.
     """
     runtime = _runtime()
     with runtime.lock:

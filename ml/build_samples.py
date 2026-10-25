@@ -47,7 +47,7 @@ def write(path, value):
 
 
 def preserve_legacy(output_dir):
-    """Keep main's two-product replay contract, also in an isolated output dir."""
+    """The legacy two-product replay fixtures must stay byte-identical, in any output dir."""
     for filename, digest in LEGACY_SAMPLE["files_sha256"].items():
         source = ROOT / "examples" / filename
         content = source.read_bytes()
