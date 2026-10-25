@@ -389,6 +389,7 @@ export default function Workspace() {
   const today =
     stores.find((store) => store.id === storeId)?.local_today ?? serverToday;
   const [asOf, setAsOf] = useState("");
+  const [historyFrom, setHistoryFrom] = useState("");
   const [orderDate, setOrderDate] = useState("");
   const selectedStoreId = useRef(storeId);
   selectedStoreId.current = storeId;
@@ -1288,6 +1289,7 @@ export default function Workspace() {
               weatherMode={forecast?.weather.mode}
               busy={busy}
               onSessionExpired={clearSession}
+              onAvailableFrom={setHistoryFrom}
             />
           )}
           {!modelDemo &&
@@ -1532,6 +1534,11 @@ export default function Workspace() {
                           <DateField
                             aria-label="예측 기준일"
                             value={asOf}
+                            min={
+                              historyFrom && historyFrom <= today
+                                ? historyFrom
+                                : undefined
+                            }
                             max={today}
                             required
                             disabled={busy}

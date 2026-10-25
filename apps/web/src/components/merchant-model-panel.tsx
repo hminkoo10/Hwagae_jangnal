@@ -12,6 +12,7 @@ export function MerchantModelPanel({
   weatherMode,
   busy,
   onSessionExpired,
+  onAvailableFrom,
 }: {
   token: string;
   storeId: string;
@@ -20,6 +21,7 @@ export function MerchantModelPanel({
   weatherMode?: string;
   busy: boolean;
   onSessionExpired: () => void;
+  onAvailableFrom?: (date: string) => void;
 }) {
   const [settings, setSettings] = useState<MerchantForecastSettings | null>(
     null,
@@ -37,7 +39,9 @@ export function MerchantModelPanel({
       { signal: controller.signal },
     )
       .then((value) => {
-        if (!controller.signal.aborted) setSettings(value);
+        if (controller.signal.aborted) return;
+        setSettings(value);
+        onAvailableFrom?.(value.history_available_from ?? "");
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
@@ -53,7 +57,7 @@ export function MerchantModelPanel({
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [token, storeId, reload, onSessionExpired]);
+  }, [token, storeId, reload, onSessionExpired, onAvailableFrom]);
 
   const historical = !!asOf && asOf < today;
   const weatherLabel =
