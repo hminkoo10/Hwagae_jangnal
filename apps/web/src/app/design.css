@@ -302,6 +302,22 @@ summary {
   color: #3182f6;
   font-weight: 600;
 }
+.operator-table-actions .merchant-delete {
+  color: #e42939;
+}
+.modal .danger {
+  background: #f04452;
+  color: #fff;
+}
+.modal .danger:hover:not(:disabled) {
+  background: #d22030;
+}
+.modal .merchant-delete-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+}
 .icon-button {
   border-radius: 12px;
 }
