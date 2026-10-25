@@ -122,17 +122,8 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   );
 }
 
-/** 움직임 줄이기를 켰거나 서버에서 그릴 때는 애니메이션을 건너뛴다. */
-export function prefersReducedMotion() {
-  return (
-    typeof window === "undefined" ||
-    typeof window.matchMedia !== "function" ||
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 /** 닫는 애니메이션(motion.css)과 같은 길이 */
-export const EXIT_MS = 180;
+export const EXIT_MS = 270;
 
 /**
  * 값이 비워진 뒤에도 잠깐 마지막 값을 남겨 닫히는 애니메이션을 보여준다.
@@ -144,10 +135,7 @@ export function usePresence<T>(value: T, duration = EXIT_MS) {
   const leaving = !value && !!kept;
   useEffect(() => {
     if (!leaving) return;
-    const timer = window.setTimeout(
-      () => setKept(value),
-      prefersReducedMotion() ? 0 : duration,
-    );
+    const timer = window.setTimeout(() => setKept(value), duration);
     return () => window.clearTimeout(timer);
   }, [leaving, value, duration]);
   return [leaving ? kept : value, leaving] as const;
@@ -155,12 +143,12 @@ export function usePresence<T>(value: T, duration = EXIT_MS) {
 
 /**
  * 숫자가 0(또는 직전 값)에서 목표 값까지 차오른다.
- * 서버 렌더와 움직임 줄이기에서는 처음부터 최종 값을 보여준다.
+ * 서버 렌더에서는 처음부터 최종 값을 보여준다.
  * 화면 읽기 프로그램은 최종 값만 읽고, 자리는 최종 값 너비로 고정해 글자가 밀리지 않는다.
  */
 export function CountUp({
   value,
-  duration = 600,
+  duration = 900,
   svg = false,
 }: {
   value: number;
@@ -173,7 +161,7 @@ export function CountUp({
   useLayoutEffect(() => {
     const from = current.current ?? 0;
     current.current = from;
-    if (from === value || !Number.isFinite(value) || prefersReducedMotion()) {
+    if (from === value || !Number.isFinite(value)) {
       current.current = value;
       setShown(value);
       return;
@@ -248,7 +236,7 @@ export function Modal({
     };
   }, []);
   function dismiss() {
-    if (closing !== undefined || prefersReducedMotion()) {
+    if (closing !== undefined) {
       onClose();
       return;
     }

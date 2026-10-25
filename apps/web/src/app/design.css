@@ -182,7 +182,7 @@ summary {
   border-color: #f2f4f6;
 }
 .operator-table .merchant-row {
-  transition: background-color 160ms var(--ui-ease);
+  transition: background-color 240ms var(--ui-ease);
 }
 .operator-table .merchant-row:hover,
 .operator-table .merchant-row.expanded {
@@ -266,9 +266,9 @@ summary {
   line-height: 1.4;
   font-weight: 650;
   transition:
-    background-color 160ms var(--ui-ease),
-    transform 160ms var(--ui-ease),
-    color 160ms var(--ui-ease);
+    background-color 240ms var(--ui-ease),
+    transform 240ms var(--ui-ease),
+    color 240ms var(--ui-ease);
 }
 .operator-shell .primary,
 .merchant-shell .primary,
@@ -324,8 +324,8 @@ summary {
   line-height: 1.4;
   box-shadow: none;
   transition:
-    background-color 160ms var(--ui-ease),
-    border-color 160ms var(--ui-ease);
+    background-color 240ms var(--ui-ease),
+    border-color 240ms var(--ui-ease);
 }
 input::placeholder,
 textarea::placeholder,
@@ -386,8 +386,8 @@ summary:focus-visible,
   color: #6b7684;
   font-size: 14px;
   transition:
-    background-color 160ms var(--ui-ease),
-    color 160ms var(--ui-ease);
+    background-color 240ms var(--ui-ease),
+    color 240ms var(--ui-ease);
 }
 .merchant-shell .nav-item.active {
   background: #edf4ff;
@@ -648,7 +648,7 @@ summary:focus-visible,
   background: transparent;
   color: #333d4b;
   font-size: 15px;
-  transition: background-color 160ms var(--ui-ease);
+  transition: background-color 240ms var(--ui-ease);
 }
 .choice-list > button[aria-selected="true"] {
   color: #3182f6;
@@ -797,8 +797,8 @@ summary:focus-visible,
   font: inherit;
   cursor: pointer;
   transition:
-    background-color 240ms var(--ui-ease),
-    transform 240ms var(--ui-ease);
+    background-color 360ms var(--ui-ease),
+    transform 360ms var(--ui-ease);
 }
 .merchant-shell .metric-link .metric-label {
   margin: 0;
@@ -1030,18 +1030,18 @@ summary:focus-visible,
     background: #f8fafc;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   .metric-link:active:not(:disabled) {
     transform: scale(0.985);
   }
   .button,
   .icon-button,
   .action-card {
-    transition-duration: 240ms;
+    transition-duration: 360ms;
   }
   .insight-product,
   .insight-order {
-    animation: detail-enter 320ms var(--ui-ease);
+    animation: detail-enter 480ms var(--ui-ease);
   }
 }
 @media (max-width: 600px) {
@@ -1102,23 +1102,23 @@ summary:focus-visible,
     background: #1b6fe5;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   .button:active:not(:disabled),
   .icon-button:active:not(:disabled),
   .action-card:active:not(:disabled) {
     transform: scale(0.98);
   }
   .modal[open] {
-    animation: dialog-enter 360ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: dialog-enter 540ms cubic-bezier(0.16, 1, 0.3, 1);
   }
   .modal[open]::backdrop {
-    animation: backdrop-enter 300ms ease-out;
+    animation: backdrop-enter 450ms ease-out;
   }
   .merchant-detail {
-    animation: detail-enter 320ms var(--ui-ease);
+    animation: detail-enter 480ms var(--ui-ease);
   }
   .toast {
-    animation: detail-enter 320ms var(--ui-ease);
+    animation: detail-enter 480ms var(--ui-ease);
   }
 }
 @keyframes dialog-enter {

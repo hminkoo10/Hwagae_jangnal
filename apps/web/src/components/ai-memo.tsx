@@ -20,7 +20,7 @@ type SalesDraft = {
 type EditableRow = Omit<SalesRow, "units_sold"> & { units_sold: string };
 
 const stagger = (index: number) =>
-  ({ "--ai-delay": `${Math.min(index, 8) * 60}ms` }) as CSSProperties;
+  ({ "--ai-delay": `${Math.min(index, 8) * 90}ms` }) as CSSProperties;
 
 // "2026-10-30 콜라 3개: 기준일 이후 날짜라 기록할 수 없어요." → line + reason.
 function skippedLine(item: string, today: string) {

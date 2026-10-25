@@ -35,13 +35,13 @@ import {
   Empty,
   ForecastChart,
   Icon,
-  prefersReducedMotion,
   usePresence,
 } from "./ui";
 import { MerchantOverview } from "./merchant-overview";
 import { ModelDemo } from "./model-demo";
 import { NATIVE_BACK_EVENT } from "./native-shell";
 import { MerchantModelPanel } from "./merchant-model-panel";
+import { BrandLogo } from "./brand-logo";
 import { InitialData } from "./initial-data";
 import { AiExplanation } from "./ai-settings";
 import { AiAssistant, ASSISTANT_TASKS } from "./ai-assistant";
@@ -132,14 +132,10 @@ function useCssEntrance() {
 
 /**
  * 메뉴·매장을 바꿀 때 본문만 방향에 맞게 밀며 바뀐다(View Transitions API).
- * 지원하지 않거나 움직임 줄이기를 켰으면 바로 바꾸고, 새 화면은 .view-enter로 나타난다.
+ * 지원하지 않으면 바로 바꾸고, 새 화면은 .view-enter로 나타난다.
  */
 function transitionView(direction: Direction | null, update: () => void) {
-  if (
-    !direction ||
-    typeof document.startViewTransition !== "function" ||
-    prefersReducedMotion()
-  ) {
+  if (!direction || typeof document.startViewTransition !== "function") {
     update();
     return;
   }
@@ -177,7 +173,7 @@ function transitionView(direction: Direction | null, update: () => void) {
     else start();
   };
   dialog.addEventListener("close", settle, { once: true });
-  window.setTimeout(settle, 400);
+  window.setTimeout(settle, 600);
 }
 
 /** 탭 본문. 전환 중에 붙었으면 브라우저가 이미 움직였으므로 .view-enter를 생략한다. */
@@ -258,8 +254,8 @@ function LoginScreen({
     <main className="login-page">
       <section className="login-story">
         <div className="brand">
-          <span className="brand-icon">
-            <Icon name="store" size={26} />
+          <span className="brand-icon brand-logo">
+            <BrandLogo />
           </span>
           <strong>
             화개장날<span>.</span>
@@ -734,6 +730,7 @@ export default function Workspace() {
       ? forecastResult.forecast
       : null;
   const replay = !!today && asOf !== today;
+  const lastSalesDate = data?.sales.summary.last_date ?? null;
   const weatherLabel =
     forecast?.weather.mode === "live_forecast"
       ? "현재 실제 예보"
@@ -1089,8 +1086,8 @@ export default function Workspace() {
     <div className="app-shell merchant-shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-icon">
-            <Icon name="store" size={24} />
+          <span className="brand-icon brand-logo">
+            <BrandLogo />
           </span>
           <strong>
             화개장날<span>.</span>
@@ -1560,6 +1557,19 @@ export default function Workspace() {
                             오늘로
                           </button>
                         )}
+                        {/* 예측은 기준일 당일 판매까지 필요해서, 오늘 판매가 없으면 마지막 판매일로 볼 수 있게 한다. */}
+                        {!replay &&
+                          lastSalesDate &&
+                          lastSalesDate < today && (
+                            <button
+                              type="button"
+                              className="button secondary forecast-today"
+                              disabled={busy}
+                              onClick={() => setAsOf(lastSalesDate)}
+                            >
+                              마지막 판매일({shortDate(lastSalesDate)})로
+                            </button>
+                          )}
                       </div>
                     </div>
                     {selectedForecast ? (
