@@ -24,14 +24,16 @@ export function filterProducts(
   query: string,
   category: string,
 ) {
-  const term = query.trim().toLocaleLowerCase();
+  const term = searchKey(query);
   return products.filter(
     (p) =>
       (category === "all" || p.category === category) &&
-      `${p.name} ${p.id} ${p.category} ${p.supplier}`
-        .toLocaleLowerCase()
-        .includes(term),
+      searchKey(`${p.name} ${p.id} ${p.category} ${p.supplier}`).includes(term),
   );
+}
+
+export function searchKey(value: string) {
+  return value.normalize("NFKC").replace(/\s+/gu, "").toLocaleLowerCase();
 }
 
 export function adjustPrice(value: string, direction: 1 | -1) {

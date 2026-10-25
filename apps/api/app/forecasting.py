@@ -67,6 +67,7 @@ def baseline(context):
 def run_forecast(database, store, as_of, weather, predictor=None):
     dates = [(as_of + timedelta(days=i)).isoformat() for i in range(1, 8)]
     products = database.products(store["id"])
+    active_ids = {product["id"] for product in products}
     with database.connect() as db:
         sales = [
             dict(row)
@@ -78,6 +79,7 @@ def run_forecast(database, store, as_of, weather, predictor=None):
                     (as_of - timedelta(days=83)).isoformat(),
                 ),
             )
+            if row["product_id"] in active_ids
         ]
         actuals = {
             (row["product_id"], row["date"]): row["units_sold"]

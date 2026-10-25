@@ -1,0 +1,70 @@
+/* Shared controls keep their size when placed in flex/grid summaries. */
+.custom-control { align-self: start; height: 44px; flex: 0 1 auto; }
+.control-trigger { height: 44px; min-height: 44px; max-height: 44px; align-self: start; }
+.control-trigger > svg { display: block; width: 18px; height: 18px; flex: 0 0 18px; color: #8b95a1; }
+.control-trigger > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.merchant-shell .account-actions { gap: 9px; font-size: 14px; align-items: center; }
+.merchant-shell .account-actions .account-copy { display: flex; flex-direction: column; gap: 2px; line-height: 1.25; }
+.merchant-shell .account-actions .account-copy small { margin: 0; font-size: 11px; line-height: 1.25; }
+.merchant-shell .account-actions .text-button { margin-left: 10px; font-size: 13px; white-space: nowrap; }
+.merchant-shell .user-avatar { width: 32px; height: 32px; min-width: 32px; font-size: 14px; }
+.merchant-shell .store-picker { display: flex; align-items: center; gap: 6px; padding: 4px 6px; min-height: 48px; }
+.merchant-shell .store-picker .custom-control { align-self: center; flex: 1; height: 40px; }
+.merchant-shell .store-picker .control-trigger { height: 40px; min-height: 40px; max-height: 40px; padding: 8px 10px; font-size: 15px; }
+.merchant-shell .store-picker > svg { flex: 0 0 20px; width: 20px; height: 20px; }
+.merchant-shell .plan-summary { display: flex; align-items: center; justify-content: flex-start; gap: 14px 24px; padding: 16px; }
+.merchant-shell .plan-summary > .date-picker { display: grid; align-items: start; gap: 7px; flex: 0 0 210px; font-size: 13px; }
+.merchant-shell .plan-summary .date-control { display: inline-flex; height: 44px; min-height: 0; width: 210px; }
+.merchant-shell .plan-summary .control-trigger { height: 44px; min-height: 44px; max-height: 44px; background: white; padding: 10px 12px; font-size: 15px; }
+.merchant-shell .plan-summary > span { flex: 1 1 180px; font-size: 13px; line-height: 1.6; }
+.merchant-shell .inventory-panel .panel-heading h2 .count-label { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 500; line-height: 1.4; color: #8b95a1; vertical-align: middle; }
+.merchant-shell .inventory-panel tbody strong { font-size: 15px; line-height: 1.5; }
+.product-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.product-row-actions .text-button { font-size: 12px; }
+.order-basis { display: block; margin-top: 5px; color: #6b7684; font-size: 12px; line-height: 1.6; font-weight: 500; }
+.assistant-drawer { margin: 0 0 18px; color: #6b7684; }
+.assistant-drawer > summary { font-size: 13px; padding: 8px 0; cursor: pointer; }
+.assistant-drawer[open] > .panel { margin-top: 10px; }
+.ai-required { display: grid; justify-items: start; gap: 14px; max-width: 620px; margin: 32px auto; padding: 32px; }
+.ai-required h2, .ai-required p { margin: 0; }
+.ai-explanation .assistant-text { line-height: 1.85; margin-top: 12px; }
+.row-chevron { flex: 0 0 16px; transition: transform 220ms ease; }
+.row-chevron.is-open { transform: rotate(90deg); }
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::after { content: ""; display: inline-block; width: 6px; height: 6px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: translateY(-2px) rotate(45deg); margin-left: 10px; vertical-align: middle; transition: transform 220ms ease; }
+details[open] > summary::after { transform: translateY(1px) rotate(225deg); }
+* { scrollbar-width: thin; scrollbar-color: #c6cdd5 transparent; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c6cdd5; border: 2px solid transparent; border-radius: 20px; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: #98a3b3; }
+::-webkit-scrollbar-corner { background: transparent; }
+.modal, .table-scroll, .choice-list { overscroll-behavior: contain; scrollbar-gutter: stable; }
+.merchant-shell .sidebar .mobile-navigation { display: none; }
+@media (max-width: 900px) {
+  .merchant-shell .sidebar { height: auto; min-height: 0; padding: 10px 14px; overflow: visible; }
+  .merchant-shell .sidebar .desktop-navigation { display: none; }
+  .merchant-shell .sidebar .mobile-navigation { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 0; margin: 4px 0 0; }
+  .merchant-shell .mobile-navigation .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px; min-height: 52px; font-size: 12px; line-height: 1.3; border-radius: 10px; }
+  .merchant-shell .mobile-navigation .custom-control { height: 52px; align-self: center; }
+  .merchant-shell .mobile-navigation .control-trigger { height: 52px; min-height: 52px; max-height: 52px; justify-content: center; padding: 6px 2px; border: 0; background: transparent; gap: 3px; font-size: 12px; }
+  .merchant-shell .mobile-navigation .control-trigger > svg { width: 12px; height: 12px; flex-basis: 12px; }
+  .merchant-shell .brand { margin-bottom: 6px; font-size: 16px; }
+  .merchant-shell .brand-icon { width: 30px; height: 30px; }
+  .merchant-shell .workspace-label, .merchant-shell .sidebar-bottom { display: none; }
+  .merchant-shell .topbar { padding: 6px 16px; min-height: 42px; }
+  .merchant-shell .page-heading { gap: 12px; }
+  .merchant-shell .overline { display: none; }
+}
+@media (max-width: 600px) {
+  .merchant-shell .plan-summary { padding: 14px; gap: 10px; }
+  .merchant-shell .plan-summary > .date-picker { flex-basis: 100%; }
+  .merchant-shell .plan-summary .date-control { width: 100%; }
+  .merchant-shell .plan-summary > span { flex-basis: 100%; }
+  .merchant-shell .account-actions { font-size: 13px; }
+  .merchant-shell .inventory-panel .panel-heading h2 { font-size: 18px; }
+  .product-row-actions { justify-content: flex-start; }
+  .ai-required { margin-block: 16px; padding: 24px 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .row-chevron, details > summary::after { transition: none; } }

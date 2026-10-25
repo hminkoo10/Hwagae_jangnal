@@ -18,6 +18,7 @@ export type Store = {
   data_note?: string | null;
 };
 export type Product = {
+  active?: boolean;
   id: string;
   name: string;
   category: string;
@@ -185,6 +186,7 @@ export type ModelEvaluation = {
   limitations: string[];
 };
 export type RecommendationRow = {
+  basis?: { days: number; incoming_units: number };
   product_id: string;
   name: string;
   supplier: string;
@@ -398,7 +400,7 @@ export async function saveBlob(blob: Blob, filename: string) {
 export const won = (value: number) =>
   new Intl.NumberFormat("ko-KR").format(value) + "원";
 export const units = (value: number) =>
-  new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 1 }).format(value);
+  new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 0 }).format(value);
 export const shortDate = (value: string) =>
   `${Number(value.slice(5, 7))}.${Number(value.slice(8, 10))}`;
 

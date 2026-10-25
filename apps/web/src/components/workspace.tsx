@@ -276,12 +276,24 @@ export default function Workspace() {
   const [forecastError, setForecastError] = useState("");
   const [forecastReload, setForecastReload] = useState(0);
   const [reload, setReload] = useState(0);
+  const [aiReload, setAiReload] = useState(0);
+  const [aiStatus, setAiStatus] = useState<{ storeId: string; ready: boolean; error?: string } | null>(null);
+  const aiReady = !!aiStatus && aiStatus.storeId === storeId && aiStatus.ready;
+  useEffect(() => {
+    if (!token || !storeId) return;
+    const controller = new AbortController();
+    api<{ ready: boolean }>(`/stores/${storeId}/ai/status`, token, { signal: controller.signal })
+      .then(value => { if (!controller.signal.aborted) setAiStatus({ storeId, ready: value.ready }); })
+      .catch(e => { if (!controller.signal.aborted) setAiStatus({ storeId, ready: false, error: e.message }); });
+    return () => controller.abort();
+  }, [token, storeId, aiReload]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [productCategory, setProductCategory] = useState("all");
+  const [showExcluded, setShowExcluded] = useState(false);
   useEffect(() => setProductCategory("all"), [storeId]);
   const [selectedProduct, setSelectedProduct] = useState("P001");
   const [inventoryProduct, setInventoryProduct] = useState<Product | null>(
@@ -458,7 +470,7 @@ export default function Workspace() {
   }, [token, storeId, reload, clearSession, modelDemo]);
 
   useEffect(() => {
-    if (modelDemo || !token || !storeId || !asOf) return;
+    if (modelDemo || !token || !storeId || !asOf || !aiReady) return;
     const controller = new AbortController();
     setForecastResult(null);
     setForecastError("");
@@ -486,7 +498,7 @@ export default function Workspace() {
         if (!controller.signal.aborted) setForecastLoading(false);
       });
     return () => controller.abort();
-  }, [token, storeId, asOf, reload, forecastReload, modelDemo, clearSession]);
+  }, [token, storeId, asOf, reload, forecastReload, modelDemo, clearSession, aiReady]);
 
   useEffect(() => {
     if (notice) {
@@ -580,7 +592,8 @@ export default function Workspace() {
     );
 
   const store = stores.find((item) => item.id === storeId);
-  const data = bundle?.storeId === storeId ? bundle : null;
+  const allData = bundle?.storeId === storeId ? bundle : null;
+  const data = allData ? { ...allData, products: allData.products.filter(product => product.active !== false) } : null;
   const forecast =
     forecastResult?.storeId === storeId &&
     forecastResult.forecast.as_of === asOf
@@ -603,7 +616,7 @@ export default function Workspace() {
   const owner = store?.role === "owner";
   const currentTab = tabs.find((item) => item.id === tab)!;
   const filtered = filterProducts(
-    data?.products ?? [],
+    tab === "products" && showExcluded ? allData?.products ?? [] : data?.products ?? [],
     search,
     productCategory,
   );
@@ -688,7 +701,7 @@ export default function Workspace() {
 
   function productRows(mode: "overview" | "inventory" | "products") {
     return (
-      <section className="panel">
+      <section className={`panel ${mode === "inventory" ? "inventory-panel" : ""}`}>
         <div className="panel-heading">
           <div>
             <h2>
@@ -740,6 +753,9 @@ export default function Workspace() {
               >
                 전체 보기
               </button>
+            )}
+            {mode === "products" && owner && (
+              <label className="checkbox"><input type="checkbox" checked={showExcluded} onChange={event => setShowExcluded(event.target.checked)} />제외한 상품도 보기</label>
             )}
             {mode === "products" && owner && (
               <button
@@ -800,6 +816,7 @@ export default function Workspace() {
                           </span>
                           <div>
                             <strong>{product.name}</strong>
+                            {product.active === false && <small>발주에서 제외됨</small>}
                             <small>
                               {product.id} · {product.category}
                             </small>
@@ -862,13 +879,19 @@ export default function Workspace() {
                       <td className="number">
                         {mode === "products" ? (
                           owner ? (
-                            <button
+                            <span className="product-row-actions"><button
                               className="button table-button"
                               disabled={busy}
                               onClick={() => setProductModal(product)}
                             >
                               수정
-                            </button>
+                            </button><button type="button" className="text-button" disabled={busy}
+                              onClick={() => void action(async () => {
+                                const active = product.active === false;
+                                await api(`/stores/${storeId}/products/${product.id}/availability`, token,
+                                  { method: "PATCH", body: JSON.stringify({ active }) });
+                                saved(active ? "다시 발주할 수 있어요." : "발주에서 제외했어요. 지난 기록은 남아 있어요.");
+                              })}>{product.active === false ? "다시 사용" : "발주에서 제외"}</button></span>
                           ) : (
                             <span className="muted">조회</span>
                           )
@@ -905,7 +928,7 @@ export default function Workspace() {
           </strong>
         </div>
         <div className="workspace-label">매장 운영</div>
-        <nav aria-label="주 메뉴">
+        <nav className="desktop-navigation" aria-label="주 메뉴">
           {tabs
             .filter(
               (item) =>
@@ -929,6 +952,16 @@ export default function Workspace() {
               </button>
             ))}
         </nav>
+        <nav className="mobile-navigation" aria-label="모바일 메뉴">
+          {([ ["overview", "홈"], ["forecast", "예측"], ["inventory", "재고"], ["orders", "발주"] ] as const).map(([id, label]) =>
+            <button key={id} type="button" className={`nav-item ${tab === id ? "active" : ""}`} aria-current={tab === id ? "page" : undefined}
+              disabled={busy} onClick={() => navigate(id)}><Icon name={id} size={19} /><span>{label}</span></button>)}
+          <Select aria-label="더보기 메뉴" value={(["sales", "products", "ai-settings"] as string[]).includes(tab) ? tab : ""}
+            disabled={busy} onChange={event => navigate(event.target.value as Tab)}>
+            <option value="" disabled>더보기</option><option value="sales">판매 기록</option><option value="products">상품</option>
+            {owner && <option value="ai-settings">AI 연결</option>}
+          </Select>
+        </nav>
         <div className="sidebar-bottom">
           <div className="guide-card">
             <span className="guide-icon">
@@ -951,7 +984,7 @@ export default function Workspace() {
         <header className="topbar">
           <div className="account-actions">
             <span className="user-avatar">{owner ? "사" : "직"}</span>
-            <span>
+            <span className="account-copy">
               {user.name}
               <small>{owner ? "점주" : "직원"}</small>
             </span>
@@ -1137,14 +1170,23 @@ export default function Workspace() {
               token={token}
               storeId={storeId}
               onExpired={clearSession}
+              onChanged={() => setAiReload(value => value + 1)}
             />
           )}
-          {!modelDemo && data && (
+          {!modelDemo && store && tab !== "ai-settings" && !aiReady && (
+            <section className="panel ai-required" aria-live="polite">
+              <Icon name="ai-settings" size={26} /><h2>매장 도우미를 먼저 연결해주세요</h2>
+              <p>{aiStatus?.storeId === storeId ? aiStatus.error ?? (owner ? "처음 한 번 연결하면 판매 기록과 발주 이유를 함께 정리해드려요." : "점주가 AI를 연결하면 이용할 수 있어요.") : "매장 연결을 확인하고 있어요…"}</p>
+              {owner && <button type="button" className="button primary" onClick={() => navigate("ai-settings")}>AI 연결하기</button>}
+              {aiStatus?.error && <button type="button" className="text-button" onClick={() => setAiReload(value => value + 1)}>다시 확인</button>}
+            </section>
+          )}
+          {!modelDemo && data && (aiReady || tab === "ai-settings") && (
             <div
               className={loading ? "content-updating" : undefined}
               aria-busy={loading}
             >
-              {!data.products.length && owner && tab !== "ai-settings" && (
+              {!allData?.products.length && owner && tab !== "ai-settings" && (
                 <InitialData
                   key={storeId}
                   token={token}
@@ -1154,13 +1196,13 @@ export default function Workspace() {
                 />
               )}
               {owner && store && tab in ASSISTANT_TASKS && (
-                <AiAssistant
+                <details className="assistant-drawer"><summary>매장 도우미에게 물어보기</summary><AiAssistant
                   key={`${storeId}:${tab}:${reload}:${asOf}:${forecast?.id ?? ""}`}
                   token={token} storeId={storeId} onExpired={clearSession}
                   tab={tab as keyof typeof ASSISTANT_TASKS} asOf={asOf}
                   forecastId={forecast?.as_of === asOf ? forecast.id : undefined}
                   disabled={busy || loading} onSetup={() => navigate("ai-settings")}
-                />
+                /></details>
               )}
               {tab === "overview" && store && data.products.length > 0 && (
                 <MerchantOverview
@@ -1181,6 +1223,10 @@ export default function Workspace() {
                     if (!busy) setInventoryProduct(product);
                   }}
                 />
+              )}
+              {tab === "overview" && !!allData?.products.length && !data.products.length && (
+                <Empty title="발주할 상품이 없어요"><p>상품 화면에서 제외한 상품을 다시 사용하거나 새 상품을 등록해주세요.</p>
+                  <button type="button" className="button secondary" onClick={() => navigate("products")}>상품 관리</button></Empty>
               )}
               {tab === "forecast" && (
                 <>
@@ -1382,7 +1428,7 @@ export default function Workspace() {
                                 <th className="number">적게 팔릴 때</th>
                                 <th className="number">예상 판매</th>
                                 <th className="number">많이 팔릴 때</th>
-                                <th className="number">실제 판매</th>
+                                {selectedForecast.points.some(point => point.actual !== null) && <th className="number">입력한 판매 실적</th>}
                               </tr>
                             </thead>
                             <tbody>
@@ -1398,11 +1444,11 @@ export default function Workspace() {
                                   <td className="number">
                                     {units(point.p90)}개
                                   </td>
-                                  <td className="number">
+                                  {selectedForecast.points.some(point => point.actual !== null) && <td className="number">
                                     {point.actual === null
                                       ? "—"
                                       : units(point.actual) + "개"}
-                                  </td>
+                                  </td>}
                                 </tr>
                               ))}
                             </tbody>
@@ -1414,6 +1460,7 @@ export default function Workspace() {
                         예상 판매량과 적게·많이 팔릴 때의 범위를 함께
                         보여드려요. 실제 판매량은 날씨와 매장 상황에 따라 달라질
                         수 있어요.
+                        <button type="button" className="text-button" onClick={() => navigate("sales")}>판매 실적 입력하기</button>
                       </p>
                     )}
                   </section>
@@ -1467,8 +1514,7 @@ export default function Workspace() {
                       <div>
                         <h2>새 발주 계획</h2>
                         <p>
-                          판매·재고 기준일 {asOf} · 매장 현지 날짜. 발주
-                          예정일과 입고까지 걸리는 기간을 함께 반영해요.
+                          {asOf}에 확인한 판매·재고를 기준으로 계산해요.
                         </p>
                       </div>
                       <button
@@ -1510,7 +1556,7 @@ export default function Workspace() {
                         />
                       </label>
                       <span>
-                        오늘부터 7일 중 선택 · 날짜를 바꾸면 다시 계산해요.
+                        날짜를 바꾸면 그날 발주할 수량을 다시 계산해요.
                       </span>
                     </div>
                     {replay && (
@@ -1574,8 +1620,8 @@ export default function Workspace() {
                                   <td>
                                     <strong>{row.name}</strong>
                                     <small>
-                                      {row.reason ??
-                                        `${row.supplier} · 확인 재고 ${units(row.current_stock ?? 0)}개`}
+                                  {row.reason ?? `${row.supplier} · 확인 재고 ${units(row.current_stock ?? 0)}개`}
+                                  {row.basis && <small className="order-basis">예정 입고 {units(row.basis.incoming_units)}개 반영 · {row.basis.days}일 판매량 비교</small>}
                                     </small>
                                   </td>
                                   <td>{row.arrival_date}</td>

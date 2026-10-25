@@ -4,6 +4,7 @@ import { Select } from "./controls";
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { explainOrder } from "@/lib/ai-explanations";
 import { Modal } from "./ui";
 import { protocolForAddress, type AiProtocol } from "@/lib/ai-provider";
 
@@ -77,8 +78,8 @@ function Result({ result }: { result: Run }) {
 export function AiSetupGuide() {
   return (
     <aside className="ai-beginner-guide" aria-label="AI 도우미 사용 안내">
-      <strong>연결은 선택사항이에요</strong>
-      <p>연결하지 않아도 판매 예측과 발주는 그대로 쓸 수 있어요.</p>
+      <strong>매장 도우미를 먼저 연결해주세요</strong>
+      <p>처음 한 번 연결하면 발주 이유와 매장 기록을 함께 정리해줘요.</p>
       <ol>
         <li>
           <strong>연결 정보 받기</strong>
@@ -424,10 +425,12 @@ export function AiSettings({
   token,
   storeId,
   onExpired,
+  onChanged,
 }: {
   token: string;
   storeId: string;
   onExpired: () => void;
+  onChanged?: () => void;
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState("");
@@ -479,6 +482,7 @@ export function AiSettings({
       );
       if (c.signal.aborted) return;
       setSettings(saved);
+      onChanged?.();
       setResult(null);
       setEditing(null);
       setRemoving(null);
@@ -728,54 +732,40 @@ export function AiExplanation({
   const [result, setResult] = useState<Run | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const request = useRef<AbortController | null>(null);
-  useEffect(() => () => request.current?.abort(), []);
-  async function explain() {
-    if (busy) return;
-    const c = new AbortController();
-    request.current = c;
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
     setBusy(true);
     setError("");
-    try {
-      const data = await api<Run>(
-        `/stores/${storeId}/ai/explain/${recommendationId}`,
-        token,
-        { method: "POST", signal: c.signal, timeoutMs: 80000 },
-      );
-      if (!c.signal.aborted) setResult(data);
-    } catch (e) {
-      if (!c.signal.aborted) {
-        setError(message(e));
-        if (e instanceof ApiError && e.status === 401) onExpired();
-      }
-    } finally {
-      if (!c.signal.aborted) setBusy(false);
-    }
-  }
+    setResult(null);
+    const pending = explainOrder(token, storeId, recommendationId);
+    pending.then(value => { if (!cancelled) setResult(value); })
+      .catch(e => { if (!cancelled) { setError(message(e)); if (e instanceof ApiError && e.status === 401) onExpired(); } })
+      .finally(() => { if (!cancelled) setBusy(false); });
+    return () => { cancelled = true; };
+  }, [token, storeId, recommendationId, onExpired, retry]);
   return (
     <section className="ai-explanation">
       <div className="panel-heading">
         <div>
-          <h3>이 수량을 추천한 이유</h3>
-          <p>
-            선택한 AI가 계산 당시 재고·입고·날씨를 설명해요. 수량 수정 전 추천
-            기준이에요.
-          </p>
+          <h3>이번 발주, 이렇게 잡았어요</h3>
+          <p>처음 추천한 수량 기준이에요.</p>
         </div>
-        <button
+        {error && <button
           className="button secondary"
           disabled={busy}
-          onClick={() => void explain()}
+          onClick={() => setRetry(value => value + 1)}
         >
-          {busy ? "AI가 설명 중…" : "AI 설명 보기"}
-        </button>
+          다시 정리
+        </button>}
       </div>
       {error && (
         <div className="error-banner" role="alert">
           {error}
         </div>
       )}
-      {result && <Result result={result} />}
+      {busy && <p className="helper" role="status">재고와 입고를 반영한 근거를 정리하고 있어요…</p>}
+      {result && <p className="assistant-text">{result.text}</p>}
     </section>
   );
 }

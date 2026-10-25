@@ -51,6 +51,10 @@ class ProductUpdate(ProductSettings):
         return value.strip() if value is not None else None
 
 
+class ProductAvailability(Payload):
+    active: bool = Field(strict=True)
+
+
 class StoreInput(Payload):
     name: str = Field(min_length=1, max_length=80)
     city: str = Field(min_length=1, max_length=80)

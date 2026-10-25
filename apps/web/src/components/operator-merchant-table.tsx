@@ -184,7 +184,7 @@ export function MerchantManagementTable({
                         aria-label={`${row.name} 상세 ${open ? "접기" : "보기"}`}
                         onClick={() => toggle(row.id)}
                       >
-                        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+                        <svg className={`row-chevron ${open ? "is-open" : ""}`} aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
                         <strong>{row.name}</strong>
                       </button>
                       <span className="merchant-email">{row.email}</span>

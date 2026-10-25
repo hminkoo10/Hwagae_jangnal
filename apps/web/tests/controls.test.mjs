@@ -17,6 +17,7 @@ let language;
 let summary;
 let orderDetails;
 let metrics;
+let ui;
 try {
   for (const name of [
     "ui",
@@ -63,6 +64,7 @@ try {
   controls = await import(
     pathToFileURL(path.join(folder, "controls.mjs")).href
   );
+  ui = await import(pathToFileURL(path.join(folder, "ui.mjs")).href);
   fields = await import(
     pathToFileURL(path.join(folder, "product-fields.mjs")).href
   );
@@ -164,6 +166,23 @@ test("merchant totals distinguish zero sales/current zero stock from missing and
   );
   assert.equal(pending.demandCount, 0);
   assert.equal(pending.ready.length, 0);
+});
+
+test("product names and supplier searches ignore whitespace and Unicode width", () => {
+  const products = [{ id: "P001", name: "바나나 우유", category: "유제품", supplier: "화개 유업" }];
+  for (const query of ["바나나우유", "바 나 나 우 유", "화개유업", "Ｐ００１"]) {
+    assert.equal(language.filterProducts(products, query, "all").length, 1);
+  }
+});
+
+test("select chevrons are SVG and backdrop detection excludes dialog padding", () => {
+  const html = renderToStaticMarkup(React.createElement(controls.Select, { defaultValue: "A" }, React.createElement("option", { value: "A" }, "상품")));
+  assert.ok(html.includes('d="m6 9 6 6 6-6"'));
+  assert.ok(!html.includes("⌄"));
+  const rect = { left: 20, top: 30, right: 300, bottom: 400 };
+  assert.equal(ui.outsideDialog(rect, 10, 200), true);
+  assert.equal(ui.outsideDialog(rect, 150, 450), true);
+  assert.equal(ui.outsideDialog(rect, 21, 31), false);
 });
 
 test("saved order detail shows saved edited quantity and amounts instead of recommendation", () => {
