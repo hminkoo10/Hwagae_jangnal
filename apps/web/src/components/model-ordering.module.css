@@ -416,14 +416,13 @@
 .modalForm .checkbox {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   line-height: 1.8;
 }
 .modalForm .checkbox input {
   width: 16px;
   min-height: 16px;
-  margin-top: 2px;
   accent-color: #2478f5;
 }
 .error {
