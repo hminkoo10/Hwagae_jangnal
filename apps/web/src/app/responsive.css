@@ -1,4 +1,3 @@
-/* Shared controls use the same layout in browser, Android and iOS. */
 html,
 body {
   min-inline-size: 0;
