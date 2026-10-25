@@ -3,6 +3,9 @@
 .control-trigger { height: 44px; min-height: 44px; max-height: 44px; align-self: start; }
 .control-trigger > svg { display: block; width: 18px; height: 18px; flex: 0 0 18px; color: #8b95a1; }
 .control-trigger > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The logo artwork carries its own blue rounded background. */
+.brand .brand-icon.brand-logo { background: none; overflow: hidden; }
+.brand-logo > svg { display: block; width: 100%; height: 100%; }
 .merchant-shell .account-actions { gap: 9px; font-size: 14px; align-items: center; }
 .merchant-shell .account-actions .account-copy { display: flex; flex-direction: column; gap: 2px; line-height: 1.25; }
 .merchant-shell .account-actions .account-copy small { margin: 0; font-size: 11px; line-height: 1.25; }
@@ -32,11 +35,11 @@
 .ai-required { display: grid; justify-items: start; gap: 14px; max-width: 620px; margin: 32px auto; padding: 32px; }
 .ai-required h2, .ai-required p { margin: 0; }
 .ai-explanation .assistant-text { line-height: 1.85; margin-top: 12px; }
-.row-chevron { flex: 0 0 16px; transition: transform 220ms ease; }
+.row-chevron { flex: 0 0 16px; transition: transform 330ms ease; }
 .row-chevron.is-open { transform: rotate(90deg); }
 details > summary { list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
-details > summary::after { content: ""; display: inline-block; width: 6px; height: 6px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: translateY(-2px) rotate(45deg); margin-left: 10px; vertical-align: middle; transition: transform 220ms ease; }
+details > summary::after { content: ""; display: inline-block; width: 6px; height: 6px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: translateY(-2px) rotate(45deg); margin-left: 10px; vertical-align: middle; transition: transform 330ms ease; }
 details[open] > summary::after { transform: translateY(1px) rotate(225deg); }
 * { scrollbar-width: thin; scrollbar-color: #c6cdd5 transparent; }
 ::-webkit-scrollbar { width: 7px; height: 7px; }
@@ -74,4 +77,3 @@ details[open] > summary::after { transform: translateY(1px) rotate(225deg); }
   .product-row-actions { justify-content: flex-start; }
   .ai-required { margin-block: 16px; padding: 24px 18px; }
 }
-@media (prefers-reduced-motion: reduce) { .row-chevron, details > summary::after { transition: none; } }
