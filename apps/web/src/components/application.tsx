@@ -3,14 +3,22 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import Workspace from "./workspace";
 
+type InviteKind = "owner" | "staff";
+
 export default function Application() {
-  const [invite, setInvite] = useState<string | null>(null);
+  const [invite, setInvite] = useState<{
+    token: string;
+    kind: InviteKind;
+  } | null>(null);
   useEffect(() => {
-    const token = new URLSearchParams(window.location.hash.slice(1)).get(
-      "invite",
-    );
-    if (token) {
-      setInvite(token);
+    // 점주 초대는 #invite=, 직원 초대는 #staff-invite=. 읽은 뒤 주소에서 지운다.
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const owner = params.get("invite");
+    const staff = params.get("staff-invite");
+    if (owner || staff) {
+      setInvite(
+        owner ? { token: owner, kind: "owner" } : { token: staff!, kind: "staff" },
+      );
       window.history.replaceState(
         null,
         "",
@@ -20,7 +28,8 @@ export default function Application() {
   }, []);
   return invite ? (
     <AcceptInvitation
-      token={invite}
+      token={invite.token}
+      kind={invite.kind}
       onDone={(signedUp = false) => {
         if (signedUp) {
           const previous = sessionStorage.getItem("hwagae-session");
@@ -39,23 +48,29 @@ export default function Application() {
 }
 function AcceptInvitation({
   token,
+  kind,
   onDone,
 }: {
   token: string;
+  kind: InviteKind;
   onDone: (signedUp?: boolean) => void;
 }) {
   const [info, setInfo] = useState<{
     email: string;
-    merchant_name: string;
-    starts_on: string;
-    ends_on: string;
+    merchant_name?: string;
+    starts_on?: string;
+    ends_on?: string;
+    name?: string;
+    store_name?: string;
   } | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const base =
+    kind === "staff" ? "/auth/staff-invitations" : "/auth/invitations";
   useEffect(() => {
     const c = new AbortController();
-    api<typeof info>("/auth/invitations/inspect", "", {
+    api<typeof info>(`${base}/inspect`, "", {
       method: "POST",
       body: JSON.stringify({ token }),
       signal: c.signal,
@@ -70,7 +85,7 @@ function AcceptInvitation({
           );
       });
     return () => c.abort();
-  }, [token]);
+  }, [token, base]);
   return (
     <main className="invite-page">
       <section className="panel">
@@ -79,7 +94,13 @@ function AcceptInvitation({
             화개장날<span>.</span>
           </strong>
         </div>
-        <h1>{done ? "가입이 완료됐어요" : "우리 매장 운영을 시작해요"}</h1>
+        <h1>
+          {done
+            ? "가입이 완료됐어요"
+            : kind === "staff"
+              ? "매장에 함께해요"
+              : "우리 매장 운영을 시작해요"}
+        </h1>
         {error && (
           <p className="error-banner" role="alert">
             {error}
@@ -87,7 +108,11 @@ function AcceptInvitation({
         )}
         {done ? (
           <>
-            <p>{info?.email}로 로그인해 매장 위치와 상품을 등록하세요.</p>
+            <p>
+              {kind === "staff"
+                ? `${info?.email}로 로그인하면 ${info?.store_name} 화면이 열려요.`
+                : `${info?.email}로 로그인해 매장 위치와 상품을 등록하세요.`}
+            </p>
             <button className="button primary" onClick={() => onDone(true)}>
               로그인으로 이동
             </button>
@@ -106,7 +131,7 @@ function AcceptInvitation({
               setBusy(true);
               setError("");
               try {
-                await api("/auth/invitations/accept", "", {
+                await api(`${base}/accept`, "", {
                   method: "POST",
                   body: JSON.stringify({
                     token,
@@ -123,13 +148,22 @@ function AcceptInvitation({
               }
             }}
           >
-            <p>
-              <strong>{info.merchant_name}</strong>님을 초대했어요.
-              <br />
-              {info.email}
-              <br />
-              계약 기간: {info.starts_on} ~ {info.ends_on}
-            </p>
+            {kind === "staff" ? (
+              <p>
+                <strong>{info.store_name}</strong>에서 <strong>{info.name}</strong>
+                님을 직원으로 초대했어요.
+                <br />
+                {info.email}
+              </p>
+            ) : (
+              <p>
+                <strong>{info.merchant_name}</strong>님을 초대했어요.
+                <br />
+                {info.email}
+                <br />
+                계약 기간: {info.starts_on} ~ {info.ends_on}
+              </p>
+            )}
             <label>
               새 비밀번호
               <input
@@ -155,7 +189,8 @@ function AcceptInvitation({
               />
             </label>
             <p className="helper">
-              12자 이상으로 설정하세요. 운영자는 이 비밀번호를 볼 수 없어요.
+              12자 이상으로 설정하세요.{" "}
+              {kind === "staff" ? "점주" : "운영자"}는 이 비밀번호를 볼 수 없어요.
             </p>
             <button className="button primary" disabled={busy}>
               {busy ? "가입 중…" : "비밀번호 설정 · 가입 완료"}

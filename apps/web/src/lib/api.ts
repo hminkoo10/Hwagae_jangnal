@@ -16,7 +16,15 @@ export type Store = {
   local_today?: string;
   provider?: "weekday" | "merchant_tft";
   data_note?: string | null;
+  /** 이 매장에서 할 수 있는 일. 점주는 전부, 직원은 점주가 허용한 것만. */
+  permissions?: StaffPermission[];
 };
+export type StaffPermission =
+  | "sales"
+  | "inventory"
+  | "order_draft"
+  | "order_confirm"
+  | "products";
 export type Product = {
   active?: boolean;
   id: string;

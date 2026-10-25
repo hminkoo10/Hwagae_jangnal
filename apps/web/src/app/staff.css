@@ -1,0 +1,18 @@
+/* 직원 관리 · 권한 안내 · 운영자 로그인 화면. */
+a.button { text-decoration: none; }
+.staff-permissions { display: flex; flex-wrap: wrap; gap: 6px 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.staff-permissions legend { width: 100%; margin-bottom: 6px; padding: 0; font-size: 13px; font-weight: 650; color: var(--ink); }
+.staff-permissions .checkbox { font-size: 13px; line-height: 1.5; white-space: nowrap; }
+.staff-table .staff-permissions { flex-direction: column; gap: 4px; }
+/* 좁은 화면의 카드형 표는 입력칸을 꽉 채우므로 체크박스는 원래 크기로 둔다. */
+.staff-table .staff-permissions input { width: 16px; }
+@media (max-width: 1250px) {
+  .staff-table td:has(.staff-permissions) { grid-column: 1/-1; }
+  .staff-table .staff-permissions .checkbox { white-space: normal; }
+}
+.staff-table td > .pill + small { margin-top: 6px; }
+.permission-note { margin: 0 0 18px; padding: 12px 16px; border-radius: 12px; background: #f2f4f6; color: #4e5968; font-size: 13px; line-height: 1.6; }
+.admin-login .pill { margin-top: 18px; }
+.admin-login h1 { margin: 10px 0 4px; font-size: 26px; letter-spacing: -0.03em; }
+.admin-login form .button { width: 100%; margin-top: 4px; }
+.error-banner .text-button { display: inline; padding: 0; font-weight: 650; }

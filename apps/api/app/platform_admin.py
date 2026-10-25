@@ -59,6 +59,13 @@ def can_create_store(db, user_id):
     return account_available(db, user_id) and bool(db.execute("SELECT 1 FROM memberships WHERE user_id=? AND role='owner' UNION SELECT 1 FROM merchant_contracts WHERE user_id=?", (user_id, user_id)).fetchone())
 
 
+def normalized_email(value):
+    value = value.strip().lower()
+    if len(value.split("@")) != 2 or any(c.isspace() for c in value) or not all(value.split("@")) or "." not in value.split("@")[1]:
+        raise ValueError("이메일을 확인하세요.")
+    return value
+
+
 class ContractInput(Payload):
     email: str = Field(min_length=3, max_length=200)
     merchant_name: str = Field(min_length=1, max_length=80)
@@ -68,10 +75,7 @@ class ContractInput(Payload):
     @field_validator("email")
     @classmethod
     def email_valid(cls, value):
-        value = value.strip().lower()
-        if len(value.split("@")) != 2 or any(c.isspace() for c in value) or not all(value.split("@")) or "." not in value.split("@")[1]:
-            raise ValueError("이메일을 확인하세요.")
-        return value
+        return normalized_email(value)
 
     @field_validator("merchant_name")
     @classmethod
