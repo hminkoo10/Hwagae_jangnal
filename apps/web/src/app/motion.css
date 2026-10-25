@@ -1,15 +1,15 @@
 /* 화면 전환·등장 애니메이션. 가장 마지막에 불러온다.
-   모든 움직임은 prefers-reduced-motion: no-preference 안에만 둔다.
-   (움직임 줄이기를 켠 사용자에게는 아무 애니메이션도 적용되지 않는다.) */
+   운영체제의 움직임 줄이기 설정과 상관없이 모든 움직임이 항상 재생된다.
+   (웹과 앱이 똑같이 보이게 한다.) */
 :root {
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   /* 톡 튀어나오는 것에만 쓰는 살짝 넘치는 곡선 */
   --motion-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
   /* 사라질 때는 짧고 빠르게 */
   --motion-exit: cubic-bezier(0.4, 0, 1, 1);
-  --motion-fast: 180ms;
-  --motion-base: 240ms;
-  --motion-slow: 320ms;
+  --motion-fast: 270ms;
+  --motion-base: 360ms;
+  --motion-slow: 480ms;
 }
 
 /* 움직임과 상관없는 구조: 선택된 메뉴 배경, 숫자 자리 고정 */
@@ -256,7 +256,7 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   /* 부드러운 색·크기 변화 */
   :is(.operator-shell, .merchant-shell, .modal, .login-page, .invite-page)
     .button {
@@ -309,8 +309,8 @@
     transition: opacity var(--motion-base) ease;
   }
   .ring-progress {
-    transition: stroke-dashoffset 500ms var(--motion-ease);
-    animation: motion-ring 700ms var(--motion-ease) 120ms backwards;
+    transition: stroke-dashoffset 750ms var(--motion-ease);
+    animation: motion-ring 1050ms var(--motion-ease) 180ms backwards;
   }
 
   /* 탭 화면 등장: 컨테이너가 살짝 떠오르고, 안의 카드가 차례로 나타난다. */
@@ -336,7 +336,7 @@
     animation-timing-function: var(--motion-ease);
     animation-fill-mode: backwards;
     animation-delay: calc(
-      var(--motion-section, 0) * 40ms + var(--motion-item, 0) * 30ms
+      var(--motion-section, 0) * 60ms + var(--motion-item, 0) * 45ms
     );
   }
   :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
@@ -407,14 +407,14 @@
     animation: motion-fade-up var(--motion-slow) var(--motion-ease) backwards;
   }
   .empty-state .empty-icon {
-    animation: motion-pop 420ms var(--motion-spring) 80ms backwards;
+    animation: motion-pop 630ms var(--motion-spring) 120ms backwards;
   }
   .empty-state > h3 {
-    animation: motion-fade-up var(--motion-slow) var(--motion-ease) 140ms
+    animation: motion-fade-up var(--motion-slow) var(--motion-ease) 210ms
       backwards;
   }
   .empty-state > div {
-    animation: motion-fade-up var(--motion-slow) var(--motion-ease) 200ms
+    animation: motion-fade-up var(--motion-slow) var(--motion-ease) 300ms
       backwards;
   }
 
@@ -458,13 +458,13 @@
 
   /* 모달: 살짝 커지며 떠오르고, 휴대폰에서는 아래에서 올라온다. */
   .modal[open] {
-    animation: motion-dialog 280ms var(--motion-ease);
+    animation: motion-dialog 420ms var(--motion-ease);
   }
   .modal[open]::backdrop {
-    animation: motion-fade 240ms ease-out;
+    animation: motion-fade 360ms ease-out;
   }
   .modal[open] > :not(.panel-heading) {
-    animation: motion-fade-up 260ms var(--motion-ease) 60ms backwards;
+    animation: motion-fade-up 390ms var(--motion-ease) 90ms backwards;
   }
   /* 닫힐 때: 모달은 살짝 가라앉으며 흐려지고, 뒤 배경도 함께 걷힌다. (ui.tsx EXIT_MS) */
   .modal.modal-closing[open] {
@@ -477,14 +477,14 @@
 
   /* 토스트: 아래에서 살짝 튀어 오르고, 체크가 그려진다. 닫힐 때는 아래로 가라앉는다. */
   .toast {
-    animation: motion-toast-in 420ms var(--motion-ease);
+    animation: motion-toast-in 630ms var(--motion-ease);
   }
   .toast.toast-leaving {
     animation: motion-toast-out var(--motion-fast) var(--motion-exit) forwards;
     pointer-events: none;
   }
   .toast > svg:first-child {
-    animation: motion-pop 420ms var(--motion-ease) 120ms backwards;
+    animation: motion-pop 630ms var(--motion-ease) 180ms backwards;
   }
   /* 체크 아이콘 경로(약 19.8) 길이만큼 감춰 두었다가 그린다. */
   :is(
@@ -494,19 +494,19 @@
     )
     path {
     stroke-dasharray: 20;
-    animation: motion-draw 380ms var(--motion-ease) 220ms backwards;
+    animation: motion-draw 570ms var(--motion-ease) 330ms backwards;
   }
 
   /* 홈 안내: 다음 단계 번호가 몇 번 숨 쉬고 멈춘다. */
   .guide-step.next .guide-step-mark {
-    animation: motion-pulse 1.8s ease-out 600ms 3;
+    animation: motion-pulse 1.8s ease-out 900ms 3;
   }
   .guide-step.done .guide-step-mark svg {
-    animation: motion-pop 360ms var(--motion-ease) 200ms backwards;
+    animation: motion-pop 540ms var(--motion-ease) 300ms backwards;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) and (max-width: 600px) {
+@media (max-width: 600px) {
   .modal[open] {
     animation: motion-sheet var(--motion-slow) var(--motion-ease);
   }
@@ -517,9 +517,9 @@
 
 /* 선택 창·달력은 누른 버튼 쪽에서 커지며 열리고, 그쪽으로 작아지며 닫힌다.
    기준점(transform-origin)은 ui.tsx Modal이 버튼 위치로 정한다. */
-@media (prefers-reduced-motion: no-preference) and (min-width: 601px) {
+@media (min-width: 601px) {
   .modal.modal-anchored[open] {
-    animation: motion-anchor-in 260ms var(--motion-spring);
+    animation: motion-anchor-in 390ms var(--motion-spring);
   }
   .modal.modal-anchored.modal-closing[open] {
     animation: motion-anchor-out var(--motion-fast) var(--motion-exit) forwards;
@@ -527,7 +527,7 @@
 }
 
 /* 마우스를 올리면 누를 수 있는 카드가 살짝 떠오른다. */
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) and (pointer: fine) {
   .merchant-shell
     :is(
       .metric-link,
@@ -542,24 +542,24 @@
 }
 
 /* 누르는 순간 살짝 작아진다. hover 규칙보다 뒤에 둔다. */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   :is(.button, .icon-button):active:not(:disabled) {
     transform: scale(0.97);
-    transition-duration: 90ms;
+    transition-duration: 110ms;
   }
   .text-button:active:not(:disabled) {
     transform: scale(0.96);
     opacity: 0.75;
-    transition-duration: 90ms;
+    transition-duration: 110ms;
   }
   .merchant-shell .nav-item:active {
     transform: scale(0.95);
-    transition-duration: 90ms;
+    transition-duration: 110ms;
   }
   .choice-list > button:active:not(:disabled),
   .insight-order:active:not(:disabled) {
     transform: scale(0.985);
-    transition-duration: 90ms;
+    transition-duration: 110ms;
   }
   .merchant-shell
     :is(
@@ -571,12 +571,12 @@
     ):active:not(:disabled) {
     transform: scale(0.98);
     box-shadow: none;
-    transition-duration: 90ms;
+    transition-duration: 110ms;
   }
 }
 
 /* details 펼치기: 높이와 투명도를 함께 바꾼다. 지원하지 않는 브라우저는 내용만 떠오른다. */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   @supports selector(::details-content) {
     details {
       interpolate-size: allow-keywords;
@@ -607,7 +607,7 @@
    workspace.tsx가 전환하는 동안만 <html data-view-nav="forward|back">을 붙인다.
    이름은 그동안만 붙여, 평소 레이아웃(쌓임 맥락 등)에는 영향이 없다.
    본문만 움직이고, 왼쪽 메뉴·상단 계정 영역(root)은 그대로 둔다. */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   :root[data-view-nav] .merchant-shell .workspace-main {
     view-transition-name: workspace-view;
   }
@@ -648,23 +648,23 @@
     mix-blend-mode: normal;
   }
   :root[data-view-nav="forward"]::view-transition-old(workspace-view) {
-    animation: view-out-left 160ms var(--motion-exit) both;
+    animation: view-out-left 240ms var(--motion-exit) both;
   }
   :root[data-view-nav="forward"]::view-transition-new(workspace-view) {
-    animation: view-in-right 340ms var(--motion-ease) 40ms both;
+    animation: view-in-right 510ms var(--motion-ease) 60ms both;
   }
   :root[data-view-nav="back"]::view-transition-old(workspace-view) {
-    animation: view-out-right 160ms var(--motion-exit) both;
+    animation: view-out-right 240ms var(--motion-exit) both;
   }
   :root[data-view-nav="back"]::view-transition-new(workspace-view) {
-    animation: view-in-left 340ms var(--motion-ease) 40ms both;
+    animation: view-in-left 510ms var(--motion-ease) 60ms both;
   }
 
   /* 선택 표시는 이전 메뉴에서 새 메뉴로 미끄러진다. 글자·아이콘(nav 그룹)은 그 위에 그대로 있다. */
   ::view-transition-group(nav-pill-desktop),
   ::view-transition-group(nav-pill-mobile) {
     z-index: 1;
-    animation-duration: 360ms;
+    animation-duration: 540ms;
     animation-timing-function: var(--motion-spring);
   }
   ::view-transition-group(nav-desktop),
@@ -686,22 +686,22 @@
 
   /* 화면 전환을 쓰지 않을 때: 선택 배경이 살짝 커지며 나타난다. */
   .merchant-shell .nav-pill-enter {
-    animation: nav-pill-in 300ms var(--motion-spring) backwards;
+    animation: nav-pill-in 450ms var(--motion-spring) backwards;
   }
   /* 선택한 메뉴 아이콘이 한 번 톡 튄다. */
   .merchant-shell .nav-item.active > svg {
-    animation: nav-icon-pop 420ms var(--motion-ease);
+    animation: nav-icon-pop 630ms var(--motion-ease);
   }
 }
 
 /* ── 목록·표: 처음 그려질 때 위에서부터 차례로 떠오른다 (앞 12줄까지 순서대로) ── */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   :is(.responsive-table, .operator-table) > tbody {
-    --motion-lead: 60ms;
+    --motion-lead: 90ms;
   }
   .choice-list {
-    --motion-lead: 70ms;
-    --motion-step: 18ms;
+    --motion-lead: 110ms;
+    --motion-step: 27ms;
   }
   :is(.responsive-table, .operator-table) > tbody > tr:not(.merchant-detail-row),
   .choice-list > button,
@@ -711,9 +711,9 @@
   .batch-row,
   .incoming-row,
   .motion-reveal {
-    animation: motion-item 300ms var(--motion-ease) backwards;
+    animation: motion-item 450ms var(--motion-ease) backwards;
     animation-delay: calc(
-      var(--motion-lead, 40ms) + var(--motion-i, 0) * var(--motion-step, 28ms)
+      var(--motion-lead, 60ms) + var(--motion-i, 0) * var(--motion-step, 42ms)
     );
   }
   :is(
@@ -836,12 +836,12 @@
     animation: motion-fade-up var(--motion-slow) var(--motion-ease) backwards;
   }
   .operator-main > .panel {
-    animation-delay: 120ms;
+    animation-delay: 180ms;
   }
 }
 
 /* ── 입력 요소 ── */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   /* 선택 창이 열려 있는 동안 화살표가 뒤집힌다. */
   .control-trigger[aria-haspopup="listbox"] > svg {
     transition: transform var(--motion-base) var(--motion-ease);
@@ -851,25 +851,25 @@
   }
   /* 고른 항목의 체크, 달력에서 고른 날이 톡 튄다. */
   .choice-list > [aria-selected="true"] > svg {
-    animation: motion-pop 360ms var(--motion-spring) 120ms backwards;
+    animation: motion-pop 540ms var(--motion-spring) 180ms backwards;
   }
   .calendar-days > .selected {
-    animation: motion-tap 300ms var(--motion-ease);
+    animation: motion-tap 380ms var(--motion-ease);
   }
   /* 체크 상자는 누르면 들어가고, 체크되면 톡 튄다. */
   input[type="checkbox"] {
-    transition: transform 90ms var(--motion-ease);
+    transition: transform 110ms var(--motion-ease);
   }
   input[type="checkbox"]:active:not(:disabled) {
     transform: scale(0.88);
   }
   input[type="checkbox"]:checked {
-    animation: motion-tap 280ms var(--motion-ease);
+    animation: motion-tap 350ms var(--motion-ease);
   }
 }
 /* 입력칸 초점 테두리가 바깥에서 부드럽게 조여 들어온다. 최종 모양은 기존과 같다.
    고대비 모드에서는 투명 테두리가 보이게 바뀌므로 적용하지 않는다. */
-@media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+@media (forced-colors: none) {
   :where(.merchant-shell, .operator-shell, .modal, .login-page, .invite-page)
     :where(
       input:not([type="checkbox"], [type="radio"], [type="file"]),
@@ -888,15 +888,15 @@
   .login-page input,
   .control-trigger {
     transition:
-      background-color 160ms var(--ui-ease),
-      border-color 160ms var(--ui-ease),
-      outline-color 220ms var(--motion-ease),
-      outline-offset 280ms var(--motion-spring);
+      background-color 240ms var(--ui-ease),
+      border-color 240ms var(--ui-ease),
+      outline-color 330ms var(--motion-ease),
+      outline-offset 420ms var(--motion-spring);
   }
 }
 
 /* ── 주요 버튼: 마우스를 올리면 빛이 한 번 스친다. ── */
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) and (pointer: fine) {
   :is(.operator-shell, .merchant-shell, .modal, .login-page, .invite-page)
     .button.primary {
     position: relative;
@@ -919,7 +919,7 @@
   }
   :is(.operator-shell, .merchant-shell, .modal, .login-page, .invite-page)
     .button.primary:hover:not(:disabled)::after {
-    animation: motion-shine 720ms var(--motion-ease) 60ms;
+    animation: motion-shine 1080ms var(--motion-ease) 90ms;
   }
 }
 

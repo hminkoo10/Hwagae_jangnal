@@ -22,7 +22,7 @@ details.assistant-drawer > summary {
   letter-spacing: -0.02em;
   cursor: pointer;
   user-select: none;
-  transition: background-color 200ms var(--ui-ease);
+  transition: background-color 300ms var(--ui-ease);
 }
 details.assistant-drawer > summary::before {
   content: "";
@@ -33,7 +33,7 @@ details.assistant-drawer > summary::before {
   background: #e8f3ff
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233182f6'%3E%3Cpath d='M11 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z'/%3E%3Cpath d='M18.5 14.5c.25 1.7 1.1 2.6 2.8 2.8-1.7.25-2.55 1.1-2.8 2.8-.25-1.7-1.1-2.55-2.8-2.8 1.7-.25 2.55-1.1 2.8-2.8z'/%3E%3C/svg%3E")
     center / 20px no-repeat;
-  transition: transform 320ms var(--ui-ease);
+  transition: transform 480ms var(--ui-ease);
 }
 details.assistant-drawer > summary::after {
   margin-left: auto;
@@ -156,9 +156,9 @@ details.assistant-drawer .assistant-eyebrow {
   border-radius: 20px;
   background: #f2f4f6;
   transition:
-    background-color 200ms var(--ui-ease),
-    border-color 200ms var(--ui-ease),
-    box-shadow 200ms var(--ui-ease);
+    background-color 300ms var(--ui-ease),
+    border-color 300ms var(--ui-ease),
+    box-shadow 300ms var(--ui-ease);
 }
 .assistant-ask-box:focus-within {
   border-color: #3182f6;
@@ -408,9 +408,9 @@ textarea.assistant-field {
   line-height: 1.6;
   resize: vertical;
   transition:
-    background-color 200ms var(--ui-ease),
-    border-color 200ms var(--ui-ease),
-    box-shadow 200ms var(--ui-ease);
+    background-color 300ms var(--ui-ease),
+    border-color 300ms var(--ui-ease),
+    box-shadow 300ms var(--ui-ease);
 }
 textarea.assistant-field:focus {
   border-color: #3182f6;
@@ -601,13 +601,13 @@ section.assistant-order > * {
 }
 
 /* ── Motion ──
-   Everything below runs only for people who have not asked for reduced
-   motion; without it the answer, thinking card and memo results simply show.
+   Everything below plays regardless of the OS reduced-motion setting, so the
+   web and the app look the same.
    Only transform, opacity and filter move, apart from the output height. */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   details.assistant-drawer[open] > .assistant-panel,
   details.assistant-product[open] > :not(summary) {
-    animation: assistant-reveal 420ms var(--ui-ease) both;
+    animation: assistant-reveal 630ms var(--ui-ease) both;
   }
   @supports (interpolate-size: allow-keywords) {
     details.assistant-drawer,
@@ -621,9 +621,9 @@ section.assistant-order > * {
       overflow-clip-margin: 12px;
       opacity: 0;
       transition:
-        block-size 420ms var(--ui-ease),
-        opacity 320ms ease,
-        content-visibility 420ms allow-discrete;
+        block-size 630ms var(--ui-ease),
+        opacity 480ms ease,
+        content-visibility 630ms allow-discrete;
     }
     details.assistant-drawer[open]::details-content,
     details.assistant-product[open]::details-content {
@@ -634,7 +634,7 @@ section.assistant-order > * {
 
   /* Output area: the height follows thinking → answer instead of jumping. */
   .ai-output {
-    transition: height 440ms var(--ui-ease);
+    transition: height 660ms var(--ui-ease);
   }
   .ai-output.is-moving {
     overflow: clip;
@@ -646,7 +646,7 @@ section.assistant-order > * {
     position: relative;
     isolation: isolate;
     overflow: clip;
-    animation: ai-card-in 460ms var(--ui-ease) both;
+    animation: ai-card-in 690ms var(--ui-ease) both;
   }
   .ai-answer::before {
     content: "";
@@ -656,7 +656,7 @@ section.assistant-order > * {
     border-radius: inherit;
     opacity: 0;
     pointer-events: none;
-    animation: ai-fade-out 900ms ease-out;
+    animation: ai-fade-out 1350ms ease-out;
   }
   .ai-answer::after {
     content: "";
@@ -672,29 +672,29 @@ section.assistant-order > * {
     );
     opacity: 0;
     pointer-events: none;
-    animation: ai-sheen 1000ms cubic-bezier(0.45, 0, 0.2, 1) 180ms;
+    animation: ai-sheen 1500ms cubic-bezier(0.45, 0, 0.2, 1) 270ms;
   }
 
   /* Words blur in one by one; --w is the word's place, --ai-step the gap. */
   .ai-word {
     display: inline-block;
-    animation: ai-word 440ms var(--ui-ease) backwards;
-    animation-delay: calc(100ms + var(--w, 0) * var(--ai-step, 20ms));
+    animation: ai-word 660ms var(--ui-ease) backwards;
+    animation-delay: calc(150ms + var(--w, 0) * var(--ai-step, 30ms));
   }
   .ai-answer-item::before {
-    animation: ai-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-    animation-delay: calc(80ms + var(--w, 0) * var(--ai-step, 20ms));
+    animation: ai-pop 630ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation-delay: calc(120ms + var(--w, 0) * var(--ai-step, 30ms));
   }
   .ai-answer-em {
-    animation: ai-mark 520ms var(--ui-ease) backwards;
-    animation-delay: calc(280ms + var(--w, 0) * var(--ai-step, 20ms));
+    animation: ai-mark 780ms var(--ui-ease) backwards;
+    animation-delay: calc(420ms + var(--w, 0) * var(--ai-step, 30ms));
   }
 
   /* Thinking card: a light runs around the border over a soft halo. */
   .ai-thinking {
     position: relative;
     isolation: isolate;
-    animation: ai-card-in 360ms var(--ui-ease) both;
+    animation: ai-card-in 540ms var(--ui-ease) both;
   }
   .ai-thinking::after {
     content: "";
@@ -752,9 +752,9 @@ section.assistant-order > * {
   }
   .ai-thinking-step {
     transition:
-      opacity 280ms ease,
-      transform 460ms var(--ui-ease),
-      filter 280ms ease;
+      opacity 420ms ease,
+      transform 690ms var(--ui-ease),
+      filter 420ms ease;
   }
   .ai-thinking-step[data-state="next"] {
     transform: translateY(8px);
@@ -807,17 +807,17 @@ section.assistant-order > * {
   .assistant-panel .assistant-head .assistant-run,
   .assistant-panel .assistant-ask-box .assistant-send {
     transition:
-      background-color 160ms var(--ui-ease),
-      color 160ms var(--ui-ease),
-      opacity 160ms ease,
-      box-shadow 240ms var(--ui-ease),
-      transform 240ms var(--ui-ease);
+      background-color 240ms var(--ui-ease),
+      color 240ms var(--ui-ease),
+      opacity 240ms ease,
+      box-shadow 360ms var(--ui-ease),
+      transform 360ms var(--ui-ease);
   }
   .assistant-ask-box {
     transition:
-      background-color 200ms var(--ui-ease),
-      border-color 200ms var(--ui-ease),
-      box-shadow 320ms var(--ui-ease);
+      background-color 300ms var(--ui-ease),
+      border-color 300ms var(--ui-ease),
+      box-shadow 480ms var(--ui-ease);
   }
   .assistant-ask-box:focus-within {
     box-shadow:
@@ -825,13 +825,13 @@ section.assistant-order > * {
       0 8px 28px rgb(49 130 246 / 0.14);
   }
   .assistant-ask .assistant-ask-label {
-    transition: color 200ms var(--ui-ease);
+    transition: color 300ms var(--ui-ease);
   }
   .assistant-ask:focus-within .assistant-ask-label {
     color: #1b64da;
   }
   .assistant-ask-box .assistant-send svg {
-    transition: transform 240ms var(--ui-ease);
+    transition: transform 360ms var(--ui-ease);
   }
   .assistant-ask-box .assistant-send:not(:disabled):hover svg {
     transform: translateY(-2px);
@@ -839,42 +839,42 @@ section.assistant-order > * {
 
   /* Errors arrive, then shake once. */
   .assistant-error {
-    animation: ai-error-in 640ms var(--ui-ease) both;
+    animation: ai-error-in 960ms var(--ui-ease) both;
   }
   .assistant-error svg {
-    animation: ai-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms backwards;
+    animation: ai-pop 630ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms backwards;
   }
 
   /* Memo results */
   .assistant-preview > *,
   .assistant-message {
-    animation: ai-rise 480ms var(--ui-ease) both;
+    animation: ai-rise 720ms var(--ui-ease) both;
   }
   .assistant-preview > :nth-child(2) {
-    animation-delay: 80ms;
+    animation-delay: 120ms;
   }
   .assistant-preview > :nth-child(3) {
-    animation-delay: 160ms;
-  }
-  .assistant-preview > :nth-child(n + 4) {
     animation-delay: 240ms;
   }
+  .assistant-preview > :nth-child(n + 4) {
+    animation-delay: 360ms;
+  }
   .assistant-preview .assistant-row {
-    animation: ai-row-in 420ms var(--ui-ease) backwards;
-    animation-delay: calc(var(--ai-delay, 0ms) + 200ms);
+    animation: ai-row-in 630ms var(--ui-ease) backwards;
+    animation-delay: calc(var(--ai-delay, 0ms) + 300ms);
   }
   .assistant-skipped > strong::before {
-    animation: ai-pop 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms backwards;
+    animation: ai-pop 690ms cubic-bezier(0.34, 1.56, 0.64, 1) 180ms backwards;
   }
   .assistant-skipped li {
-    animation: ai-slide-in 440ms var(--ui-ease) backwards;
-    animation-delay: calc(var(--ai-delay, 0ms) + 160ms);
+    animation: ai-slide-in 660ms var(--ui-ease) backwards;
+    animation-delay: calc(var(--ai-delay, 0ms) + 240ms);
   }
   .assistant-fields > div {
     position: relative;
     isolation: isolate;
-    animation: ai-rise 480ms var(--ui-ease) backwards;
-    animation-delay: calc(var(--ai-delay, 0ms) + 120ms);
+    animation: ai-rise 720ms var(--ui-ease) backwards;
+    animation-delay: calc(var(--ai-delay, 0ms) + 180ms);
   }
   .assistant-fields > div::after {
     content: "";
@@ -885,8 +885,8 @@ section.assistant-order > * {
     background: #e3eeff;
     opacity: 0;
     pointer-events: none;
-    animation: ai-flash 1000ms ease-out;
-    animation-delay: calc(var(--ai-delay, 0ms) + 320ms);
+    animation: ai-flash 1500ms ease-out;
+    animation-delay: calc(var(--ai-delay, 0ms) + 480ms);
   }
   .assistant-fields.is-applied > div::after {
     animation-name: ai-flash-again;
@@ -894,58 +894,58 @@ section.assistant-order > * {
   }
   .assistant-message .ai-line {
     display: inline-block;
-    animation: ai-word 420ms var(--ui-ease) backwards;
-    animation-delay: calc(140ms + var(--w, 0) * 45ms);
+    animation: ai-word 630ms var(--ui-ease) backwards;
+    animation-delay: calc(210ms + var(--w, 0) * 68ms);
   }
 
   /* Operator AI settings */
   .ai-connection {
-    animation: ai-rise 460ms var(--ui-ease) backwards;
+    animation: ai-rise 690ms var(--ui-ease) backwards;
     animation-delay: var(--ai-delay, 0ms);
   }
   .ai-status {
     transform-origin: left center;
-    animation: ai-pill-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    animation: ai-pill-in 630ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
   }
   .ai-status.is-ready {
     animation:
-      ai-pill-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
-      ai-ready-pulse 1.8s ease-out 500ms 3;
+      ai-pill-in 630ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
+      ai-ready-pulse 1.8s ease-out 750ms 3;
   }
   .ai-test-result {
-    animation: ai-card-in 420ms var(--ui-ease) backwards;
+    animation: ai-card-in 630ms var(--ui-ease) backwards;
   }
   .ai-test-result > strong {
     display: block;
   }
   .ai-test-result > * {
-    animation: ai-rise 480ms var(--ui-ease) backwards;
+    animation: ai-rise 720ms var(--ui-ease) backwards;
   }
   .ai-test-result > :nth-child(2) {
-    animation-delay: 90ms;
+    animation-delay: 140ms;
   }
   .ai-test-result > :nth-child(3) {
-    animation-delay: 170ms;
+    animation-delay: 260ms;
   }
   .ai-test-result > :nth-child(4) {
-    animation-delay: 240ms;
-  }
-  .ai-test-result li {
-    animation: ai-slide-in 420ms var(--ui-ease) 300ms backwards;
-  }
-  .ai-test-result li:nth-child(2) {
     animation-delay: 360ms;
   }
+  .ai-test-result li {
+    animation: ai-slide-in 630ms var(--ui-ease) 450ms backwards;
+  }
+  .ai-test-result li:nth-child(2) {
+    animation-delay: 540ms;
+  }
   .ai-test-result li:nth-child(3) {
-    animation-delay: 420ms;
+    animation-delay: 630ms;
   }
   .ai-test-result li:nth-child(n + 4) {
-    animation-delay: 480ms;
+    animation-delay: 720ms;
   }
 }
 
 /* Hover lift sits apart so touch screens never keep a lifted button. */
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+@media (hover: hover) and (pointer: fine) {
   .assistant-head .assistant-run:hover:not(:disabled),
   .assistant-ask-box .assistant-send:hover:not(:disabled) {
     transform: translateY(-1px);
@@ -958,12 +958,12 @@ section.assistant-order > * {
   }
 }
 /* Press comes after hover so it wins while the pointer is down. */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   .assistant-head .assistant-run:active:not(:disabled),
   .assistant-ask-box .assistant-send:active:not(:disabled) {
     transform: scale(0.97);
     box-shadow: none;
-    transition-duration: 90ms;
+    transition-duration: 110ms;
   }
 }
 

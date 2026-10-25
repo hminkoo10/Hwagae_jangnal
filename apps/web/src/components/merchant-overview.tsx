@@ -88,6 +88,9 @@ export function MerchantOverview({
   const todayOrder = orders.find(
     (order) => order.as_of === today && !order.stale,
   );
+  // 예측은 기준일 당일 판매까지 필요하다. 오늘 판매가 없으면 입력부터 안내한다.
+  const todaySalesMissing =
+    !!sales.summary.last_date && sales.summary.last_date < today;
   const steps: {
     title: string;
     hint: string;
@@ -104,9 +107,13 @@ export function MerchantOverview({
     },
     {
       title: "7일 판매 예측",
-      target: "forecast",
+      target: !readyCount && todaySalesMissing ? "sales" : "forecast",
       done: readyCount > 0,
-      hint: readyCount ? `${readyCount}개 상품 예측 완료` : "예측 결과 보기",
+      hint: readyCount
+        ? `${readyCount}개 상품 예측 완료`
+        : todaySalesMissing
+          ? "오늘 판매를 입력하면 예측돼요"
+          : "예측 결과 보기",
     },
     {
       title: "재고 확인",
@@ -163,7 +170,7 @@ export function MerchantOverview({
                   ? "next"
                   : "todo";
               return (
-                <li key={step.target}>
+                <li key={step.title}>
                   <button
                     type="button"
                     className={`guide-step ${state}`}

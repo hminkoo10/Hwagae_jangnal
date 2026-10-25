@@ -612,7 +612,7 @@ export function AiSettings({
               <li
                 key={c.id}
                 className="ai-connection"
-                style={{ "--ai-delay": `${Math.min(i, 7) * 60}ms` } as CSSProperties}
+                style={{ "--ai-delay": `${Math.min(i, 7) * 90}ms` } as CSSProperties}
               >
                 <div className={styles.cardHead}>
                   <div>

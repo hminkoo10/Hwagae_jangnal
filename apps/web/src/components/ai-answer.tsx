@@ -178,9 +178,9 @@ function wordSpans({ tokens, start }: Words): ReactNode[] {
 }
 
 // Words blur in one after another; long answers speed up so the whole reveal
-// still ends in about 1.8 seconds.
-const REVEAL_WINDOW = 1100;
-const WORD_STEP = 20;
+// still ends in about 2.7 seconds.
+const REVEAL_WINDOW = 1650;
+const WORD_STEP = 30;
 
 export function AiAnswer({ text }: { text: string }) {
   const { headline, blocks } = parse(text);
@@ -231,7 +231,7 @@ export function AiAnswer({ text }: { text: string }) {
 }
 
 const THINKING_STEPS = ["날씨와 예측을 확인하고 있어요", "답변을 정리하고 있어요"];
-const STEP_MS = 1600;
+const STEP_MS = 2400;
 
 /** `label` is shown first and is what screen readers hear; `steps` follow it
  * on a timer and stop at the last one. */
@@ -291,13 +291,7 @@ export function AiOutput({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const box = outer.current;
     const content = inner.current;
-    if (
-      !box ||
-      !content ||
-      typeof ResizeObserver === "undefined" ||
-      !window.matchMedia("(prefers-reduced-motion: no-preference)").matches
-    )
-      return;
+    if (!box || !content || typeof ResizeObserver === "undefined") return;
     // Clip only while the height moves, so the thinking glow can spill out.
     const settle = (event: TransitionEvent) => {
       if (event.target === box) box.classList.remove("is-moving");
