@@ -118,7 +118,11 @@ export function MerchantModelPanel({
             </span>
           </div>
           <p className={styles.description}>
-            최근 {settings.requirements.history_days}일 판매와{" "}
+            최근{" "}
+            {settings.requirements.history_days === 56
+              ? "2달"
+              : `${settings.requirements.history_days}일`}{" "}
+            판매와{" "}
             {settings.requirements.horizon_days}일{" "}
             {historical ? "날씨 기록" : "날씨 예보"}로 상품별 판매를 예측해요.
           </p>

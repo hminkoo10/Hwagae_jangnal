@@ -318,7 +318,7 @@ export function ModelDemo({
     <div className={styles.page}>
       <section className={styles.introduction}>
         <div className={styles.introCopy}>
-          <span className={styles.eyebrow}>TFT · 56일 기록 → 7일 예측</span>
+          <span className={styles.eyebrow}>TFT · 2달 기록 → 7일 예측</span>
           <h2>학습한 모델이 직접 예측해요</h2>
           <p>
             Walmart의 과거 판매·날씨 표본으로 TFT 신경망을 실행하고, 같은 판매
@@ -476,7 +476,7 @@ export function ModelDemo({
               <article>
                 <span>입력 판매 기록</span>
                 <strong>
-                  {sample.history_days}일 · {sample.product_count}개 상품
+                  {sample.history_days === 56 ? "2달" : `${sample.history_days}일`} · {sample.product_count}개 상품
                 </strong>
                 <small>
                   {sample.history_start} ~ {sample.history_end}
@@ -523,7 +523,7 @@ export function ModelDemo({
         {running && (
           <div className={styles.pending} role="status">
             <span className="loading-spinner" />
-            과거 56일의 기록에서 다음 7일의 판매 흐름을 계산하고 있어요.
+            과거 2달의 기록에서 다음 7일의 판매 흐름을 계산하고 있어요.
           </div>
         )}
 

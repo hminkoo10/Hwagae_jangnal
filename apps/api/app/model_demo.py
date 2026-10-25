@@ -201,5 +201,5 @@ def replay(runtime, sample_id: SampleId = DEFAULT_SAMPLE_ID):
         "provenance": SOURCE,
         "weather_strategy": "persistence",
         "note": NOTE
-        + " 비교 기준선에도 같은 56일 판매를 사용합니다. 실제 판매는 추론이 끝난 뒤 비교용으로 연결하며 모델 입력에는 넣지 않습니다.",
+        + " 비교 기준선에도 같은 2달 판매를 사용합니다. 실제 판매는 추론이 끝난 뒤 비교용으로 연결하며 모델 입력에는 넣지 않습니다.",
     }

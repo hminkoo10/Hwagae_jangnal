@@ -744,7 +744,7 @@ def create_app(db_path=None, seed=True):
             logger.exception("Forecast validation failed for store %s", store_id)
             raise HTTPException(
                 503,
-                "예보 또는 모델 입력·출력 조건을 확인하세요. 최신 날씨와 56일 판매 기록이 필요합니다.",
+                "예보 또는 모델 입력·출력 조건을 확인하세요. 최신 날씨와 최근 2달 판매 기록이 필요합니다.",
             ) from None
         except Exception:
             logger.exception("Forecast provider failed for store %s", store_id)
