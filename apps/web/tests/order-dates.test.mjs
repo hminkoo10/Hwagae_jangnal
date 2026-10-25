@@ -13,9 +13,18 @@ const compiled = ts.transpileModule(source, {
     target: ts.ScriptTarget.ES2022,
   },
 }).outputText;
-const { addCalendarDays, isOrderDateInWindow } = await import(
+const { addCalendarDays, isOrderDateInWindow, orderConfirmationIssue } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
+
+test("outdated drafts explain the block while today's future plan can be confirmed", () => {
+  const draft = { status: "draft", as_of: "2026-10-24", stale: false };
+  assert.match(orderConfirmationIssue(draft, "2026-10-25"), /10\.24.*오늘/);
+  assert.match(orderConfirmationIssue({ ...draft, stale: true }, draft.as_of), /정보가 바뀌었어요/);
+  assert.equal(orderConfirmationIssue({ ...draft, order_date: "2026-10-26" }, draft.as_of), "");
+  assert.equal(orderConfirmationIssue({ ...draft, status: "confirmed", stale: true }, "2026-10-25"), "");
+  assert.ok(orderConfirmationIssue(draft, ""));
+});
 
 test("order window includes the sales date and next six days across a month boundary", () => {
   assert.equal(addCalendarDays("2026-10-30", 6), "2026-11-05");

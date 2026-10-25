@@ -214,8 +214,21 @@ test("saved order detail shows saved edited quantity and amounts instead of reco
   assert.match(html, /7개/);
   assert.match(html, /6,650원/);
   assert.doesNotMatch(html, /99개/);
-  assert.match(html, /저장 후 판매·재고 정보가 달라졌어요/);
+  assert.match(html, /저장 후 판매·재고·상품 정보가 바뀌었어요/);
   assert.match(html, /data-label="발주 수량"/);
+  const dated = renderToStaticMarkup(
+    React.createElement(orderDetails.OrderContents, {
+      order: { ...order, stale: false },
+      confirmationIssue: "10.24 자료로 만든 발주안이에요. 오늘 자료로 다시 계산해주세요.",
+    }),
+  );
+  assert.match(dated, /10\.24.*오늘 자료/);
+  const confirmed = renderToStaticMarkup(
+    React.createElement(orderDetails.OrderContents, {
+      order: { ...order, status: "confirmed" },
+    }),
+  );
+  assert.doesNotMatch(confirmed, /warning-banner/);
 });
 
 test("all four home metrics expose detail buttons and unknown demand stays unreported", () => {
