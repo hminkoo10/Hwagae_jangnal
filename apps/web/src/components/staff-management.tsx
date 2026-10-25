@@ -34,7 +34,7 @@ const day = (value?: string | null) =>
 const inviteUrl = (token: string) =>
   `${Capacitor.isNativePlatform() ? "https://hwagae.milky.kr" : window.location.origin}/#staff-invite=${encodeURIComponent(token)}`;
 
-/** 점주 전용: 직원 초대·권한·사용 중지·제외. 권한은 서버에서도 검사한다. */
+/** 점주 전용. 권한은 서버에서도 검사한다. */
 export function StaffManagement({
   token,
   storeId,

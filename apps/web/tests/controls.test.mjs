@@ -7,7 +7,6 @@ import ts from "typescript";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-// Compile the actual controls and dialog module; no browser automation required.
 const folder = await mkdtemp(
   path.join(process.cwd(), "node_modules/.hwagae-controls-"),
 );

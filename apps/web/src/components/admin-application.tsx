@@ -8,7 +8,6 @@ import { OperatorDashboard } from "./operator-dashboard";
 // 매장 화면과 같은 세션을 써서, 예전에 /에서 로그인한 운영자도 그대로 이어서 쓴다.
 const SESSION = "hwagae-session";
 
-/** /admin: 서비스 운영자만 로그인한다. 점주·직원 계정은 매장 화면으로 안내한다. */
 export default function AdminApplication() {
   const [restoring, setRestoring] = useState(true);
   const [restoreError, setRestoreError] = useState("");
