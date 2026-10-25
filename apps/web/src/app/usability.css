@@ -51,6 +51,14 @@ details[open] > summary::after { transform: translateY(1px) rotate(225deg); }
 .modal, .choice-list { overscroll-behavior: contain; }
 /* Tables only scroll sideways; vertical wheel/touch must keep moving the page. */
 .table-scroll { overscroll-behavior-x: contain; overscroll-behavior-y: auto; }
+/* Card tables (responsive.css, ≤1250px) drop the desktop row padding and cell rules; tablets fit a row on one line. */
+@media (max-width: 1250px) {
+  .merchant-shell .responsive-table > tbody > tr { padding: 4px 14px; gap: 0 18px; }
+  .merchant-shell .responsive-table > tbody > tr > td { padding-block: 8px; border-bottom: 0; gap: 2px; }
+}
+@media (min-width: 601px) and (max-width: 1250px) {
+  .merchant-shell .responsive-table > tbody > tr { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); align-items: center; }
+}
 .merchant-shell .sidebar .mobile-navigation { display: none; }
 @media (max-width: 900px) {
   .merchant-shell .sidebar { height: auto; min-height: 0; padding: 10px 14px; overflow: visible; }
