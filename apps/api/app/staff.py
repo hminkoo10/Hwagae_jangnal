@@ -154,7 +154,7 @@ def mount_staff_routes(application, database, access, authenticated):
             db.execute("BEGIN IMMEDIATE")
             existing = db.execute("SELECT id FROM users WHERE email=?", (payload.email,)).fetchone()
             if existing and is_operator(db, existing[0]):
-                raise HTTPException(400, "서비스 운영자 계정은 직원으로 추가할 수 없어요.")
+                raise HTTPException(400, "이 이메일은 직원으로 추가할 수 없어요.")
             if existing and db.execute("SELECT 1 FROM memberships WHERE user_id=? AND store_id=?", (existing[0], store_id)).fetchone():
                 raise HTTPException(409, "이미 이 매장에 등록된 계정이에요.")
             if existing:
