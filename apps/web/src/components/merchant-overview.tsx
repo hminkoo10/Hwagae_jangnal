@@ -15,7 +15,7 @@ import {
   type Store,
   type User,
 } from "@/lib/api";
-import { Empty, ForecastChart, Icon } from "./ui";
+import { CountUp, Empty, ForecastChart, Icon } from "./ui";
 import { MerchantMetrics } from "./merchant-metrics";
 import { WeatherSource } from "./weather-source";
 
@@ -289,7 +289,7 @@ export function MerchantOverview({
                 strokeLinecap="round"
               />
               <text className="ring-number" x="60" y="60" textAnchor="middle">
-                {coverage}%
+                <CountUp value={coverage} svg />%
               </text>
               <text className="ring-caption" x="60" y="77" textAnchor="middle">
                 재고 확인

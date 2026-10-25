@@ -93,6 +93,31 @@
     animation-delay: calc(260ms + var(--i, 0) * 70ms);
   }
 }
+/* 7일 날씨: 날짜 순서대로 떠오른다. (motion-item은 motion.css) */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.weather-days, .rail-weather-week) > * {
+    animation: motion-item 300ms var(--ui-ease, ease-out) backwards;
+    animation-delay: calc(80ms + var(--forecast-day, 0) * 32ms);
+  }
+  :is(.weather-days, .rail-weather-week) > :nth-child(2) {
+    --forecast-day: 1;
+  }
+  :is(.weather-days, .rail-weather-week) > :nth-child(3) {
+    --forecast-day: 2;
+  }
+  :is(.weather-days, .rail-weather-week) > :nth-child(4) {
+    --forecast-day: 3;
+  }
+  :is(.weather-days, .rail-weather-week) > :nth-child(5) {
+    --forecast-day: 4;
+  }
+  :is(.weather-days, .rail-weather-week) > :nth-child(6) {
+    --forecast-day: 5;
+  }
+  :is(.weather-days, .rail-weather-week) > :nth-child(n + 7) {
+    --forecast-day: 6;
+  }
+}
 @keyframes forecast-band-in {
   from {
     opacity: 0;

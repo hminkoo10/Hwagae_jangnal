@@ -215,7 +215,7 @@ export function SalesPanel({
         </section>
       </div>
       {preview && (
-        <section className="panel">
+        <section className="panel motion-reveal">
           <div className="panel-heading">
             <div>
               <h2>파일 내용 확인</h2>

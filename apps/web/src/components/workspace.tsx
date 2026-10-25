@@ -2,7 +2,14 @@
 
 import { Select, DateField, ResponsiveTable } from "./controls";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { flushSync } from "react-dom";
 import {
   api,
   addCalendarDays,
@@ -23,7 +30,14 @@ import {
   type User,
 } from "@/lib/api";
 import { InventoryModal, ProductModal, SalesPanel, StoreModal } from "./forms";
-import { Empty, ForecastChart, Icon } from "./ui";
+import {
+  CountUp,
+  Empty,
+  ForecastChart,
+  Icon,
+  prefersReducedMotion,
+  usePresence,
+} from "./ui";
 import { MerchantOverview } from "./merchant-overview";
 import { ModelDemo } from "./model-demo";
 import { NATIVE_BACK_EVENT } from "./native-shell";
@@ -82,6 +96,124 @@ const tabs: { id: Tab; label: string; description: string }[] = [
     description: "공개 판매 자료로 배운 예측 모델을 직접 돌려봐요.",
   },
 ];
+/** 휴대폰 메뉴에 보이는 순서. 판매 기록·상품은 맨 끝 '더보기'에 있다. */
+const mobileTabs = [
+  ["overview", "홈"],
+  ["forecast", "예측"],
+  ["inventory", "재고"],
+  ["orders", "발주"],
+] as const;
+const mobileOrder: Tab[] = [
+  ...mobileTabs.map(([id]) => id),
+  "sales",
+  "products",
+  "model-demo",
+];
+const desktopOrder = tabs.map((item) => item.id);
+
+type Direction = "forward" | "back";
+/** 메뉴에서 뒤쪽 화면으로 가면 forward(오른쪽에서 들어옴), 앞쪽이면 back. */
+function tabDirection(from: Tab, to: Tab): Direction | null {
+  if (from === to) return null;
+  const order = window.matchMedia("(max-width: 900px)").matches
+    ? mobileOrder
+    : desktopOrder;
+  return order.indexOf(to) > order.indexOf(from) ? "forward" : "back";
+}
+
+// 화면 전환이 DOM을 바꾸는 동안만 true. 이때 새로 붙는 요소는 브라우저가 움직이므로
+// CSS 등장 효과(.view-enter 등)를 붙이지 않아 두 번 움직이지 않게 한다.
+let applyingViewTransition = false;
+let viewTransitionId = 0;
+function useCssEntrance() {
+  const [entrance] = useState(() => !applyingViewTransition);
+  return entrance;
+}
+
+/**
+ * 메뉴·매장을 바꿀 때 본문만 방향에 맞게 밀며 바뀐다(View Transitions API).
+ * 지원하지 않거나 움직임 줄이기를 켰으면 바로 바꾸고, 새 화면은 .view-enter로 나타난다.
+ */
+function transitionView(direction: Direction | null, update: () => void) {
+  if (
+    !direction ||
+    typeof document.startViewTransition !== "function" ||
+    prefersReducedMotion()
+  ) {
+    update();
+    return;
+  }
+  const start = () => {
+    const root = document.documentElement;
+    const id = ++viewTransitionId;
+    root.dataset.viewNav = direction;
+    const transition = document.startViewTransition(() => {
+      applyingViewTransition = true;
+      try {
+        flushSync(update);
+      } finally {
+        applyingViewTransition = false;
+      }
+    });
+    const done = () => {
+      if (id === viewTransitionId) delete root.dataset.viewNav;
+    };
+    transition.ready.catch(() => {});
+    transition.updateCallbackDone.catch(() => {});
+    transition.finished.then(done, done);
+  };
+  // 선택 창 등이 열려 있으면 닫히는 애니메이션이 끝난 뒤 화면을 넘긴다.
+  const dialog = document.querySelector("dialog[open]");
+  if (!dialog) {
+    start();
+    return;
+  }
+  let settled = false;
+  const settle = () => {
+    if (settled) return;
+    settled = true;
+    // 끝내 닫히지 않은 창 위로 본문이 미끄러지지 않게, 그때는 바로 바꾼다.
+    if (dialog.isConnected && dialog.hasAttribute("open")) update();
+    else start();
+  };
+  dialog.addEventListener("close", settle, { once: true });
+  window.setTimeout(settle, 400);
+}
+
+/** 탭 본문. 전환 중에 붙었으면 브라우저가 이미 움직였으므로 .view-enter를 생략한다. */
+function ViewStage({
+  updating,
+  children,
+}: {
+  updating: boolean;
+  children: ReactNode;
+}) {
+  const entrance = useCssEntrance();
+  return (
+    <div
+      className={
+        [entrance && "view-enter", updating && "content-updating"]
+          .filter(Boolean)
+          .join(" ") || undefined
+      }
+      aria-busy={updating}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** 선택된 메뉴 뒤 배경. 전환 중에는 이전 메뉴 위치에서 미끄러져 오고, 아니면 살짝 커지며 나타난다. */
+function NavPill() {
+  const entrance = useCssEntrance();
+  return (
+    <i
+      className={entrance ? "nav-pill nav-pill-enter" : "nav-pill"}
+      aria-hidden="true"
+    />
+  );
+}
+
 type Bundle = {
   storeId: string;
   products: Product[];
@@ -286,6 +418,8 @@ export default function Workspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // 알림이 사라질 때도 잠깐 남겨 아래로 내려가며 사라지게 한다.
+  const [toast, toastLeaving] = usePresence(notice);
   const [search, setSearch] = useState("");
   const [productCategory, setProductCategory] = useState("all");
   const [showExcluded, setShowExcluded] = useState(false);
@@ -376,9 +510,11 @@ export default function Workspace() {
       }
       if (user && tab !== "overview") {
         event.preventDefault();
-        setTab("overview");
-        setSearch("");
-        setAsOf(today);
+        transitionView("back", () => {
+          setTab("overview");
+          setSearch("");
+          setAsOf(today);
+        });
       }
     };
     window.addEventListener(NATIVE_BACK_EVENT, back);
@@ -523,9 +659,11 @@ export default function Workspace() {
   }
   function navigate(next: Tab) {
     if (busy) return;
-    setTab(next);
-    setSearch("");
-    if (next !== "forecast" && next !== "model-demo") setAsOf(today);
+    transitionView(tabDirection(tab, next), () => {
+      setTab(next);
+      setSearch("");
+      if (next !== "forecast" && next !== "model-demo") setAsOf(today);
+    });
   }
   async function action(task: () => Promise<void>) {
     setBusy(true);
@@ -970,6 +1108,7 @@ export default function Workspace() {
                 disabled={busy}
                 onClick={() => navigate(item.id)}
               >
+                {tab === item.id && <NavPill />}
                 <Icon name={item.id === "model-demo" ? "forecast" : item.id} />
                 <span>{item.label}</span>
                 {item.id === "inventory" && missingStock > 0 && (
@@ -979,9 +1118,9 @@ export default function Workspace() {
             ))}
         </nav>
         <nav className="mobile-navigation" aria-label="모바일 메뉴">
-          {([ ["overview", "홈"], ["forecast", "예측"], ["inventory", "재고"], ["orders", "발주"] ] as const).map(([id, label]) =>
+          {mobileTabs.map(([id, label]) =>
             <button key={id} type="button" className={`nav-item ${tab === id ? "active" : ""}`} aria-current={tab === id ? "page" : undefined}
-              disabled={busy} onClick={() => navigate(id)}><Icon name={id} size={19} /><span>{label}</span></button>)}
+              disabled={busy} onClick={() => navigate(id)}>{tab === id && <NavPill />}<Icon name={id} size={19} /><span>{label}</span></button>)}
           <Select aria-label="더보기 메뉴" value={(["sales", "products"] as string[]).includes(tab) ? tab : ""}
             disabled={busy} onChange={event => navigate(event.target.value as Tab)}>
             <option value="" disabled>더보기</option><option value="sales">판매 기록</option><option value="products">상품</option>
@@ -1053,16 +1192,23 @@ export default function Workspace() {
                   disabled={busy}
                   value={storeId}
                   onChange={(event) => {
-                    const next = stores.find(
-                      (item) => item.id === event.target.value,
+                    const nextId = event.target.value;
+                    const next = stores.find((item) => item.id === nextId);
+                    const from = stores.findIndex((item) => item.id === storeId);
+                    const to = stores.findIndex((item) => item.id === nextId);
+                    // 목록에서 아래쪽 매장으로 바꾸면 오른쪽에서, 위쪽이면 왼쪽에서 들어온다.
+                    transitionView(
+                      from === to ? null : to > from ? "forward" : "back",
+                      () => {
+                        recommendationRequest.current?.abort();
+                        setRecommendation(null);
+                        setStoreId(nextId);
+                        setSearch("");
+                        setAsOf(next?.local_today ?? serverToday);
+                        setInventoryProduct(null);
+                        setProductModal(null);
+                      },
                     );
-                    recommendationRequest.current?.abort();
-                    setRecommendation(null);
-                    setStoreId(event.target.value);
-                    setSearch("");
-                    setAsOf(next?.local_today ?? serverToday);
-                    setInventoryProduct(null);
-                    setProductModal(null);
                   }}
                 >
                   {stores.map((item) => (
@@ -1084,10 +1230,14 @@ export default function Workspace() {
               </div>
             )}
           </div>
-          {notice && (
-            <div className="toast" role="status">
+          {toast && (
+            <div
+              key={toast}
+              className={toastLeaving ? "toast toast-leaving" : "toast"}
+              role="status"
+            >
               <Icon name="check" />
-              {notice}
+              {toast}
               <button
                 className="icon-button"
                 aria-label="알림 닫기"
@@ -1186,11 +1336,7 @@ export default function Workspace() {
             </section>
           )}
           {!modelDemo && data && aiReady && (
-            <div
-              key={`${storeId}:${tab}`}
-              className={loading ? "view-enter content-updating" : "view-enter"}
-              aria-busy={loading}
-            >
+            <ViewStage key={`${storeId}:${tab}`} updating={loading}>
               {!allData?.products.length && owner && (
                 <InitialData
                   key={storeId}
@@ -1242,7 +1388,7 @@ export default function Workspace() {
                         <Icon name="forecast" />
                       </span>
                       <strong>
-                        {readyCount}
+                        <CountUp value={readyCount} />
                         <em> / {data.products.length}개</em>
                       </strong>
                       <small>7일 예측이 준비된 상품</small>
@@ -1253,7 +1399,7 @@ export default function Workspace() {
                         <Icon name="inventory" />
                       </span>
                       <strong>
-                        {replay ? shortDate(asOf) : missingStock}
+                        {replay ? shortDate(asOf) : <CountUp value={missingStock} />}
                         <em>{replay ? "" : "개"}</em>
                       </strong>
                       <small>
@@ -1268,7 +1414,7 @@ export default function Workspace() {
                         <Icon name="sales" />
                       </span>
                       <strong>
-                        {data.sales.summary.count.toLocaleString()}
+                        <CountUp value={data.sales.summary.count} />
                         <em>건</em>
                       </strong>
                       <small>자료 전체 · 날짜·상품별 기록</small>
@@ -1840,7 +1986,7 @@ export default function Workspace() {
                   </section>
                 </>
               )}
-            </div>
+            </ViewStage>
           )}
           <footer className="workspace-footer">
             <span>화개장날 · 화개장터 팀</span>

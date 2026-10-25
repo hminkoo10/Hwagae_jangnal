@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, ApiError, addCalendarDays, type User } from "@/lib/api";
-import { Modal } from "./ui";
+import { CountUp, Modal } from "./ui";
 import { DateField, Select } from "./controls";
 import { AiSettings } from "./ai-settings";
 import styles from "./operator-ai.module.css";
@@ -227,7 +227,9 @@ export function OperatorDashboard({
                   ].map(([label, count]) => (
                     <article className="stat-card" key={label}>
                       <span>{label}</span>
-                      <strong>{count}</strong>
+                      <strong>
+                        <CountUp value={Number(count)} />
+                      </strong>
                     </article>
                   ))}
                 </div>
