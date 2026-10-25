@@ -124,7 +124,7 @@ export function SalesPanel({
             <label className="file-zone">
               <Icon name="upload" size={30} />
               <strong>{file?.name ?? "판매 기록 파일 고르기"}</strong>
-              <span>CSV · XLSX · 최대 5MB · 1만 줄</span>
+              <span>CSV · XLSX · 최대 5MB · 3만 줄</span>
               <input
                 aria-label="판매 기록 파일"
                 type="file"

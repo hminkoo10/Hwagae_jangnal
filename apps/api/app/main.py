@@ -44,6 +44,7 @@ from app.model_orders import mount_model_order_routes, save_forecast_run
 from app.merchant_test_store import create_test_store
 from app.ordering import recommend
 from app.schemas import (
+    MAX_PRODUCTS,
     Inventory,
     ForecastSettings,
     Login,
@@ -474,10 +475,10 @@ def create_app(db_path=None, seed=True):
                     db.execute(
                         "SELECT COUNT(*) FROM products WHERE store_id=?", (store_id,)
                     ).fetchone()[0]
-                    >= 50
+                    >= MAX_PRODUCTS
                 ):
                     raise HTTPException(
-                        409, "첫 버전은 매장당 50개 상품까지 지원합니다."
+                        409, f"매장당 상품은 {MAX_PRODUCTS}개까지 등록할 수 있습니다."
                     )
                 db.execute(
                     "INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?)",
@@ -699,11 +700,11 @@ def create_app(db_path=None, seed=True):
         binding = walmart_binding(database, store_id)
         if (
             provider == "merchant_tft"
-            and not 1 <= len(database.products(store_id)) <= 50
+            and not 1 <= len(database.products(store_id)) <= MAX_PRODUCTS
         ):
             raise HTTPException(
                 422,
-                "실시간 예보 TFT에는 등록한 상품 1~50개가 필요합니다. 상품을 먼저 추가하세요.",
+                f"실시간 예보 TFT에는 등록한 상품 1~{MAX_PRODUCTS}개가 필요합니다. 상품을 먼저 추가하세요.",
             )
         weather_data = application.state.weather_reader(database, store, cutoff)
         if provider == "merchant_tft":
@@ -718,7 +719,12 @@ def create_app(db_path=None, seed=True):
                     if binding:
                         result = application.state.model_runtime.predict(walmart_model_context(context, binding))
                     else:
-                        result = application.state.merchant_model_runtime.predict(context)
+                        # The merchant TFT takes at most 50 products per call; larger stores go in batches.
+                        batches = [
+                            application.state.merchant_model_runtime.predict({**context, "products": context["products"][start:start + 50]})
+                            for start in range(0, len(context["products"]), 50)
+                        ]
+                        result = {"model": batches[0]["model"], "products": [item for batch in batches for item in batch["products"]]}
                     model = result.get("model", {})
                     if (
                         model.get("uses_weather") is not True

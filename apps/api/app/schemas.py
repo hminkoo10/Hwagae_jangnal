@@ -9,6 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Count = Annotated[int, Field(strict=True, ge=0, le=1_000_000)]
 
 
+MAX_PRODUCTS = 200
+
+
 class Payload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -25,7 +28,7 @@ class Sale(Payload):
 
 
 class SalesBatch(Payload):
-    rows: list[Sale] = Field(min_length=1, max_length=10000)
+    rows: list[Sale] = Field(min_length=1, max_length=30000)
 
 
 class ProductSettings(Payload):
@@ -127,7 +130,7 @@ class OrderLine(Payload):
 
 class OrderRequest(Payload):
     recommendation_id: str
-    lines: list[OrderLine] = Field(min_length=1, max_length=50)
+    lines: list[OrderLine] = Field(min_length=1, max_length=MAX_PRODUCTS)
 
 
 class Point(Payload):

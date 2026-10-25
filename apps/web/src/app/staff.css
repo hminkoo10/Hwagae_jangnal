@@ -10,6 +10,13 @@ a.button { text-decoration: none; }
   .staff-table .staff-permissions .checkbox { white-space: normal; }
 }
 .staff-table td > .pill + small { margin-top: 6px; }
+/* The permission list makes rows tall: keep every cell at the top and stack the actions under the right-aligned header. */
+.staff-table td { vertical-align: top; }
+.staff-table td.number .row-actions { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; justify-content: flex-start; gap: 8px; }
+.staff-table td.number .row-actions > * { white-space: nowrap; }
+@media (max-width: 1250px) {
+  .staff-table td.number .row-actions { flex-direction: row; flex-wrap: wrap; align-items: center; }
+}
 .permission-note { margin: 0 0 18px; padding: 12px 16px; border-radius: 12px; background: #f2f4f6; color: #4e5968; font-size: 13px; line-height: 1.6; }
 .admin-login .pill { margin-top: 18px; }
 .admin-login h1 { margin: 10px 0 4px; font-size: 26px; letter-spacing: -0.03em; }
