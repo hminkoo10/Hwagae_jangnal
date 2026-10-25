@@ -404,6 +404,19 @@ export const units = (value: number) =>
 export const shortDate = (value: string) =>
   `${Number(value.slice(5, 7))}.${Number(value.slice(8, 10))}`;
 
+export function orderConfirmationIssue(
+  order: Pick<Order, "status" | "as_of" | "stale">,
+  today: string,
+) {
+  if (order.status === "confirmed") return "";
+  if (!today) return "매장 날짜를 확인하고 있어요.";
+  if (order.as_of !== today)
+    return `${shortDate(order.as_of)} 자료로 만든 발주안이에요. 오늘 자료로 다시 계산해주세요.`;
+  if (order.stale)
+    return "저장 후 판매·재고·상품 정보가 바뀌었어요. 다시 계산해주세요.";
+  return "";
+}
+
 export function addCalendarDays(value: string, days: number) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
   const date = new Date(`${value}T00:00:00Z`);

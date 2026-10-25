@@ -9,6 +9,7 @@ import {
   ApiError,
   download,
   isOrderDateInWindow,
+  orderConfirmationIssue,
   shortDate,
   units,
   won,
@@ -696,7 +697,42 @@ export default function Workspace() {
       method: "POST",
       body: JSON.stringify({ recommendation_id: recommendation.id, lines }),
     });
-    saved("발주안을 저장했어요. 점주 확정 후 파일로 내보낼 수 있어요.");
+    saved(
+      owner
+        ? "저장했어요. 아래에서 발주를 확정하면 파일로 내보낼 수 있어요."
+        : "저장했어요. 점주가 발주를 확정하면 파일로 내보낼 수 있어요.",
+    );
+  }
+
+  function startNewOrder(order: Order) {
+    recommendationRequest.current?.abort();
+    setAsOf(today);
+    const nextDate = order.order_date ?? order.as_of;
+    setOrderDate(isOrderDateInWindow(nextDate, today) ? nextDate : today);
+    setRecommendation(null);
+    setQuantities({});
+    setTab("orders");
+    setNotice(
+      "오늘 재고와 발주 예정일을 확인한 뒤 ‘발주량 계산’을 눌러주세요. 기존 발주안은 그대로 남아요.",
+    );
+    window.requestAnimationFrame(() => {
+      document.getElementById("new-order-plan")?.focus();
+    });
+  }
+
+  async function confirmOrder(order: Order) {
+    try {
+      await api(`/stores/${storeId}/orders/${order.id}/confirm`, token, {
+        method: "POST",
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        await refreshStores(storeId);
+        setReload((value) => value + 1);
+      }
+      throw error;
+    }
+    saved("발주를 확정했어요. Excel이나 CSV로 발주서를 내려받으세요.");
   }
 
   function productRows(mode: "overview" | "inventory" | "products") {
@@ -1509,7 +1545,11 @@ export default function Workspace() {
               {tab === "products" && productRows("products")}
               {tab === "orders" && (
                 <>
-                  <section className="panel">
+                  <section
+                    className="panel order-plan"
+                    id="new-order-plan"
+                    tabIndex={-1}
+                  >
                     <div className="panel-heading">
                       <div>
                         <h2>새 발주 계획</h2>
@@ -1713,8 +1753,7 @@ export default function Workspace() {
                           </span>
                         </h2>
                         <p>
-                          직원은 초안 작성, 점주는 확정과 파일 내보내기가
-                          가능해요.
+                          확정하면 발주서를 내려받을 수 있어요. 공급사에 자동으로 전송되지는 않아요.
                         </p>
                       </div>
                     </div>
@@ -1735,94 +1774,91 @@ export default function Workspace() {
                             </tr>
                           </thead>
                           <tbody>
-                            {data.orders.map((order) => (
-                              <tr key={order.id}>
-                                <td>
-                                  <button
-                                    type="button"
-                                    className="order-title"
-                                    onClick={() => setOrderDetail(order)}
-                                    aria-label={`${order.order_date ?? order.as_of} 발주 내용 보기`}
-                                  >
-                                    {order.order_date ?? order.as_of} 발주 예정{" "}
-                                    <span>내용 보기</span>
-                                  </button>
-                                  <small>
-                                    판매 기준 {order.as_of} ·{" "}
-                                    {order.lines.length}개 상품 ·{" "}
-                                    {order.id.slice(0, 8)}
-                                    {order.stale ? " · 현재 자료와 다름" : ""}
-                                  </small>
-                                </td>
-                                <td>{order.author}</td>
-                                <td>
-                                  <span
-                                    className={`pill ${order.status === "confirmed" ? "mint" : "neutral"}`}
-                                  >
-                                    {order.status === "confirmed"
-                                      ? "확정"
-                                      : "초안"}
-                                  </span>
-                                </td>
-                                <td className="number">{won(order.total)}</td>
-                                <td className="number">
-                                  <div className="row-actions">
-                                    {owner && order.status === "draft" && (
-                                      <button
-                                        className="button table-button"
-                                        disabled={
-                                          busy ||
-                                          loading ||
-                                          order.stale ||
-                                          order.as_of !== today
-                                        }
-                                        onClick={() =>
-                                          void action(async () => {
-                                            await api(
-                                              `/stores/${storeId}/orders/${order.id}/confirm`,
-                                              token,
-                                              { method: "POST" },
-                                            );
-                                            saved("발주안을 확정했어요.");
-                                          })
-                                        }
-                                      >
-                                        점주 확정
-                                      </button>
-                                    )}
-                                    {owner &&
-                                      order.status === "confirmed" &&
-                                      (["csv", "xlsx"] as const).map(
-                                        (format) => (
+                            {data.orders.map((order) => {
+                              const issue = orderConfirmationIssue(order, today);
+                              return (
+                                <tr key={order.id}>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="order-title"
+                                      onClick={() => setOrderDetail(order)}
+                                      aria-label={`${order.order_date ?? order.as_of} 발주 내용 보기`}
+                                    >
+                                      {order.order_date ?? order.as_of} 발주 예정{" "}
+                                      <span>내용 보기</span>
+                                    </button>
+                                    <small>
+                                      판매 기준 {order.as_of} ·{" "}
+                                      {order.lines.length}개 상품 ·{" "}
+                                      {order.id.slice(0, 8)}
+                                    </small>
+                                  </td>
+                                  <td>{order.author}</td>
+                                  <td>
+                                    <span
+                                      className={`pill ${order.status === "confirmed" ? "mint" : "neutral"}`}
+                                    >
+                                      {order.status === "confirmed"
+                                        ? "확정"
+                                        : "확정 전"}
+                                    </span>
+                                  </td>
+                                  <td className="number">{won(order.total)}</td>
+                                  <td className="number">
+                                    <div className="order-confirmation">
+                                      {issue && (
+                                        <p className="order-confirmation-note">{issue}</p>
+                                      )}
+                                      <div className="row-actions">
+                                        {owner && order.status === "draft" && (
                                           <button
-                                            key={format}
                                             className="button table-button"
-                                            disabled={busy}
+                                            disabled={busy || loading || !today}
                                             onClick={() =>
-                                              void action(async () => {
-                                                const exported = await download(
-                                                  `/stores/${storeId}/orders/${order.id}/export?format=${format}`,
-                                                  token,
-                                                  `화개장날_발주서_${order.order_date ?? order.as_of}.${format}`,
-                                                );
-                                                if (exported)
-                                                  setNotice(
-                                                    "저장 당시 수량으로 발주서를 내보냈어요.",
-                                                  );
-                                              })
+                                              issue
+                                                ? startNewOrder(order)
+                                                : void action(() => confirmOrder(order))
                                             }
                                           >
-                                            {format === "xlsx"
-                                              ? "Excel"
-                                              : "CSV"}{" "}
-                                            ↓
+                                            {issue ? "새 발주안 만들기" : "발주 확정"}
                                           </button>
-                                        ),
-                                      )}
+                                        )}
+                                        {owner &&
+                                          order.status === "confirmed" &&
+                                          (["csv", "xlsx"] as const).map(
+                                            (format) => (
+                                              <button
+                                                key={format}
+                                                className="button table-button"
+                                                disabled={busy}
+                                                onClick={() =>
+                                                  void action(async () => {
+                                                    const exported = await download(
+                                                      `/stores/${storeId}/orders/${order.id}/export?format=${format}`,
+                                                      token,
+                                                      `화개장날_발주서_${order.order_date ?? order.as_of}.${format}`,
+                                                  );
+                                                  if (exported)
+                                                    setNotice(
+                                                      "저장 당시 수량으로 발주서를 내보냈어요.",
+                                                    );
+                                                })
+                                              }
+                                            >
+                                              {format === "xlsx"
+                                                ? "Excel"
+                                                : "CSV"}{" "}
+                                              ↓
+                                            </button>
+                                          ),
+                                        )}
+                                    </div>
                                   </div>
                                 </td>
                               </tr>
-                            ))}
+                            );
+                            })}
                           </tbody>
                         </ResponsiveTable>
                       </div>
@@ -1856,6 +1892,11 @@ export default function Workspace() {
       )}
       {orderDetail && (
         <OrderDetails
+          confirmationIssue={orderConfirmationIssue(
+            data?.orders.find(order => order.id === orderDetail.id) ?? orderDetail,
+            today,
+          )}
+          onNewOrder={() => startNewOrder(orderDetail)}
           ai={owner ? { token, storeId, onExpired: clearSession } : undefined}
           order={
             data?.orders.find((order) => order.id === orderDetail.id) ??

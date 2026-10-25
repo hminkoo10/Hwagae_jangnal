@@ -4,7 +4,9 @@ import { ResponsiveTable } from "./controls";
 import { Modal } from "./ui";
 import { AiOrderMessage, type AiAccess } from "./ai-assistant";
 
-export function OrderContents({ order }: { order: Order }) {
+export function OrderContents({ order, confirmationIssue }: { order: Order; confirmationIssue?: string }) {
+  const issue = confirmationIssue ?? (order.status === "draft" && order.stale
+    ? "저장 후 판매·재고·상품 정보가 바뀌었어요. 다시 계산해주세요." : "");
   return (
     <div className="order-contents">
       <dl className="order-summary">
@@ -14,7 +16,7 @@ export function OrderContents({ order }: { order: Order }) {
         </div>
         <div>
           <dt>상태</dt>
-          <dd>{order.status === "confirmed" ? "확정" : "초안"}</dd>
+          <dd>{order.status === "confirmed" ? "확정" : "확정 전"}</dd>
         </div>
         <div>
           <dt>작성자</dt>
@@ -26,9 +28,9 @@ export function OrderContents({ order }: { order: Order }) {
         </div>
       </dl>
       <p className="helper">저장한 상품과 수량이에요.</p>
-      {order.stale && (
+      {issue && (
         <p className="warning-banner">
-          저장 후 판매·재고 정보가 달라졌어요. 확정 전 다시 계산해주세요.
+          {issue}
         </p>
       )}
       <div className="table-scroll">
@@ -65,25 +67,30 @@ export function OrderDetails({
   onClose,
   onOpenOrders,
   ai,
+  confirmationIssue,
+  onNewOrder,
 }: {
   order: Order;
   onClose: () => void;
   onOpenOrders: () => void;
   ai?: AiAccess;
+  confirmationIssue?: string;
+  onNewOrder?: () => void;
 }) {
   return (
     <Modal title="발주 내용" onClose={onClose}>
-      <OrderContents order={order} />
+      <OrderContents order={order} confirmationIssue={confirmationIssue} />
       {ai && !order.stale && <AiOrderMessage key={order.id} {...ai} orderId={order.id} />}
       <button
         type="button"
         className="button primary order-details-action"
         onClick={() => {
           onClose();
-          onOpenOrders();
+          if (confirmationIssue && onNewOrder) onNewOrder();
+          else onOpenOrders();
         }}
       >
-        발주 계획으로 이동
+        {confirmationIssue && onNewOrder ? "새 발주안 만들기" : "발주 계획으로 이동"}
       </button>
     </Modal>
   );

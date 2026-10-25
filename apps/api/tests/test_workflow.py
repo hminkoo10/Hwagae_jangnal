@@ -244,6 +244,29 @@ def test_save_confirm_export_and_stale_plan_protection(client):
     )
 
 
+@pytest.mark.parametrize("cause", ["date", "inventory"])
+def test_confirmation_explains_outdated_draft_without_confirming(client, monkeypatch, cause):
+    auth = headers(client)
+    stock(client, auth)
+    rec = recommendation(client, auth, forecast(client, auth))
+    created = client.post(
+        "/stores/gwangju/orders", headers=auth,
+        json={"recommendation_id": rec["id"], "lines": [{"product_id": "P001", "quantity": 17}]},
+    )
+    assert created.status_code == 201
+    if cause == "date":
+        monkeypatch.setattr("app.main.store_today", lambda store: today() + timedelta(days=1))
+        message = "오늘 자료로 다시 계산"
+    else:
+        stock(client, auth, 100)
+        message = "정보가 바뀌었어요"
+    response = client.post(f"/stores/gwangju/orders/{created.json()['id']}/confirm", headers=auth)
+    assert response.status_code == 409
+    assert message in response.json()["detail"]
+    saved = client.get("/stores/gwangju/orders", headers=auth).json()["orders"][0]
+    assert saved["status"] == "draft" and saved["confirmed_at"] is None
+
+
 def test_expired_stock_and_incoming_are_handled_by_date():
     cutoff = today()
     product = {"lead_days": 2, "shelf_days": 1, "cost": 5, "price": 10}

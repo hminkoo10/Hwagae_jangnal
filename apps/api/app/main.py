@@ -895,12 +895,13 @@ def create_app(db_path=None, seed=True):
             revision = db.execute(
                 "SELECT revision FROM stores WHERE id=?", (store_id,)
             ).fetchone()[0]
-            if (
-                revision != record["revision"]
-                or payload["as_of"] != store_today(store).isoformat()
-            ):
+            if payload["as_of"] != store_today(store).isoformat():
                 raise HTTPException(
-                    409, "현재 자료와 다른 발주안입니다. 다시 계산해 저장하세요."
+                    409, "이전 날짜의 자료로 만든 발주안이에요. 오늘 자료로 다시 계산해 저장해주세요."
+                )
+            if revision != record["revision"]:
+                raise HTTPException(
+                    409, "저장 후 판매·재고·상품 정보가 바뀌었어요. 다시 계산해 저장해주세요."
                 )
             db.execute(
                 "UPDATE orders SET status='confirmed',confirmed_at=? WHERE id=?",
