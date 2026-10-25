@@ -24,26 +24,27 @@ LATITUDE, LONGITUDE, TIMEZONE = 37.3416467, 126.8310305, "Asia/Seoul"
 TRAIN_SHARE = 0.7
 # 시연 매장의 상품 설정 가정. 발주내역에서 추출한 값이 아니다.
 LEAD_DAYS, REVIEW_DAYS = 1, 3
-# 구매현황 품목명 앞의 제조사 표기("농심)", "롯 데)")를 공급사 이름으로 정리한다. 표기가 없거나 모르는 이름이면 종류별 가상 거래처.
-MAKERS = {
-    "롯데": "롯데", "롯": "롯데", "롯데제과": "롯데웰푸드", "롯데칠성": "롯데칠성음료", "빙그레": "빙그레",
-    "해태": "해태", "해": "해태", "헤태": "해태", "해태제과": "해태제과", "해태음료": "해태htb", "서주": "서주",
-    "오리온": "오리온", "오": "오리온", "농심": "농심", "농": "농심", ",농": "농심", ",,농": "농심",
-    "크라운": "크라운제과", "그라운": "크라운제과", "웅진": "웅진식품", "매일": "매일유업", "동원": "동원F&B",
-    "광동": "광동제약", "웰그린": "웰그린", "코카": "코카콜라", "오뚜기": "오뚜기", "CJ": "CJ제일제당", "cj": "CJ제일제당",
-    "서울": "서울우유", "신흥물산": "신흥물산", "동서": "동서식품", "후식품": "후식품", "팔도": "팔도", "원유통": "원유통",
-    "남양": "남양유업", "제이앤이": "제이앤이", "진주햄": "진주햄", "동아제약": "동아제약", "동아": "동아오츠카",
-    "삼립": "SPC삼립", "서울식품": "서울식품", "정식품": "정식품", "삼양": "삼양식품", "금상푸드": "금상푸드",
-}
-VIRTUAL_SUPPLIERS = {"아이스크림": "안산빙과유통(가상)", "음료": "와동음료상사(가상)", "유제품": "단원유업대리점(가상)",
-                     "사탕·젤리": "화개제과도매(가상)", "과자": "화개제과도매(가상)", "빵·디저트": "단원베이커리(가상)",
-                     "간편식": "와동간편식(가상)", "기타": "디미고매점도매(가상)"}
+# 거래처는 가상 유통사 10곳. 같은 제조사(품목명 앞 "농심)", "롯 데)" 표기) 상품은 같은 곳에서, 표기가 없으면 종류별로 받는다.
+DISTRIBUTORS = ["한솔유통", "대성상사", "미래식품유통", "동방물산", "새한유통", "우리식자재", "성원상사", "태광유통", "금강식품", "영진물류"]
+MAKERS = {"롯": "롯데", "롯데제과": "롯데", "해": "해태", "헤태": "해태", "해태제과": "해태", "오": "오리온", "농": "농심",
+          "그라운": "크라운", "cj": "CJ"}
 
 
-def supplier(order_names, kind):
-    makers = Counter(MAKERS[m.group(1).replace(" ", "")] for name in order_names
-                     if (m := re.match(r"\s*([^)]{1,12})\)", name)) and m.group(1).replace(" ", "") in MAKERS)
-    return makers.most_common(1)[0][0] if makers else VIRTUAL_SUPPLIERS.get(kind, VIRTUAL_SUPPLIERS["기타"])
+def maker_group(order_names, kind):
+    makers = Counter(MAKERS.get(key, key) for name in order_names
+                     if (m := re.match(r"\s*([^)]{1,12})\)", name)) and (key := m.group(1).replace(" ", "").lstrip(",*")))
+    return makers.most_common(1)[0][0] if makers else kind
+
+
+def assign_distributors(groups):
+    """Give each maker group one distributor, largest groups first to the least-loaded one."""
+    counts, load, result = Counter(groups.values()), [0] * len(DISTRIBUTORS), {}
+    for group in sorted(counts, key=lambda g: (-counts[g], g)):
+        index = min(range(len(DISTRIBUTORS)), key=lambda i: (load[i], i))
+        result[group], load[index] = DISTRIBUTORS[index], load[index] + counts[group]
+    return {pid: result[group] for pid, group in groups.items()}
+
+
 SHELF_DAYS = {"아이스크림": 365, "음료": 180, "유제품": 30, "사탕·젤리": 365, "과자": 180, "빵·디저트": 60, "간편식": 60, "기타": 180}
 # 발주 합계가 판매 합계와 이 범위로 맞는 상품만 재고를 추정한다.
 COVERAGE = (0.85, 1.25)
@@ -405,7 +406,7 @@ split.json         원본 해시와 기간
     guide.append(["자료 출처", f"디미고사회적협동조합 POS 판매현황 {first_day}~{last_day} 중 뒤쪽 30% 기간 {holdout_start}~{demo_end}. 요일을 유지하도록 날짜를 {shift.days}일 뒤로 옮겼습니다. 모델은 이 기간을 학습하지 않았습니다."])
     guide.append(["상품", f"이 기간에 팔렸고 발주 기록이 판매와 맞아 재고를 추정할 수 있는 상품 전부({len(chosen)}개). 판매는 상품의 첫·마지막 판매일 사이만 담았습니다."])
     guide.append(["재고", "실사 재고가 아닙니다. 구매현황(발주) 누적에서 판매 누적을 빼고 선입선출·종류별 유통기한 가정으로 추정했습니다."])
-    guide.append(["가정값", f"원가는 발주 단가(합계÷수량). 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)은 시연 가정입니다. 공급사는 발주 품목명의 제조사 표기에서 가져왔고, 표기가 없으면 '(가상)'이 붙은 종류별 가상 거래처입니다."])
+    guide.append(["가정값", f"원가는 발주 단가(합계÷수량). 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)은 시연 가정입니다. 거래처는 가상 유통사 10곳이며, 같은 제조사 상품은 같은 거래처로 묶었습니다."])
     guide.append(["날씨", f"date는 업로드한 날짜, sold_on은 실제로 판매한 날짜({shift.days}일 전)입니다. 기온(°C)·강수(mm)는 실제 판매일의 안산 와동 과거 재분석(Open-Meteo)이고, units_sold_total은 그날 이 {len(chosen)}개 상품 판매 합계입니다. 앱은 매장 위치의 날씨를 date 기준으로 따로 조회하므로 앱의 과거 날씨와 다를 수 있습니다. 업로드에는 쓰지 않는 참고 시트입니다."])
     products_sheet = book.create_sheet("상품")
     products_sheet.append(["id", "name", "category", "supplier", "price", "cost", "lead_days", "shelf_days", "review_days"])
@@ -413,9 +414,10 @@ split.json         원본 해시와 기간
     stocks.append(["product_id", "measured_on", "quantity", "expires_on", "arrives_on"])
     sales_sheet = book.create_sheet("판매")
     sales_sheet.append(["date", "product_id", "units_sold"])
+    suppliers = assign_distributors({pid: maker_group(mapped_orders[pid], categories[pid]) for pid in chosen})
     for pid in chosen:
         shelf = SHELF_DAYS[categories[pid]]
-        products_sheet.append([pid, names[pid], categories[pid], supplier(mapped_orders[pid], categories[pid]), profile[pid]["price"], profile[pid]["cost"], LEAD_DAYS, shelf, REVIEW_DAYS])
+        products_sheet.append([pid, names[pid], categories[pid], suppliers[pid], profile[pid]["price"], profile[pid]["cost"], LEAD_DAYS, shelf, REVIEW_DAYS])
         batches = Counter()
         for received, quantity in stock[pid][1][demo_end] or [(demo_end, 0)]:
             batches[received + timedelta(days=shelf) + shift] += quantity
