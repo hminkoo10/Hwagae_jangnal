@@ -1,6 +1,13 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 // AI answers arrive as "결론 한 문장" + "- 항목" lines. Older answers can be a
 // plain paragraph or carry stray markdown, so parsing stays forgiving.
@@ -114,36 +121,95 @@ function parse(text: string) {
   return { headline, blocks };
 }
 
-function emphasize(text: string): ReactNode[] {
-  return text.split(EMPHASIS).map((part, index) =>
-    index % 2 ? (
-      <span key={index} className="ai-answer-em">
-        {part}
-      </span>
+// A word is a run of text between spaces; a highlighted amount such as
+// "10월 27일(화)" stays whole so its marker is never split. Spaces stay plain
+// text, so the answer still reads and copies as one sentence.
+type Piece = { text: string; em: boolean };
+type Token = string | Piece[];
+type Words = { tokens: Token[]; start: number };
+
+function words(text: string): Token[] {
+  const tokens: Token[] = [];
+  let word: Piece[] = [];
+  const close = () => {
+    if (word.length) tokens.push(word);
+    word = [];
+  };
+  text.split(EMPHASIS).forEach((part, index) => {
+    if (!part) return;
+    if (index % 2) {
+      word.push({ text: part, em: true });
+      return;
+    }
+    for (const bit of part.split(/(\s+)/)) {
+      if (!bit) continue;
+      if (/^\s+$/.test(bit)) {
+        close();
+        tokens.push(bit);
+      } else word.push({ text: bit, em: false });
+    }
+  });
+  close();
+  return tokens;
+}
+
+const order = (index: number) =>
+  ({ "--w": String(index) }) as CSSProperties;
+
+function wordSpans({ tokens, start }: Words): ReactNode[] {
+  let index = start;
+  return tokens.map((token, key) =>
+    typeof token === "string" ? (
+      token
     ) : (
-      part
+      <span key={key} className="ai-word" style={order(index++)}>
+        {token.map((piece, part) =>
+          piece.em ? (
+            <span key={part} className="ai-answer-em">
+              {piece.text}
+            </span>
+          ) : (
+            piece.text
+          ),
+        )}
+      </span>
     ),
   );
 }
 
-const delay = (order: number) =>
-  ({ "--ai-delay": `${Math.min(order, 9) * 90 + 60}ms` }) as CSSProperties;
+// Words blur in one after another; long answers speed up so the whole reveal
+// still ends in about 1.8 seconds.
+const REVEAL_WINDOW = 1100;
+const WORD_STEP = 20;
 
 export function AiAnswer({ text }: { text: string }) {
   const { headline, blocks } = parse(text);
-  let order = 0;
+  let count = 0;
+  const line = (value: string): Words => {
+    const tokens = words(value);
+    const start = count;
+    count += tokens.filter((token) => typeof token !== "string").length;
+    return { tokens, start };
+  };
+  const head = headline ? line(headline) : null;
+  const body = blocks.map((block) =>
+    block.kind === "paragraph"
+      ? { kind: block.kind, line: line(block.text) }
+      : { kind: block.kind, numbered: block.numbered, items: block.items.map(line) },
+  );
+  const step = Math.min(WORD_STEP, REVEAL_WINDOW / Math.max(count, 1));
   return (
-    <div className="ai-answer" aria-live="polite">
-      {headline && (
-        <p className="ai-answer-headline" style={delay(order++)}>
-          {emphasize(headline)}
-        </p>
-      )}
-      {blocks.map((block, index) => {
+    <div
+      className="ai-answer"
+      aria-live="polite"
+      style={{ "--ai-step": `${step.toFixed(1)}ms` } as CSSProperties}
+    >
+      {head && <p className="ai-answer-headline">{wordSpans(head)}</p>}
+      {body.map((block, index) => {
         if (block.kind === "paragraph")
           return (
-            <p key={index} className="ai-answer-paragraph" style={delay(++order)}>
-              {emphasize(block.text)}
+            <p key={index} className="ai-answer-paragraph">
+              {wordSpans(block.line)}
             </p>
           );
         const List = block.numbered ? "ol" : "ul";
@@ -153,8 +219,8 @@ export function AiAnswer({ text }: { text: string }) {
             className={`ai-answer-list${block.numbered ? " is-numbered" : ""}`}
           >
             {block.items.map((item, itemIndex) => (
-              <li key={itemIndex} className="ai-answer-item" style={delay(++order)}>
-                {emphasize(item)}
+              <li key={itemIndex} className="ai-answer-item" style={order(item.start)}>
+                {wordSpans(item)}
               </li>
             ))}
           </List>
@@ -164,21 +230,103 @@ export function AiAnswer({ text }: { text: string }) {
   );
 }
 
-export function AiThinking({ label = "답변을 정리하고 있어요" }: { label?: string }) {
+const THINKING_STEPS = ["날씨와 예측을 확인하고 있어요", "답변을 정리하고 있어요"];
+const STEP_MS = 1600;
+
+/** `label` is shown first and is what screen readers hear; `steps` follow it
+ * on a timer and stop at the last one. */
+export function AiThinking({
+  label = "자료를 읽고 있어요",
+  steps = THINKING_STEPS,
+}: {
+  label?: string;
+  steps?: readonly string[];
+}) {
+  const messages = [label, ...steps.filter((message) => message !== label)];
+  const [step, setStep] = useState(0);
+  const last = messages.length - 1;
+  const current = Math.min(step, last);
+  useEffect(() => {
+    if (current >= last) return;
+    const timer = window.setTimeout(() => setStep(current + 1), STEP_MS);
+    return () => window.clearTimeout(timer);
+  }, [current, last]);
   return (
     <div className="ai-thinking" role="status" aria-live="polite">
+      <span className="ai-thinking-ring" aria-hidden="true" />
       <div className="ai-thinking-head">
         <span className="ai-thinking-dots" aria-hidden="true">
           <span />
           <span />
           <span />
         </span>
-        <span className="ai-thinking-label">{label}</span>
+        <span className="ai-thinking-label">
+          {messages.map((message, index) => (
+            <span
+              key={index}
+              className="ai-thinking-step"
+              data-state={
+                index < current ? "past" : index === current ? "active" : "next"
+              }
+              aria-hidden={index > 0 || undefined}
+            >
+              {message}
+            </span>
+          ))}
+        </span>
       </div>
       <div className="ai-thinking-lines" aria-hidden="true">
         <span />
         <span />
         <span />
+      </div>
+    </div>
+  );
+}
+
+/** Grows and shrinks smoothly as thinking, errors and answers swap inside. */
+export function AiOutput({ children }: { children: ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const box = outer.current;
+    const content = inner.current;
+    if (
+      !box ||
+      !content ||
+      typeof ResizeObserver === "undefined" ||
+      !window.matchMedia("(prefers-reduced-motion: no-preference)").matches
+    )
+      return;
+    // Clip only while the height moves, so the thinking glow can spill out.
+    const settle = (event: TransitionEvent) => {
+      if (event.target === box) box.classList.remove("is-moving");
+    };
+    const fit = () => {
+      const height = `${content.offsetHeight}px`;
+      if (box.style.height === height) return;
+      box.classList.add("is-moving");
+      box.style.height = height;
+    };
+    box.style.height = "0px";
+    void box.offsetHeight; // commit the closed size so the first fit animates
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(content);
+    box.addEventListener("transitionend", settle);
+    box.addEventListener("transitioncancel", settle);
+    return () => {
+      observer.disconnect();
+      box.removeEventListener("transitionend", settle);
+      box.removeEventListener("transitioncancel", settle);
+      box.style.height = "";
+      box.classList.remove("is-moving");
+    };
+  }, []);
+  return (
+    <div ref={outer} className="ai-output">
+      <div ref={inner} className="ai-output-inner">
+        {children}
       </div>
     </div>
   );

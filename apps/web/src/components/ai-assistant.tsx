@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { type CSSProperties, Fragment, useEffect, useId, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import { AiAnswer, AiThinking } from "./ai-answer";
+import { AiAnswer, AiOutput, AiThinking } from "./ai-answer";
 
 export type AiRun = {
   text: string;
@@ -103,12 +103,25 @@ function dayLabel(value: string) {
   return match ? `${Number(match[1])}월 ${Number(match[2])}일` : value;
 }
 
-// Supplier text is copied as-is, so it keeps its own line breaks.
+// Supplier text is copied as-is, so it keeps its own line breaks. Each line is
+// its own span only so the lines can fade in one after another.
 function AiMessage({ text }: { text: string }) {
   const [notice, setNotice] = useState("");
   return (
     <div className="assistant-message">
-      <p className="assistant-message-text">{text}</p>
+      <p className="assistant-message-text">
+        {text.split("\n").map((line, index) => (
+          <Fragment key={index}>
+            {index > 0 && "\n"}
+            <span
+              className="ai-line"
+              style={{ "--w": String(Math.min(index, 14)) } as CSSProperties}
+            >
+              {line}
+            </span>
+          </Fragment>
+        ))}
+      </p>
       <div className="assistant-message-foot">
         <small role="status">{notice}</small>
         <button
@@ -216,13 +229,23 @@ export function AiAssistant({
           {info.action}
         </button>
       </div>
-      {assistant.busy && (
-        <AiThinking
-          label={asked ? "답변을 정리하고 있어요" : "매장 기록을 살펴보고 있어요"}
-        />
+      {(assistant.busy || assistant.error || assistant.result) && (
+        <AiOutput>
+          {assistant.busy && (
+            <AiThinking
+              label={asked ? "질문을 읽고 있어요" : "매장 기록을 살펴보고 있어요"}
+              steps={[
+                forecastId
+                  ? "날씨와 예측을 확인하고 있어요"
+                  : "판매와 재고를 확인하고 있어요",
+                "답변을 정리하고 있어요",
+              ]}
+            />
+          )}
+          <AiError error={assistant.error} />
+          {assistant.result && <AiAnswer text={assistant.result.text} />}
+        </AiOutput>
       )}
-      <AiError error={assistant.error} />
-      {assistant.result && <AiAnswer text={assistant.result.text} />}
       <div className="assistant-ask">
         <label htmlFor={inputId} className="assistant-ask-label">
           매장에 물어보기
@@ -280,9 +303,18 @@ export function AiOrderMessage({
           전달 문구 만들기
         </button>
       </div>
-      {assistant.busy && <AiThinking label="전달 문구를 만들고 있어요" />}
-      <AiError error={assistant.error} />
-      {assistant.result && <AiMessage text={assistant.result.text} />}
+      {(assistant.busy || assistant.error || assistant.result) && (
+        <AiOutput>
+          {assistant.busy && (
+            <AiThinking
+              label="전달 문구를 만들고 있어요"
+              steps={["인사말을 다듬고 있어요", "저장한 수량으로 정리하고 있어요"]}
+            />
+          )}
+          <AiError error={assistant.error} />
+          {assistant.result && <AiMessage text={assistant.result.text} />}
+        </AiOutput>
+      )}
     </section>
   );
 }
