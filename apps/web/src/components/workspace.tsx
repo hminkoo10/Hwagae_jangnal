@@ -794,7 +794,8 @@ export default function Workspace() {
     !!recommendation &&
     (recommendation.order_date ?? asOf) === orderDate &&
     !replay;
-  const owner = store?.role === "owner";
+  // 아직 매장이 없는 계약 점주도 점주로 보고 첫 매장을 만들게 한다.
+  const owner = store ? store.role === "owner" : !!user?.can_create_stores;
   // 화면은 권한에 맞춰 숨기거나 막고, 실제 허용 여부는 서버가 다시 검사한다.
   const can = (permission: StaffPermission) =>
     owner || !!store?.permissions?.includes(permission);
@@ -1393,6 +1394,14 @@ export default function Workspace() {
                 onExpired={clearSession}
               />
             </ViewStage>
+          )}
+          {!modelDemo && !!serverToday && stores.length === 0 && (
+            <section className="panel ai-required" aria-live="polite">
+              <Icon name="store" size={26} />
+              <h2>{owner ? "첫 매장을 추가해 주세요" : "아직 소속된 매장이 없어요"}</h2>
+              <p>{owner ? "매장 이름과 위치를 정하면 판매 자료를 올리고 예측을 시작할 수 있어요." : "점주가 직원으로 추가하면 여기에서 바로 쓸 수 있어요."}</p>
+              {owner && <button type="button" className="button primary" disabled={busy} onClick={() => setStoreModal(true)}>매장 추가</button>}
+            </section>
           )}
           {!modelDemo && store && !aiReady && tab !== "staff" && (
             <section className="panel ai-required" aria-live="polite">
