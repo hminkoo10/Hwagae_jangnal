@@ -10,7 +10,7 @@ from fastapi import Depends, File, Form, HTTPException, UploadFile
 
 from app.database import EARLIEST_SALES_DATE, encode, now_iso, store_today
 from app.imports import MAX_BYTES, MAX_ROWS
-from app.schemas import ProductInput, Sale, Inventory
+from app.schemas import MAX_PRODUCTS, ProductInput, Sale, Inventory
 from app.walmart_scenarios import scenario_history
 
 PRODUCT_COLUMNS = ["id", "name", "category", "supplier", "price", "cost", "lead_days", "shelf_days", "review_days"]
@@ -38,7 +38,7 @@ def read_workbook(filename, content, cutoff):
             result = []
             for number, row in enumerate(rows, 2):
                 if number > MAX_ROWS + 1:
-                    raise ValueError("시트당 10,000행까지 지원합니다.")
+                    raise ValueError("시트당 30,000행까지 지원합니다.")
                 if all(value is None for value in row):
                     continue
                 if any(isinstance(v, str) and v.startswith("=") for v in row):
@@ -48,8 +48,8 @@ def read_workbook(filename, content, cutoff):
             return result
 
         products = [ProductInput.model_validate(row).model_dump(mode="json") for row in records("상품", PRODUCT_COLUMNS)]
-        if not 1 <= len(products) <= 50 or len({p["id"] for p in products}) != len(products):
-            raise ValueError("상품은 중복 코드 없이 1~50개를 입력하세요.")
+        if not 1 <= len(products) <= MAX_PRODUCTS or len({p["id"] for p in products}) != len(products):
+            raise ValueError(f"상품은 중복 코드 없이 1~{MAX_PRODUCTS}개를 입력하세요.")
         ids = {p["id"] for p in products}
         sales = [Sale.model_validate(row).model_dump(mode="json") for row in records("판매", SALES_COLUMNS)]
         if not sales or len({(s["date"], s["product_id"]) for s in sales}) != len(sales):

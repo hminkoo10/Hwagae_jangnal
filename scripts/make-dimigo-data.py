@@ -22,9 +22,28 @@ from openpyxl.styles import Alignment, Font, PatternFill
 # 한국디지털미디어고등학교 (Photon 검색 결과, 앱의 매장 지역 검색과 같은 제공처)
 LATITUDE, LONGITUDE, TIMEZONE = 37.3416467, 126.8310305, "Asia/Seoul"
 TRAIN_SHARE = 0.7
-DEMO_PRODUCTS = 50
 # 시연 매장의 상품 설정 가정. 발주내역에서 추출한 값이 아니다.
-LEAD_DAYS, REVIEW_DAYS, SUPPLIER = 1, 3, "기존 거래처"
+LEAD_DAYS, REVIEW_DAYS = 1, 3
+# 구매현황 품목명 앞의 제조사 표기("농심)", "롯 데)")를 공급사 이름으로 정리한다. 표기가 없거나 모르는 이름이면 종류별 가상 거래처.
+MAKERS = {
+    "롯데": "롯데", "롯": "롯데", "롯데제과": "롯데웰푸드", "롯데칠성": "롯데칠성음료", "빙그레": "빙그레",
+    "해태": "해태", "해": "해태", "헤태": "해태", "해태제과": "해태제과", "해태음료": "해태htb", "서주": "서주",
+    "오리온": "오리온", "오": "오리온", "농심": "농심", "농": "농심", ",농": "농심", ",,농": "농심",
+    "크라운": "크라운제과", "그라운": "크라운제과", "웅진": "웅진식품", "매일": "매일유업", "동원": "동원F&B",
+    "광동": "광동제약", "웰그린": "웰그린", "코카": "코카콜라", "오뚜기": "오뚜기", "CJ": "CJ제일제당", "cj": "CJ제일제당",
+    "서울": "서울우유", "신흥물산": "신흥물산", "동서": "동서식품", "후식품": "후식품", "팔도": "팔도", "원유통": "원유통",
+    "남양": "남양유업", "제이앤이": "제이앤이", "진주햄": "진주햄", "동아제약": "동아제약", "동아": "동아오츠카",
+    "삼립": "SPC삼립", "서울식품": "서울식품", "정식품": "정식품", "삼양": "삼양식품", "금상푸드": "금상푸드",
+}
+VIRTUAL_SUPPLIERS = {"아이스크림": "안산빙과유통(가상)", "음료": "와동음료상사(가상)", "유제품": "단원유업대리점(가상)",
+                     "사탕·젤리": "화개제과도매(가상)", "과자": "화개제과도매(가상)", "빵·디저트": "단원베이커리(가상)",
+                     "간편식": "와동간편식(가상)", "기타": "디미고매점도매(가상)"}
+
+
+def supplier(order_names, kind):
+    makers = Counter(MAKERS[m.group(1).replace(" ", "")] for name in order_names
+                     if (m := re.match(r"\s*([^)]{1,12})\)", name)) and m.group(1).replace(" ", "") in MAKERS)
+    return makers.most_common(1)[0][0] if makers else VIRTUAL_SUPPLIERS.get(kind, VIRTUAL_SUPPLIERS["기타"])
 SHELF_DAYS = {"아이스크림": 365, "음료": 180, "유제품": 30, "사탕·젤리": 365, "과자": 180, "빵·디저트": 60, "간편식": 60, "기타": 180}
 # 발주 합계가 판매 합계와 이 범위로 맞는 상품만 재고를 추정한다.
 COVERAGE = (0.85, 1.25)
@@ -369,11 +388,12 @@ split.json         원본 해시와 기간
               [[pid, names[pid], categories[pid], sum(sold[pid].values()), order_units[pid], round(profile[pid]["coverage"], 3), profile[pid]["price"], profile[pid]["cost"] or "", "사용" if profile[pid]["reliable"] else ""] for pid in sorted(names)])
 
     window = daterange(holdout_start, demo_end)
-    head, tail = set(window[:14]), set(window[-14:])
-    candidates = [pid for pid in stock if {d for d in sold[pid] if sold[pid][d] > 0} & head and {d for d in sold[pid] if sold[pid][d] > 0} & tail]
-    chosen = sorted(candidates, key=lambda pid: -sum(sold[pid][d] for d in window))[:DEMO_PRODUCTS]
-    if len(window) * len(chosen) > 10_000:
-        raise ValueError("시연 판매 행이 10,000행을 넘습니다.")
+    # 재고를 추정할 수 있고 이 기간에 팔린 상품 전부. 판매 행은 상품의 첫·마지막 판매일 사이만 둔다.
+    chosen = sorted((pid for pid in stock if any(sold[pid].get(d, 0) > 0 for d in window)), key=lambda pid: -sum(sold[pid][d] for d in window))
+    span = {pid: (min(d for d in sold[pid] if sold[pid][d] > 0), max(d for d in sold[pid] if sold[pid][d] > 0)) for pid in chosen}
+    sales_rows = sum(span[pid][0] <= d <= span[pid][1] for pid in chosen for d in window)
+    if len(chosen) > 200 or sales_rows > 30_000:
+        raise ValueError("시연 자료가 업로드 한도(상품 200개, 30,000행)를 넘습니다.")
 
     book = Workbook()
     guide = book.active
@@ -383,9 +403,9 @@ split.json         원본 해시와 기간
     guide.append(["지역", "한국디지털미디어고등학교 (경기 안산시 단원구) / Asia/Seoul"])
     guide.append(["마감 기준일", demo_date.isoformat()])
     guide.append(["자료 출처", f"디미고사회적협동조합 POS 판매현황 {first_day}~{last_day} 중 뒤쪽 30% 기간 {holdout_start}~{demo_end}. 요일을 유지하도록 날짜를 {shift.days}일 뒤로 옮겼습니다. 모델은 이 기간을 학습하지 않았습니다."])
-    guide.append(["상품", f"이 기간 처음과 끝 2주에 모두 팔렸고 발주 기록이 판매와 맞는 상품 중 판매량 상위 {len(chosen)}개."])
+    guide.append(["상품", f"이 기간에 팔렸고 발주 기록이 판매와 맞아 재고를 추정할 수 있는 상품 전부({len(chosen)}개). 판매는 상품의 첫·마지막 판매일 사이만 담았습니다."])
     guide.append(["재고", "실사 재고가 아닙니다. 구매현황(발주) 누적에서 판매 누적을 빼고 선입선출·종류별 유통기한 가정으로 추정했습니다."])
-    guide.append(["가정값", f"원가는 발주 단가(합계÷수량). 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)·거래처명은 시연 가정입니다."])
+    guide.append(["가정값", f"원가는 발주 단가(합계÷수량). 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)은 시연 가정입니다. 공급사는 발주 품목명의 제조사 표기에서 가져왔고, 표기가 없으면 '(가상)'이 붙은 종류별 가상 거래처입니다."])
     guide.append(["날씨", f"date는 업로드한 날짜, sold_on은 실제로 판매한 날짜({shift.days}일 전)입니다. 기온(°C)·강수(mm)는 실제 판매일의 안산 와동 과거 재분석(Open-Meteo)이고, units_sold_total은 그날 이 {len(chosen)}개 상품 판매 합계입니다. 앱은 매장 위치의 날씨를 date 기준으로 따로 조회하므로 앱의 과거 날씨와 다를 수 있습니다. 업로드에는 쓰지 않는 참고 시트입니다."])
     products_sheet = book.create_sheet("상품")
     products_sheet.append(["id", "name", "category", "supplier", "price", "cost", "lead_days", "shelf_days", "review_days"])
@@ -395,14 +415,15 @@ split.json         원본 해시와 기간
     sales_sheet.append(["date", "product_id", "units_sold"])
     for pid in chosen:
         shelf = SHELF_DAYS[categories[pid]]
-        products_sheet.append([pid, names[pid], categories[pid], SUPPLIER, profile[pid]["price"], profile[pid]["cost"], LEAD_DAYS, shelf, REVIEW_DAYS])
+        products_sheet.append([pid, names[pid], categories[pid], supplier(mapped_orders[pid], categories[pid]), profile[pid]["price"], profile[pid]["cost"], LEAD_DAYS, shelf, REVIEW_DAYS])
         batches = Counter()
         for received, quantity in stock[pid][1][demo_end] or [(demo_end, 0)]:
             batches[received + timedelta(days=shelf) + shift] += quantity
         for expires_on, quantity in sorted(batches.items()):
             stocks.append([pid, demo_date.isoformat(), quantity, expires_on.isoformat(), None])
         for day in window:
-            sales_sheet.append([(day + shift).isoformat(), pid, sold[pid].get(day, 0)])
+            if span[pid][0] <= day <= span[pid][1]:
+                sales_sheet.append([(day + shift).isoformat(), pid, sold[pid].get(day, 0)])
     # 날짜를 옮겨도 판매와 날씨의 짝은 실제 판매일 기준으로 남긴다. 업로드에는 쓰지 않는 참고 시트다.
     weather_sheet = book.create_sheet("날씨")
     weather_sheet.append(["date", "sold_on", "weekday", "temp_max", "temp_min", "rain_mm", "units_sold_total"])
@@ -416,7 +437,7 @@ split.json         원본 해시와 기간
 
 1. 점주 계정으로 로그인 → 매장 선택 옆 + → 매장명 '디미고 매점' → 지역 검색 '한국디지털미디어고등학교' → 매장 추가.
 2. '우리 매장 자료를 가져오세요'에서 {path.name} 선택 → 내용 확인하기.
-   상품 {len(chosen)}개, 판매 {len(window) * len(chosen)}건, 재고 기준일 {demo_date}를 확인합니다.
+   상품 {len(chosen)}개, 판매 {sales_rows}건, 재고 기준일 {demo_date}를 확인합니다.
    '날씨' 시트에는 날짜별 실제 판매일의 기온·강수와 판매 합계가 있습니다(발표 근거용, 업로드에는 쓰이지 않음).
 3. 현재 재고·입고 예정 확인에 체크 → 확인한 자료 저장.
 4. 7일 판매 예측 → 실제 안산 예보로 다음 7일 확인. 과거 날짜를 고르면 실제 판매와 비교됩니다.
@@ -431,7 +452,7 @@ uv run python scripts/make-dimigo-data.py --orders <구매 XLSX> --sales <판매
         "products": len(names), "merged_names": sum(1 for a, b in canonical.items() if a != b),
         "order_names": len(order_target), "mapped_order_names": sum(1 for t, _ in order_target.values() if t),
         "stock_products": len(reliable), "train": split["train"], "holdout": split["holdout"],
-        "demo": {"date": demo_date.isoformat(), "source_end": demo_end.isoformat(), "shift_days": shift.days, "products": len(chosen), "sales_rows": len(window) * len(chosen)},
+        "demo": {"date": demo_date.isoformat(), "source_end": demo_end.isoformat(), "shift_days": shift.days, "products": len(chosen), "sales_rows": sales_rows},
         "output": str(output),
     }
 

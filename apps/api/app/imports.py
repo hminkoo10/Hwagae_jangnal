@@ -11,7 +11,7 @@ from openpyxl import load_workbook
 from app.database import EARLIEST_SALES_DATE, today
 
 MAX_BYTES = 5 * 1024 * 1024
-MAX_ROWS = 10000
+MAX_ROWS = 30000
 HEADERS = {
     "date": "date",
     "판매일": "date",
@@ -44,7 +44,7 @@ def parse_file(filename: str, content: bytes, *, latest_date=None):
             for row in book.active.iter_rows(values_only=True):
                 rows.append(list(row))
                 if len(rows) > MAX_ROWS + 1:
-                    raise ValueError("한 번에 10,000행까지 지원합니다.")
+                    raise ValueError("한 번에 30,000행까지 지원합니다.")
         finally:
             book.close()
     else:
@@ -55,7 +55,7 @@ def parse_file(filename: str, content: bytes, *, latest_date=None):
     if any(headers.count(key) != 1 for key in ("date", "product_id", "units_sold")):
         raise ValueError("필수 열: date, product_id, units_sold (각각 한 번씩)")
     if len(rows) - 1 > MAX_ROWS:
-        raise ValueError("한 번에 10,000행까지 지원합니다.")
+        raise ValueError("한 번에 30,000행까지 지원합니다.")
     valid, errors = [], []
     seen = set()
     for number, values in enumerate(rows[1:], 2):
