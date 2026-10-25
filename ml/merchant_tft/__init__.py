@@ -1,1 +1,1 @@
-"""Independent synthetic-trained TFT for live-weather integration experiments."""
+"""Live-weather TFT trained on Dimigo cooperative store POS sales; identity-free inputs."""
