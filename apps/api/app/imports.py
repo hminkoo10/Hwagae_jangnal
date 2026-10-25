@@ -8,7 +8,7 @@ from datetime import date, datetime
 
 from openpyxl import load_workbook
 
-from app.database import today
+from app.database import EARLIEST_SALES_DATE, today
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_ROWS = 10000
@@ -72,6 +72,8 @@ def parse_file(filename: str, content: bytes, *, latest_date=None):
                 day = date.fromisoformat(str(raw_day))
             if day > (latest_date or today()):
                 raise ValueError("미래 날짜의 판매 기록은 저장할 수 없습니다.")
+            if day < EARLIEST_SALES_DATE:
+                raise ValueError("2000년 이전 날짜의 판매 기록은 저장할 수 없습니다.")
             product_id = str(item.get("product_id") or "").strip()
             if not product_id or len(product_id) > 80:
                 raise ValueError("상품코드를 확인하세요.")

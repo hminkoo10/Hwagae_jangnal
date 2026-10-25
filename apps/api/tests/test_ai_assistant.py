@@ -22,7 +22,7 @@ def counts(app):
 @pytest.mark.parametrize("task", ["briefing", "forecast", "inventory", "sales", "products", "question"])
 def test_help_is_scoped_read_only_and_excludes_credentials(service, task):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     before = counts(app)
     provider = Mock(return_value=ok("먼저 재고를 확인해주세요."))
     app.state.ai_request = provider
@@ -62,7 +62,7 @@ def test_help_checks_reference_and_missing_question_before_calling(service):
 
 def test_historical_context_excludes_future_stock_and_marks_old_stock(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     cutoff = today() - timedelta(days=2)
     with app.state.database.connect() as db:
         products = [r[0] for r in db.execute("SELECT id FROM products WHERE store_id='gwangju' ORDER BY id")]
@@ -81,7 +81,7 @@ def test_historical_context_excludes_future_stock_and_marks_old_stock(service):
 
 def test_forecast_identity_and_new_sales_are_checked_before_spending(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     provider = Mock(return_value=ok("예측을 확인해주세요."))
     app.state.ai_request = provider
     with app.state.database.connect() as db:
@@ -98,7 +98,7 @@ def test_forecast_identity_and_new_sales_are_checked_before_spending(service):
 
 def test_changes_while_help_is_generated_discard_the_old_answer(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     def provider(*args, **kwargs):
         with app.state.database.connect() as db:
             db.execute("UPDATE stores SET revision=revision+1 WHERE id='gwangju'")
@@ -110,7 +110,7 @@ def test_changes_while_help_is_generated_discard_the_old_answer(service):
 
 def test_sales_draft_keeps_zero_detects_existing_and_never_saves(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     with app.state.database.connect() as db:
         row = dict(db.execute("SELECT date,product_id FROM sales WHERE store_id='gwangju' LIMIT 1").fetchone())
     before = counts(app)
@@ -123,16 +123,29 @@ def test_sales_draft_keeps_zero_detects_existing_and_never_saves(service):
     assert counts(app) == before
 
 
+def test_memo_dates_outside_range_become_items_to_check(service):
+    app, client, auth = service
+    save(client, auth["operator"], [config(), config("예비", KEY2)])
+    rows = [{"date": "2999-01-01", "product_id": "P001", "units_sold": 1}, {"date": "1000-01-01", "product_id": "P001", "units_sold": 2},
+            {"date": today().isoformat(), "product_id": "P001", "units_sold": 3}]
+    app.state.ai_request = Mock(return_value=ok(json.dumps({"rows": rows, "unresolved": []})))
+    result = post(client, auth, "draft-sales", {"text": "내일 1개, 1000년 2개, 오늘 3개"})
+    assert result.status_code == 200 and not result.json()["fallback_used"], result.text
+    draft = result.json()["draft"]
+    assert [row["date"] for row in draft["rows"]] == [today().isoformat()]
+    assert "기준일 이후" in draft["unresolved"][0] and "2000년 이전" in draft["unresolved"][1]
+    assert client.post("/stores/gwangju/sales", headers=auth["owner"], json={"rows": [rows[1]]}).status_code == 422
+
+
 @pytest.mark.parametrize("invalid", [
     {"date": "2026-01-01", "product_id": "foreign-store-product", "units_sold": 2},
     {"date": "2026-01-01", "product_id": "P001", "units_sold": -1},
     {"date": "2026-01-01", "product_id": "P001", "units_sold": 1.5},
-    {"date": "2999-01-01", "product_id": "P001", "units_sold": 1},
 ])
 def test_invalid_sales_output_falls_back_to_the_next_connection(service, invalid):
     app, client, auth = service
-    save(client, auth["owner"], [config(), config("예비", KEY2)])
-    good = {"rows": [], "unresolved": ["상품 이름을 확인해주세요."]}
+    save(client, auth["operator"], [config(), config("예비", KEY2)])
+    good ={"rows": [], "unresolved": ["상품 이름을 확인해주세요."]}
     def provider(gateway, key, endpoint, **kwargs):
         return ok(json.dumps({"rows": [invalid], "unresolved": []} if key == KEY1 else good))
     app.state.ai_request = provider
@@ -144,7 +157,7 @@ def test_invalid_sales_output_falls_back_to_the_next_connection(service, invalid
 
 def test_product_draft_does_not_invent_defaults_or_save(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     before = counts(app)
     app.state.ai_request = Mock(return_value=ok('```json\n{"name":"딸기 우유","category":"유제품","price":2000,"cost":null}\n```'))
     result = post(client, auth, "draft-product", {"text": "딸기 우유 판매가 2000원"})
@@ -156,7 +169,7 @@ def test_product_draft_does_not_invent_defaults_or_save(service):
 @pytest.mark.parametrize("draft", [{"price": -1}, {"id": "injected-id", "name": "우유"}, {"shelf_days": 99999}, {"category": "임의 종류"}, {"name": "\n"}, {}])
 def test_unusable_product_drafts_do_not_reach_the_form(service, draft):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     app.state.ai_request = Mock(return_value=ok(json.dumps(draft)))
     result = post(client, auth, "draft-product", {"text": "메모"})
     assert result.status_code == 503 and "draft" not in result.json()
@@ -164,7 +177,7 @@ def test_unusable_product_drafts_do_not_reach_the_form(service, draft):
 
 def test_supplier_message_uses_saved_edits_and_does_not_send_or_change_orders(service):
     app, client, auth = service
-    save(client, auth["owner"], [config()])
+    save(client, auth["operator"], [config()])
     with app.state.database.connect() as db:
         db.execute("INSERT INTO recommendations VALUES (?,?,?,?,?)", ("msg-rec", "gwangju", 0, "{}", now_iso()))
         lines = [{"name": "우유", "supplier": "화개유업", "quantity": 9, "recommended_quantity": 24}]

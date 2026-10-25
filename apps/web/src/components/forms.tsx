@@ -102,16 +102,16 @@ export function SalesPanel({
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>파일로 한 번에 입력</h2>
-              <p>저장 전 내용을 확인할 수 있어요.</p>
+              <h2>파일로 올리기</h2>
+              <p>여러 날 기록을 한 번에 올리고, 확인 후 저장해요.</p>
             </div>
             <Icon name="upload" />
           </div>
           <form onSubmit={inspect} className="stack">
             <label className="file-zone">
               <Icon name="upload" size={30} />
-              <strong>판매 기록 파일 선택</strong>
-              <span>CSV · XLSX / 최대 5MB · 10,000행</span>
+              <strong>{file?.name ?? "판매 기록 파일 고르기"}</strong>
+              <span>CSV · XLSX · 최대 5MB · 1만 줄</span>
               <input
                 aria-label="판매 기록 파일"
                 type="file"
@@ -149,23 +149,22 @@ export function SalesPanel({
                   }
                 }}
               >
-                CSV 양식 다운로드 ↓
+                빈 양식 받기 ↓
               </button>
               <button className="button primary" disabled={!file || busy}>
-                {busy ? "처리 중…" : "미리보기"}
+                {busy ? "확인 중…" : "내용 확인"}
               </button>
             </div>
           </form>
           <p className="helper">
-            필수 열: date, product_id, units_sold. 같은 날짜·상품은 자동으로
-            덮어쓰지 않아요.
+            양식의 열 이름은 그대로 두세요. 이미 있는 날짜·상품은 덮어쓰지 않아요.
           </p>
         </section>
         <section className="panel">
           <div className="panel-heading">
             <div>
               <h2>직접 입력</h2>
-              <p>상품별 하루 판매 개수를 입력하세요.</p>
+              <p>하루에 판 개수를 상품별로 적어요.</p>
             </div>
             <Icon name="sales" />
           </div>
@@ -209,6 +208,9 @@ export function SalesPanel({
             >
               판매 기록 저장
             </button>
+            {!products.length && (
+              <p className="helper">상품을 먼저 등록하면 적을 수 있어요.</p>
+            )}
           </form>
         </section>
       </div>
@@ -216,10 +218,10 @@ export function SalesPanel({
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <h2>가져오기 미리보기</h2>
+              <h2>파일 내용 확인</h2>
               <p>
-                {preview.rows.length}개 해석 · 오류 {preview.errors.length}개 ·
-                아직 저장하지 않았어요.
+                {preview.rows.length}건 읽음 · 오류 {preview.errors.length}건 ·
+                아직 저장 전이에요.
               </p>
             </div>
             <button
@@ -227,7 +229,7 @@ export function SalesPanel({
               disabled={!preview.can_save || busy}
               onClick={() => void save(preview.rows)}
             >
-              확인 후 저장
+              이대로 저장
             </button>
           </div>
           {preview.errors.length > 0 && (
@@ -263,7 +265,7 @@ export function SalesPanel({
             </ResponsiveTable>
           </div>
           {preview.rows.length > 10 && (
-            <p className="helper">처음 10개 기록을 표시하고 있어요.</p>
+            <p className="helper">앞의 10건만 보여드려요.</p>
           )}
         </section>
       )}
@@ -280,8 +282,10 @@ export function SalesPanel({
           <span className="pill">최근 50개</span>
         </div>
         {!sales.rows.length ? (
-          <Empty title="첫 판매 기록을 입력해보세요">
-            상품 등록 후 파일 또는 직접 입력을 이용할 수 있어요.
+          <Empty title="아직 판매 기록이 없어요">
+            {products.length
+              ? "위에서 파일을 올리거나 직접 적어보세요."
+              : "상품을 먼저 등록해주세요."}
           </Empty>
         ) : (
           <div className="table-scroll">
@@ -401,8 +405,8 @@ export function InventoryModal({
       <p className="modal-description">
         {product.name} · {product.id}
         <br />
-        오늘({today}) 마감 기준 수량을 입력하세요. 만료일 당일까지 판매
-        가능하며, 이후 재고는 제외해요.
+        오늘({today}) 마감 때 남은 개수를 적어요. 판매 마지막 날이 지나면
+        빼고 계산해요.
       </p>
       <form onSubmit={submit} className="stack">
         {error && (
@@ -416,11 +420,11 @@ export function InventoryModal({
             checked={zero}
             onChange={(event) => setZero(event.target.checked)}
           />
-          직접 세어보니 재고가 없어요
+          남은 재고가 하나도 없어요 (0개)
         </label>
         {!zero && (
           <>
-            <div className="section-label">현재 재고 · 만료일별로 입력</div>
+            <div className="section-label">남은 재고 · 판매 마지막 날별로</div>
             {batches.map((batch, index) => (
               <div className="batch-row" key={index}>
                 <label>
@@ -478,7 +482,7 @@ export function InventoryModal({
                 setBatches([...batches, { quantity: "", expires_on: "" }])
               }
             >
-              + 다른 만료일 재고 추가
+              + 마지막 날이 다른 재고 추가
             </button>
           </>
         )}
@@ -523,7 +527,7 @@ export function InventoryModal({
               />
             </label>
             <label>
-              만료일
+              판매 마지막 날
               <DateField
                 min={batch.arrives_on}
                 required
@@ -561,7 +565,7 @@ export function InventoryModal({
             ])
           }
         >
-          + 예정된 입고 추가
+          + 입고 예정 추가
         </button>
         <label className="checkbox">
           <input
@@ -570,10 +574,10 @@ export function InventoryModal({
             checked={confirmed}
             onChange={(event) => setConfirmed(event.target.checked)}
           />
-          입고 예정 목록을 확인했어요. 목록이 비어 있으면 예정 입고가 없어요.
+          입고 예정까지 확인했어요 (없으면 비워두세요)
         </label>
         <button className="button primary" disabled={busy}>
-          {busy ? "저장 중…" : "재고 확인 · 저장"}
+          {busy ? "저장 중…" : "재고 저장"}
         </button>
       </form>
     </Modal>
@@ -644,6 +648,11 @@ export function ProductModal({
           <div className="error-banner" role="alert">
             {error}
           </div>
+        )}
+        {!product && (
+          <p className="modal-description">
+            가격과 도착 일수를 적으면 추천 발주량을 계산해요.
+          </p>
         )}
         {!product && (
           <AiProductMemo
@@ -771,8 +780,7 @@ export function ProductModal({
           </div>
         </div>
         <p className="helper">
-          도착한 날부터 마지막 판매일 저녁까지 팔 수 있어요. 계산할 기간이 7일을
-          넘으면 추천 수량을 보여드릴 수 없어요.
+          도착 일수와 발주 간격을 더해 7일이 넘으면 추천 수량이 나오지 않아요.
         </p>
         <button className="button primary" disabled={busy}>
           {busy ? "저장 중…" : "상품 저장"}
@@ -821,6 +829,9 @@ export function StoreModal({
       }}
     >
       <form className="stack" onSubmit={submit}>
+        <p className="modal-description">
+          위치를 정하면 그 지역 날씨를 예측에 반영해요.
+        </p>
         {error && (
           <div className="error-banner" role="alert">
             {error}

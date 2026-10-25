@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { api, ApiError, addCalendarDays, type User } from "@/lib/api";
 import { Modal } from "./ui";
 import { DateField, Select } from "./controls";
+import { AiSettings } from "./ai-settings";
+import styles from "./operator-ai.module.css";
 import {
   MerchantManagementTable,
   selectMerchantRows,
@@ -46,6 +48,24 @@ export function OperatorDashboard({
   const [editing, setEditing] = useState<Contract | null>(null);
   const [invite, setInvite] = useState<Invite | null>(null);
   const [notice, setNotice] = useState("");
+  const [view, setView] = useState<"merchants" | "ai">("merchants");
+  const [aiReady, setAiReady] = useState<boolean | null>(null);
+  const [aiReload, setAiReload] = useState(0);
+  useEffect(() => {
+    const c = new AbortController();
+    api<{ connections: { enabled: boolean; key_set: boolean }[] }>(
+      "/platform/ai/settings",
+      token,
+      { signal: c.signal },
+    )
+      .then((value) => {
+        if (!c.signal.aborted)
+          setAiReady(value.connections.some((x) => x.enabled && x.key_set));
+      })
+      // The AI tab shows its own load error; this only drives the reminder.
+      .catch(() => {});
+    return () => c.abort();
+  }, [token, aiReload]);
   useEffect(() => {
     const c = new AbortController();
     api<Overview>("/admin/overview", token, { signal: c.signal })
@@ -109,135 +129,185 @@ export function OperatorDashboard({
         </div>
       </header>
       <main className="operator-main">
-        <div className="operator-toolbar">
-          <div>
-            <h1>점주 관리</h1>
-            <p>계약과 매장을 한곳에서 관리해요.</p>
-          </div>
+        <nav className={styles.tabs} aria-label="운영 메뉴">
           <button
-            className="button primary"
-            disabled={!data || busy}
-            onClick={() => setCreating({ email: "", name: "" })}
+            type="button"
+            className={styles.tab}
+            aria-current={view === "merchants" ? "page" : undefined}
+            onClick={() => setView("merchants")}
           >
-            + 점주 초대
+            점주 관리
           </button>
-        </div>
-        {error && (
-          <div className="error-banner" role="alert">
-            {error}
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setReload((n) => n + 1)}
-            >
-              다시 확인
-            </button>
-          </div>
-        )}
-        {notice && (
-          <p className="success-banner" role="status">
-            {notice}
-          </p>
-        )}
-        {!data && !error && <p role="status">운영 현황을 불러오고 있어요…</p>}
-        {data && (
+          <button
+            type="button"
+            className={styles.tab}
+            aria-current={view === "ai" ? "page" : undefined}
+            onClick={() => setView("ai")}
+          >
+            AI 연결
+            {aiReady === false && <span className={styles.tabBadge}>필요</span>}
+          </button>
+        </nav>
+        {view === "ai" && (
           <>
-            <div className="stat-grid">
-              {[
-                [
-                  "이용 중 점주",
-                  data.contracts.filter((c) => c.access_status === "active")
-                    .length + data.existing_merchants.length,
-                ],
-                [
-                  "초대 대기",
-                  data.contracts.filter((c) => c.access_status === "invited")
-                    .length,
-                ],
-                ["전체 매장", data.counts.stores],
-                ["발주 계획", data.counts.orders],
-              ].map(([label, count]) => (
-                <article className="stat-card" key={label}>
-                  <span>{label}</span>
-                  <strong>{count}</strong>
-                </article>
-              ))}
-            </div>
-            <section className="panel">
-              <div className="operator-list-toolbar">
-                <div>
-                  <h2>
-                    점주 목록{" "}
-                    <span className="count-label">{rows.length}명</span>
-                  </h2>
-                  <p className="helper">이름을 누르면 매장을 볼 수 있어요.</p>
-                </div>
-                <div
-                  className="merchant-filters"
-                  role="search"
-                  aria-label="점주 찾기"
-                >
-                  <input
-                    aria-label="점주·이메일·매장 검색"
-                    placeholder="점주·이메일·매장 검색"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                  <Select
-                    aria-label="계약 상태"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                  >
-                    <option value="all">모든 상태</option>
-                    {Object.entries(merchantStatuses).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </Select>
-                  <Select
-                    aria-label="점주 정렬"
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value)}
-                  >
-                    <option value="name">이름순</option>
-                    <option value="expiry">종료일순</option>
-                    <option value="sales">최근 판매순</option>
-                  </Select>
-                  {(query || filter !== "all" || sort !== "name") && (
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => {
-                        setQuery("");
-                        setFilter("all");
-                        setSort("name");
-                      }}
-                    >
-                      초기화
-                    </button>
-                  )}
-                </div>
+            <div className="operator-toolbar">
+              <div>
+                <h1>AI 연결</h1>
+                <p>한 번 설정하면 모든 매장에 바로 적용돼요.</p>
               </div>
-              <MerchantManagementTable
-                rows={rows}
-                busy={busy}
-                today={data.today}
-                onManage={setEditing}
-                onConnect={(m) => setCreating({ email: m.email, name: m.name })}
-                onInvite={(c) => {
-                  void action(async () => {
-                    setInvite(
-                      await api<Invite>(
-                        `/admin/contracts/${c.id}/invite`,
-                        token,
-                        { method: "POST" },
-                      ),
-                    );
-                  }).catch(() => {});
-                }}
-              />
-            </section>
+            </div>
+            <AiSettings
+              token={token}
+              onExpired={onExpired}
+              onChanged={() => setAiReload((n) => n + 1)}
+            />
+          </>
+        )}
+        {view === "merchants" && (
+          <>
+            <div className="operator-toolbar">
+              <div>
+                <h1>점주 관리</h1>
+                <p>계약과 매장을 한곳에서 관리해요.</p>
+              </div>
+              <button
+                className="button primary"
+                disabled={!data || busy}
+                onClick={() => setCreating({ email: "", name: "" })}
+              >
+                + 점주 초대
+              </button>
+            </div>
+            {aiReady === false && (
+              <div className={styles.banner} role="status">
+                <span>AI 연결 전이라 매장에서 AI를 쓸 수 없어요.</span>
+                <button
+                  type="button"
+                  className="button primary small"
+                  onClick={() => setView("ai")}
+                >
+                  AI 연결하기
+                </button>
+              </div>
+            )}
+            {error && (
+              <div className="error-banner" role="alert">
+                {error}
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => setReload((n) => n + 1)}
+                >
+                  다시 확인
+                </button>
+              </div>
+            )}
+            {notice && (
+              <p className="success-banner" role="status">
+                {notice}
+              </p>
+            )}
+            {!data && !error && <p role="status">운영 현황을 불러오고 있어요…</p>}
+            {data && (
+              <>
+                <div className="stat-grid">
+                  {[
+                    [
+                      "이용 중 점주",
+                      data.contracts.filter((c) => c.access_status === "active")
+                        .length + data.existing_merchants.length,
+                    ],
+                    [
+                      "초대 대기",
+                      data.contracts.filter((c) => c.access_status === "invited")
+                        .length,
+                    ],
+                    ["전체 매장", data.counts.stores],
+                    ["발주 계획", data.counts.orders],
+                  ].map(([label, count]) => (
+                    <article className="stat-card" key={label}>
+                      <span>{label}</span>
+                      <strong>{count}</strong>
+                    </article>
+                  ))}
+                </div>
+                <section className="panel">
+                  <div className="operator-list-toolbar">
+                    <div>
+                      <h2>
+                        점주 목록{" "}
+                        <span className="count-label">{rows.length}명</span>
+                      </h2>
+                      <p className="helper">이름을 누르면 매장을 볼 수 있어요.</p>
+                    </div>
+                    <div
+                      className="merchant-filters"
+                      role="search"
+                      aria-label="점주 찾기"
+                    >
+                      <input
+                        aria-label="점주·이메일·매장 검색"
+                        placeholder="점주·이메일·매장 검색"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                      />
+                      <Select
+                        aria-label="계약 상태"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                      >
+                        <option value="all">모든 상태</option>
+                        {Object.entries(merchantStatuses).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </Select>
+                      <Select
+                        aria-label="점주 정렬"
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value)}
+                      >
+                        <option value="name">이름순</option>
+                        <option value="expiry">종료일순</option>
+                        <option value="sales">최근 판매순</option>
+                      </Select>
+                      {(query || filter !== "all" || sort !== "name") && (
+                        <button
+                          type="button"
+                          className="text-button"
+                          onClick={() => {
+                            setQuery("");
+                            setFilter("all");
+                            setSort("name");
+                          }}
+                        >
+                          초기화
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <MerchantManagementTable
+                    rows={rows}
+                    busy={busy}
+                    today={data.today}
+                    onManage={setEditing}
+                    onConnect={(m) => setCreating({ email: m.email, name: m.name })}
+                    onInvite={(c) => {
+                      void action(async () => {
+                        setInvite(
+                          await api<Invite>(
+                            `/admin/contracts/${c.id}/invite`,
+                            token,
+                            { method: "POST" },
+                          ),
+                        );
+                      }).catch(() => {});
+                    }}
+                  />
+                </section>
+              </>
+            )}
           </>
         )}
       </main>

@@ -27,7 +27,11 @@ export function OrderContents({ order, confirmationIssue }: { order: Order; conf
           <dd>{won(order.total)}</dd>
         </div>
       </dl>
-      <p className="helper">저장한 상품과 수량이에요.</p>
+      <p className="helper">
+        {order.status === "confirmed"
+          ? "확정한 발주예요. 이 수량대로 공급사에 보내요."
+          : "확정 전이에요. 발주 계획에서 수량을 고치고 확정해요."}
+      </p>
       {issue && (
         <p className="warning-banner">
           {issue}

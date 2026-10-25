@@ -59,7 +59,8 @@ def test_staff_can_check_required_ai_status_without_reading_settings(service):
     path = "/stores/gwangju/ai/status"
     assert client.get(path).status_code == 401
     assert client.get(path, headers=auth["staff"]).json() == {"ready": False}
-    assert save(client, auth["owner"], [config()]).status_code == 200
+    assert save(client, auth["operator"], [config()]).status_code == 200
     response = client.get(path, headers=auth["staff"])
     assert response.json() == {"ready": True} and KEY1 not in response.text
-    assert client.get("/stores/busan/ai/status", headers=auth["owner"]).json() == {"ready": False}
+    # One operator connection serves every store.
+    assert client.get("/stores/busan/ai/status", headers=auth["owner"]).json() == {"ready": True}

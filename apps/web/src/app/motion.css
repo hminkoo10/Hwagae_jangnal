@@ -1,0 +1,483 @@
+/* 화면 전환·등장 애니메이션. 가장 마지막에 불러온다.
+   모든 움직임은 prefers-reduced-motion: no-preference 안에만 둔다.
+   (움직임 줄이기를 켠 사용자에게는 아무 애니메이션도 적용되지 않는다.) */
+:root {
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-fast: 180ms;
+  --motion-base: 240ms;
+  --motion-slow: 320ms;
+}
+
+@keyframes motion-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+}
+@keyframes motion-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+}
+@keyframes motion-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes motion-dialog {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.97);
+  }
+}
+@keyframes motion-sheet {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 32px, 0);
+  }
+}
+@keyframes motion-toast {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.96);
+  }
+}
+@keyframes motion-banner {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+}
+@keyframes motion-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes motion-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(49 130 246 / 0.35);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(49 130 246 / 0);
+  }
+}
+@keyframes motion-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes motion-ring {
+  from {
+    stroke-dashoffset: 276.46px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 부드러운 색·크기 변화 */
+  :is(.operator-shell, .merchant-shell, .modal, .login-page, .invite-page)
+    .button {
+    transition:
+      background-color var(--motion-fast) var(--motion-ease),
+      border-color var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease),
+      box-shadow var(--motion-fast) var(--motion-ease),
+      opacity var(--motion-fast) ease,
+      transform var(--motion-fast) var(--motion-ease);
+  }
+  .text-button,
+  .icon-button,
+  .choice-list > button {
+    transition:
+      background-color var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease),
+      opacity var(--motion-fast) ease,
+      transform var(--motion-fast) var(--motion-ease);
+  }
+  .merchant-shell .nav-item {
+    transition:
+      background-color var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease),
+      transform var(--motion-fast) var(--motion-ease);
+  }
+  .merchant-shell
+    :is(
+      .metric-link,
+      .action-card,
+      .guide-step,
+      .rail-task-list button,
+      .rail-order-list button
+    ) {
+    transition:
+      background-color var(--motion-base) var(--motion-ease),
+      border-color var(--motion-base) var(--motion-ease),
+      box-shadow var(--motion-base) var(--motion-ease),
+      color var(--motion-base) var(--motion-ease),
+      transform var(--motion-base) var(--motion-ease);
+  }
+  .pill,
+  .merchant-status,
+  summary {
+    transition:
+      background-color var(--motion-base) var(--motion-ease),
+      color var(--motion-base) var(--motion-ease);
+  }
+  .content-updating {
+    transition: opacity var(--motion-base) ease;
+  }
+  .ring-progress {
+    transition: stroke-dashoffset 500ms var(--motion-ease);
+    animation: motion-ring 700ms var(--motion-ease) 120ms backwards;
+  }
+
+  /* 탭 화면 등장: 컨테이너가 살짝 떠오르고, 안의 카드가 차례로 나타난다. */
+  .view-enter {
+    animation: motion-rise var(--motion-slow) var(--motion-ease) backwards;
+  }
+  .view-enter > :not(.merchant-overview, .stat-grid, .two-columns),
+  .view-enter
+    .merchant-content
+    > :not(.merchant-metrics, .merchant-actions, .merchant-chart-row),
+  .view-enter .merchant-rail > *,
+  .view-enter
+    :is(
+      .stat-grid,
+      .two-columns,
+      .merchant-metrics,
+      .merchant-actions,
+      .merchant-chart-row
+    )
+    > * {
+    animation-name: motion-fade-up;
+    animation-duration: var(--motion-slow);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+    animation-delay: calc(
+      var(--motion-section, 0) * 40ms + var(--motion-item, 0) * 30ms
+    );
+  }
+  :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
+    > :nth-child(1) {
+    --motion-section: 0;
+  }
+  :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
+    > :nth-child(2) {
+    --motion-section: 1;
+  }
+  :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
+    > :nth-child(3) {
+    --motion-section: 2;
+  }
+  :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
+    > :nth-child(4) {
+    --motion-section: 3;
+  }
+  :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
+    > :nth-child(5) {
+    --motion-section: 4;
+  }
+  :is(.view-enter, .view-enter .merchant-content, .view-enter .merchant-rail)
+    > :nth-child(n + 6) {
+    --motion-section: 5;
+  }
+  .view-enter
+    :is(
+      .stat-grid,
+      .two-columns,
+      .merchant-metrics,
+      .merchant-actions,
+      .merchant-chart-row
+    )
+    > :nth-child(2) {
+    --motion-item: 1;
+  }
+  .view-enter
+    :is(
+      .stat-grid,
+      .two-columns,
+      .merchant-metrics,
+      .merchant-actions,
+      .merchant-chart-row
+    )
+    > :nth-child(3) {
+    --motion-item: 2;
+  }
+  .view-enter
+    :is(
+      .stat-grid,
+      .two-columns,
+      .merchant-metrics,
+      .merchant-actions,
+      .merchant-chart-row
+    )
+    > :nth-child(n + 4) {
+    --motion-item: 3;
+  }
+
+  /* 알림·안내 띠 */
+  :is(.error-banner, .warning-banner, .success-banner, .info-banner) {
+    animation: motion-banner var(--motion-base) var(--motion-ease) backwards;
+  }
+  .empty-state .empty-icon {
+    animation: motion-pop 420ms var(--motion-ease) 80ms backwards;
+  }
+
+  /* 불러오는 중: 글자 위로 빛이 지나간다. */
+  .loading-banner,
+  .merchant-shell .loading-banner {
+    background-image: linear-gradient(
+      100deg,
+      transparent 35%,
+      rgb(255 255 255 / 0.75) 50%,
+      transparent 65%
+    );
+    background-size: 250% 100%;
+    background-repeat: no-repeat;
+    animation:
+      motion-banner var(--motion-base) var(--motion-ease) backwards,
+      motion-shimmer 1.6s linear infinite;
+  }
+
+  /* 모달: 살짝 커지며 떠오르고, 휴대폰에서는 아래에서 올라온다. */
+  .modal[open] {
+    animation: motion-dialog 280ms var(--motion-ease);
+  }
+  .modal[open]::backdrop {
+    animation: motion-fade 240ms ease-out;
+  }
+  .modal[open] > :not(.panel-heading) {
+    animation: motion-fade-up 260ms var(--motion-ease) 60ms backwards;
+  }
+
+  /* 토스트 */
+  .toast {
+    animation: motion-toast var(--motion-slow) var(--motion-ease);
+  }
+  .toast > svg:first-child {
+    animation: motion-pop 420ms var(--motion-ease) 120ms backwards;
+  }
+
+  /* 홈 안내: 다음 단계 번호가 몇 번 숨 쉬고 멈춘다. */
+  .guide-step.next .guide-step-mark {
+    animation: motion-pulse 1.8s ease-out 600ms 3;
+  }
+  .guide-step.done .guide-step-mark svg {
+    animation: motion-pop 360ms var(--motion-ease) 200ms backwards;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 600px) {
+  .modal[open] {
+    animation: motion-sheet var(--motion-slow) var(--motion-ease);
+  }
+}
+
+/* 마우스를 올리면 누를 수 있는 카드가 살짝 떠오른다. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .merchant-shell
+    :is(
+      .metric-link,
+      .action-card,
+      .guide-step,
+      .rail-task-list button,
+      .rail-order-list button
+    ):hover:not(:disabled) {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 8px 24px rgb(25 31 40 / 0.07);
+  }
+}
+
+/* 누르는 순간 살짝 작아진다. hover 규칙보다 뒤에 둔다. */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.button, .icon-button):active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: 90ms;
+  }
+  .text-button:active:not(:disabled) {
+    transform: scale(0.96);
+    opacity: 0.75;
+    transition-duration: 90ms;
+  }
+  .merchant-shell .nav-item:active {
+    transform: scale(0.95);
+    transition-duration: 90ms;
+  }
+  .choice-list > button:active:not(:disabled),
+  .insight-order:active:not(:disabled) {
+    transform: scale(0.985);
+    transition-duration: 90ms;
+  }
+  .merchant-shell
+    :is(
+      .metric-link,
+      .action-card,
+      .guide-step,
+      .rail-task-list button,
+      .rail-order-list button
+    ):active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: none;
+    transition-duration: 90ms;
+  }
+}
+
+/* details 펼치기: 높이와 투명도를 함께 바꾼다. 지원하지 않는 브라우저는 내용만 떠오른다. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports selector(::details-content) {
+    details {
+      interpolate-size: allow-keywords;
+    }
+    details::details-content {
+      block-size: 0;
+      overflow: clip;
+      overflow-clip-margin: 8px;
+      opacity: 0;
+      transition:
+        block-size var(--motion-base) var(--motion-ease),
+        opacity var(--motion-base) ease,
+        content-visibility var(--motion-base) allow-discrete;
+    }
+    details[open]::details-content {
+      block-size: auto;
+      opacity: 1;
+    }
+  }
+  @supports not selector(::details-content) {
+    details[open] > :not(summary) {
+      animation: motion-fade-up var(--motion-base) var(--motion-ease) backwards;
+    }
+  }
+}
+
+/* 홈 '이렇게 쓰면 돼요' 안내. CSS 파일 분담상 여기에 둔다. */
+.merchant-guide {
+  container-type: inline-size;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 2px 8px #191f2803;
+}
+.merchant-guide > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  cursor: pointer;
+  color: #191f28;
+  font-size: 15px;
+}
+.merchant-guide > summary strong {
+  font-weight: 700;
+}
+.merchant-guide-count {
+  margin-left: auto;
+  color: #6b7684;
+  font-size: 13px;
+  font-weight: 600;
+}
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.guide-steps > li {
+  min-width: 0;
+}
+.guide-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: #f7f8fa;
+  color: #4e5968;
+  font: inherit;
+  text-align: left;
+}
+.guide-step.next {
+  background: #edf4ff;
+}
+.guide-step-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e5e8eb;
+  color: #6b7684;
+  font-size: 13px;
+  font-weight: 700;
+}
+.guide-step.next .guide-step-mark {
+  background: #3182f6;
+  color: #fff;
+}
+.guide-step.done .guide-step-mark {
+  background: #e8f3ff;
+  color: #3182f6;
+}
+.guide-step-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.guide-step-copy strong {
+  color: #333d4b;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.guide-step.next .guide-step-copy strong {
+  color: #1b64da;
+}
+.guide-step-copy small {
+  color: #6b7684;
+  font-size: 12px;
+  line-height: 1.4;
+}
+@media (hover: hover) and (pointer: fine) {
+  .guide-step:hover {
+    background: #f2f4f6;
+  }
+  .guide-step.next:hover {
+    background: #e2edff;
+  }
+}
+@container (max-width: 680px) {
+  .guide-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .merchant-guide {
+    padding: 12px 14px;
+    border-radius: 18px;
+  }
+}
+
+/* 처음 자료 올리기 단계 표시 */
+.onboarding-steps .done {
+  color: #3182f6;
+}
+.onboarding-steps svg {
+  margin-left: 4px;
+  vertical-align: -2px;
+}
