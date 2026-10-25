@@ -178,7 +178,7 @@ class Database:
             """)
             from app.platform_admin import initialize_platform
             initialize_platform(db)
-            # The weekday-only choice was removed from the product; every store forecasts with weather.
+            # Weekday-only forecasting no longer exists; every store forecasts with weather.
             db.execute("UPDATE store_forecast_settings SET provider='merchant_tft' WHERE provider='weekday'")
             if seed and not db.execute("SELECT 1 FROM users LIMIT 1").fetchone():
                 self._seed(db)

@@ -62,9 +62,7 @@ from app.walmart_scenarios import (
 )
 
 logger = logging.getLogger(__name__)
-# Stores forecast with the weather TFT; the weekday baseline remains for comparisons and tests.
 DEFAULT_FORECAST_PROVIDER = "merchant_tft"
-# The bundled merchant TFT (ml/merchant_tft) is trained on the Dimigo store's POS sales.
 MERCHANT_TFT_TRAINING_DATA = "dimigo_store"
 
 
@@ -132,8 +130,7 @@ def create_app(db_path=None, seed=True):
         ).split(",")
         if item.strip()
     ]
-    # Bundled Capacitor apps use these fixed local WebView origins. Every API
-    # request still requires the same bearer token; cookies stay disabled.
+    # Capacitor WebView origins; every request still needs the bearer token, cookies stay disabled.
     origins.extend(["capacitor://localhost", "https://localhost"])
     application.add_middleware(
         CORSMiddleware,
@@ -375,7 +372,7 @@ def create_app(db_path=None, seed=True):
             ]
         with database.connect() as db:
             rows = [row for row in rows if store_available(db, row["id"])]
-            # Suspended staff no longer see the store; everyone else gets what they may do there.
+            # Suspended staff no longer see the store.
             rows = [{**row, "permissions": allowed} for row in rows if (allowed := store_permissions(db, row["id"], user["id"], row["role"])) is not None]
         return {"stores": [localized_store(row) for row in rows], "today": today().isoformat()}
 
@@ -774,8 +771,7 @@ def create_app(db_path=None, seed=True):
         stock = database.stock(store_id)
         points = {product["product_id"]: product for product in forecast["products"]}
         products = database.products(store_id)
-        # Use one catalog snapshot: another user may have added a product since
-        # the forecast revision check, leaving no corresponding forecast point.
+        # One catalog snapshot: a product added since the revision check has no forecast point.
         if {product["id"] for product in products} != set(points):
             raise HTTPException(
                 409, "상품 목록이 바뀌었습니다. 예측을 다시 생성하세요."
@@ -940,8 +936,7 @@ def create_app(db_path=None, seed=True):
         def safe(value):
             if not isinstance(value, str):
                 return value
-            # Stored legacy values can contain XML-invalid characters. Clean
-            # them before checking for a newly exposed spreadsheet formula.
+            # Strip XML-invalid legacy characters before the formula check.
             value = re.sub(
                 r"[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]",
                 "",

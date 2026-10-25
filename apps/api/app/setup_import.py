@@ -76,8 +76,7 @@ def read_workbook(filename, content, cutoff):
             raise ValueError("모든 상품의 재고를 입력하세요. 재고가 없으면 수량 0으로 입력하세요.")
         stock = {pid: Inventory.model_validate(value).model_dump(mode="json") for pid, value in stock.items()}
 
-        # Only this published, complete history may use the saved Walmart identities.
-        # No arbitrary merchant IDs are remapped to trained embeddings.
+        # Only this published, complete history may use saved Walmart identities; merchant IDs are never remapped.
         binding = None
         if "모델연결" in book.sheetnames:
             config = records("모델연결", ["profile", "anchor_date"])

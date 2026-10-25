@@ -90,8 +90,7 @@ def recommend(product, forecast, stock, as_of, order_date=None):
     )
     if forecast["status"] != "ready":
         return {**row, "reason": "7일 예측에 필요한 판매 기록이 부족합니다."}
-    # Keep simulation anchored to measured stock. Demand before the planned
-    # order still consumes existing batches and scheduled incoming deliveries.
+    # Simulate from measured stock: demand before the order still consumes batches and incoming deliveries.
     horizon = delay + product["lead_days"] + product["review_days"] - 1
     if horizon > len(forecast["points"]):
         return {

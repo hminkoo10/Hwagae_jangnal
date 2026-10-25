@@ -92,7 +92,6 @@ def draft_json(text, schema):
 
 
 def forecast_days(forecast):
-    """Day-by-day weather beside the expected total, so answers can cite both together."""
     weather = {day["date"]: day for day in (forecast.get("weather") or {}).get("days", [])}
     totals = {}
     for product in forecast.get("products", []):

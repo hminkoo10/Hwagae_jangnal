@@ -26,7 +26,6 @@ def service(tmp_path, monkeypatch):
             response = client.post("/auth/login", json={"email": f"{role}@hwagae.local", "password": "hwagae-demo"})
             auth[role] = {"Authorization": "Bearer " + response.json()["token"]}
         with app.state.database.connect() as db:
-            # The service operator manages one AI connection list for every store.
             row = db.execute("SELECT * FROM users WHERE id='demo-owner'").fetchone()
             db.execute("INSERT INTO users VALUES (?,?,?,?,?)", ("operator", "operator@example.com", "운영자", row["salt"], row["password_hash"]))
             db.execute("INSERT INTO platform_operators VALUES (?)", ("operator",))
@@ -200,8 +199,7 @@ def test_model_lookup_failure_explains_the_safe_cause(service, kind, wording):
     app, client, auth = service
     app.state.ai_request = Mock(side_effect=GatewayFailure(kind))
     result = client.post("/platform/ai/models", headers=auth["operator"], json={"gateway": "https://gateway.example/v1", "api_key": KEY1})
-    # Cloudflare replaces origin 502 bodies; expected provider failures must
-    # survive the edge so the merchant can see the actual corrective action.
+    # Not 502: Cloudflare would replace the body that tells the merchant what to fix.
     assert result.status_code == 424
     assert wording in result.json()["detail"]
     assert KEY1 not in result.text

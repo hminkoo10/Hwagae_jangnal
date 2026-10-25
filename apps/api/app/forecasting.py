@@ -108,7 +108,7 @@ def run_forecast(database, store, as_of, weather, predictor=None):
         result = getattr(importlib.import_module(module_name), function_name)(context)
     else:
         result = baseline(context)
-    # The adapter may be replaced by a teammate; never trust malformed model output.
+    # The adapter is pluggable; never trust malformed model output.
     if not isinstance(result.get("model", {}).get("uses_weather"), bool):
         raise ValueError("모델의 uses_weather 값이 필요합니다.")
     model = result["model"]
