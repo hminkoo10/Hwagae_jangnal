@@ -71,8 +71,8 @@ export function MerchantModelPanel({
   const modelLabel =
     settings?.model_kind === "walmart"
       ? "Walmart 자료로 배운 AI · 시험 중"
-      : settings?.model_kind === "synthetic"
-        ? "가상 자료로 배운 AI · 시험 중"
+      : settings?.model_kind === "dimigo_store"
+        ? "디미고 매점 판매로 배운 AI"
         : "날씨 반영 AI · 시험 중";
   return (
     <details
