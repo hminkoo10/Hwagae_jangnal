@@ -86,6 +86,13 @@ test("Android and iOS use each app's identifier and contain no signing credentia
   }
 });
 
+test("store app opens invite links on Android and iOS", async () => {
+  const manifest = await read("apps/mobile/android/app/src/main/AndroidManifest.xml");
+  assert.match(manifest, /android\.intent\.action\.VIEW[\s\S]*android\.intent\.category\.BROWSABLE[\s\S]*android:scheme="@string\/custom_url_scheme" android:host="invite"/);
+  assert.match(await read("apps/mobile/ios/App/App/Info.plist"),
+    /<key>CFBundleURLSchemes<\/key>\s*<array>\s*<string>kr\.milky\.hwagae<\/string>/);
+});
+
 test("operator native project never identifies itself as the store app", async () => {
   const files = [
     "capacitor.config.json",

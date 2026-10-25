@@ -1,35 +1,56 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { api } from "@/lib/api";
+import {
+  androidInviteIntent,
+  appInviteUrl,
+  inviteFromHash,
+  mobilePlatform,
+  webInviteUrl,
+  type Invite,
+  type InviteKind,
+} from "@/lib/invite-link";
 import Workspace from "./workspace";
 
-type InviteKind = "owner" | "staff";
-
 export default function Application() {
-  const [invite, setInvite] = useState<{
-    token: string;
-    kind: InviteKind;
-  } | null>(null);
+  const [invite, setInvite] = useState<Invite | null>(null);
+  const [appLink, setAppLink] = useState("");
   useEffect(() => {
-    // 점주 초대는 #invite=, 직원 초대는 #staff-invite=. 읽은 뒤 주소에서 지운다.
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    const owner = params.get("invite");
-    const staff = params.get("staff-invite");
-    if (owner || staff) {
-      setInvite(
-        owner ? { token: owner, kind: "owner" } : { token: staff!, kind: "staff" },
-      );
-      window.history.replaceState(
-        null,
-        "",
-        window.location.pathname + window.location.search,
-      );
-    }
+    // 앱이 초대 링크로 열리면 NativeShell이 주소에 #invite=를 넣는다.
+    const read = () => readInvite();
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
   }, []);
+  function readInvite() {
+    // 점주 초대는 #invite=, 직원 초대는 #staff-invite=. 읽은 뒤 주소에서 지운다.
+    const found = inviteFromHash(window.location.hash);
+    if (!found) return;
+    setInvite(found);
+    const stayOnWeb = new URLSearchParams(window.location.search).has("noapp");
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search,
+    );
+    // 휴대폰·태블릿 브라우저에서는 앱으로 넘긴다. 앱이 없으면 이 웹 가입 화면이 남는다.
+    if (Capacitor.isNativePlatform()) return;
+    const platform = mobilePlatform(navigator.userAgent, navigator.maxTouchPoints);
+    const link =
+      platform === "android"
+        ? androidInviteIntent(found, webInviteUrl(window.location.origin, found))
+        : platform === "ios"
+          ? appInviteUrl(found)
+          : "";
+    setAppLink(link);
+    if (link && !stayOnWeb) window.location.href = link;
+  }
   return invite ? (
     <AcceptInvitation
       token={invite.token}
       kind={invite.kind}
+      appLink={appLink}
       onDone={(signedUp = false) => {
         if (signedUp) {
           const previous = sessionStorage.getItem("hwagae-session");
@@ -49,10 +70,12 @@ export default function Application() {
 function AcceptInvitation({
   token,
   kind,
+  appLink,
   onDone,
 }: {
   token: string;
   kind: InviteKind;
+  appLink: string;
   onDone: (signedUp?: boolean) => void;
 }) {
   const [info, setInfo] = useState<{
@@ -104,6 +127,14 @@ function AcceptInvitation({
         {error && (
           <p className="error-banner" role="alert">
             {error}
+          </p>
+        )}
+        {appLink && !done && (
+          <p className="helper">
+            화개장날 앱이 있으면 앱에서 가입할 수 있어요.{" "}
+            <a className="text-button" href={appLink}>
+              앱에서 열기
+            </a>
           </p>
         )}
         {done ? (

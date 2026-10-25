@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
 import { hasPendingRequests } from "@/lib/api";
+import { inviteFromAppUrl, inviteHash } from "@/lib/invite-link";
 
 export const NATIVE_BACK_EVENT = "hwagae:native-back";
 
@@ -28,8 +29,21 @@ export function NativeShell({ children }: { children: ReactNode }) {
       );
       const status = await Network.getStatus();
       if (!disposed) setOffline(!status.connected);
-      if (Capacitor.getPlatform() !== "android" || disposed) return;
       const { App } = await import("@capacitor/app");
+      // kr.milky.hwagae://invite?… 로 열리면 웹과 같은 #invite= 주소로 바꿔 가입 화면을 띄운다.
+      const openInvite = (url?: string) => {
+        const invite = url ? inviteFromAppUrl(url) : null;
+        if (!invite || disposed) return;
+        window.location.hash = inviteHash(invite);
+      };
+      await keep(App.addListener("appUrlOpen", ({ url }) => openInvite(url)));
+      const launch = (await App.getLaunchUrl())?.url;
+      // A reload keeps the same launch URL; open it only once per app session.
+      if (launch && sessionStorage.getItem("hwagae-launch-url") !== launch) {
+        sessionStorage.setItem("hwagae-launch-url", launch);
+        openInvite(launch);
+      }
+      if (Capacitor.getPlatform() !== "android" || disposed) return;
       await keep(
         App.addListener("backButton", () => {
           if (hasPendingRequests()) return;
