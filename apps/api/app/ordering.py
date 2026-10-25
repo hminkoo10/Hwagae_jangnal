@@ -131,6 +131,10 @@ def recommend(product, forecast, stock, as_of, order_date=None):
         "quantity": quantity,
         "amount": quantity * product["cost"],
         "horizon_days": horizon,
+        "basis": {"days": horizon, "incoming_units": sum(
+            item["quantity"] for item in stock["incoming"]
+            if as_of.isoformat() < item["arrives_on"] <= (as_of + timedelta(days=horizon)).isoformat()
+        )},
         "scenario_loss": round(loss),
         "scenario_results": results,
         "method": "P10·P50·P90의 3개 고정 경로를 같은 비중으로 비교한 근사 계획. 기간 분위수·품절 확률·실제 절감액이 아닙니다.",

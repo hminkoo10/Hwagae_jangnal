@@ -80,6 +80,7 @@ const paths: Record<string, ReactNode> = {
   ),
   cloud: <path d="M6 17a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5 5 0 1 1 2 11H6Z" />,
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
   refresh: (
     <>
       <path d="M20 10a8 8 0 0 0-14-4L3 9m0-5v5h5M4 14a8 8 0 0 0 14 4l3-3m0 5v-5h-5" />
@@ -123,6 +124,7 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const outsidePress = useRef(false);
   useEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement;
@@ -139,6 +141,13 @@ export function Modal({
       ref={ref}
       className="modal"
       aria-label={title}
+      onPointerDown={(event) => {
+        outsidePress.current = event.target === event.currentTarget && outsideDialog(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+      }}
+      onClick={(event) => {
+        if (outsidePress.current && event.target === event.currentTarget && outsideDialog(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY)) onClose();
+        outsidePress.current = false;
+      }}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -159,6 +168,10 @@ export function Modal({
     </dialog>,
     document.body,
   );
+}
+
+export function outsideDialog(rect: Pick<DOMRect, "left" | "right" | "top" | "bottom">, x: number, y: number) {
+  return x < rect.left || x > rect.right || y < rect.top || y > rect.bottom;
 }
 
 export function Empty({

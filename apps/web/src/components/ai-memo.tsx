@@ -258,7 +258,7 @@ export function AiSalesMemo({
   );
 }
 
-export type ProductFill = Partial<Omit<Product, "id">>;
+export type ProductFill = Partial<Omit<Product, "id" | "active">>;
 const FIELD_NAMES: Record<string, string> = {
   name: "상품 이름",
   category: "상품 종류",

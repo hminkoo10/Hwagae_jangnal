@@ -13,6 +13,7 @@ import {
   type TableHTMLAttributes,
 } from "react";
 import { Modal, Icon } from "./ui";
+import { searchKey } from "@/lib/merchant-language";
 
 type Change = { target: { value: string } };
 function text(node: ReactNode): string {
@@ -83,7 +84,7 @@ export function Select({
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
   const filtered = items.filter((i) =>
-    i.label.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+    searchKey(i.label).includes(searchKey(query)),
   );
   function close() {
     setOpen(false);
@@ -116,7 +117,7 @@ export function Select({
         <span>
           {items.find((i) => i.value === selected)?.label ?? "선택하세요"}
         </span>
-        <span aria-hidden="true">⌄</span>
+        <Icon name="chevron-down" size={18} />
       </button>
       <input
         className="control-validation"

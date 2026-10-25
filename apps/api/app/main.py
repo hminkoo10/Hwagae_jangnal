@@ -49,6 +49,7 @@ from app.schemas import (
     OrderRequest,
     ProductInput,
     ProductUpdate,
+    ProductAvailability,
     RecommendationRequest,
     SalesBatch,
     StoreInput,
@@ -441,7 +442,7 @@ def create_app(db_path=None, seed=True):
     def products(store_id: str, user=Depends(authenticated)):
         store = access(store_id, user)
         return {
-            "products": database.products(store_id),
+            "products": database.products(store_id, include_inactive=True),
             "inventory": database.stock(store_id),
             "revision": store["revision"],
         }
@@ -515,6 +516,16 @@ def create_app(db_path=None, seed=True):
             )
         return {"ok": True}
 
+    @application.patch("/stores/{store_id}/products/{product_id}/availability", tags=["products"])
+    def product_availability(store_id: str, product_id: str, payload: ProductAvailability, user=Depends(authenticated)):
+        access(store_id, user, owner=True)
+        find_product(store_id, product_id)
+        with database.connect() as db:
+            db.execute("INSERT INTO product_availability VALUES (?,?,?) ON CONFLICT(store_id,product_id) DO UPDATE SET active=excluded.active",
+                       (store_id, product_id, int(payload.active)))
+            db.execute("UPDATE stores SET revision=revision+1,sales_revision=sales_revision+1 WHERE id=?", (store_id,))
+        return {"ok": True, "active": payload.active}
+
     @application.get("/stores/{store_id}/sales", tags=["sales"])
     def sales(
         store_id: str,
@@ -555,7 +566,7 @@ def create_app(db_path=None, seed=True):
             raise HTTPException(400, message) from None
         finally:
             await file.close()
-        product_ids = {product["id"] for product in database.products(store_id)}
+        product_ids = {product["id"] for product in database.products(store_id, include_inactive=True)}
         with database.connect() as db:
             existing = {
                 (row["date"], row["product_id"])
@@ -596,7 +607,7 @@ def create_app(db_path=None, seed=True):
             payload.rows
         ):
             raise HTTPException(409, "요청 안에 같은 날짜·상품이 중복되었습니다.")
-        known = {product["id"] for product in database.products(store_id)}
+        known = {product["id"] for product in database.products(store_id, include_inactive=True)}
         if any(row.product_id not in known for row in payload.rows):
             raise HTTPException(422, "매장에 등록하지 않은 상품이 있습니다.")
         try:

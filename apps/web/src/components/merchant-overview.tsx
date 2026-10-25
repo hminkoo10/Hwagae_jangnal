@@ -16,7 +16,6 @@ import {
   type User,
 } from "@/lib/api";
 import { Empty, ForecastChart, Icon } from "./ui";
-import { forecastName } from "@/lib/merchant-language";
 import { MerchantMetrics } from "./merchant-metrics";
 import { WeatherSource } from "./weather-source";
 
@@ -557,32 +556,6 @@ export function MerchantOverview({
             </div>
           )}
         </section>
-        <details className="rail-model">
-          <summary className="rail-section-title">
-            예측 방식·데이터 안내
-          </summary>
-          <p className="rail-note">
-            {forecast
-              ? `${forecastName(forecast.model)}을 사용하고 있어요. `
-              : "판매 예측이 아직 완료되지 않았어요. "}
-            {forecast?.model.uses_weather
-              ? "판매 기록과 날씨를 함께 사용해요."
-              : forecast
-                ? "날씨는 예측에 반영하지 않고 참고 정보로 제공해요."
-                : "예측 화면에서 연결 상태를 확인해주세요."}{" "}
-            {forecast?.model.training_data === "synthetic"
-              ? "합성 자료로 학습한 실험 모델이에요. "
-              : ""}
-            예측 범위는 정확도 보장이 아니에요.
-            {store.provenance}
-          </p>
-          <button
-            className="text-button rail-link"
-            onClick={() => onNavigate("forecast")}
-          >
-            예측 범위 자세히 보기 <Icon name="arrow" size={14} />
-          </button>
-        </details>
       </aside>
     </div>
   );

@@ -8,9 +8,15 @@ const nativeFilesAdapter = `data:text/javascript;base64,${Buffer.from("export co
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText.replaceAll('"./native-files"', JSON.stringify(nativeFilesAdapter));
-const { api, ApiError, hasPendingRequests, download } = await import(
+const { api, ApiError, hasPendingRequests, download, units } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
+
+test("quantities round for display without changing model or stored values", () => {
+  assert.equal(units(12.49), "12");
+  assert.equal(units(12.5), "13");
+  assert.equal(units(1234.8), "1,235");
+});
 
 for (const outcome of ["shared", "cancelled"]) {
   test(`native ${outcome} reaches export caller without browser fallback`, async (t) => {

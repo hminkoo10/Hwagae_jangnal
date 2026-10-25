@@ -111,6 +111,12 @@ class Database:
                     created_at TEXT NOT NULL, PRIMARY KEY(store_id,product_id,date),
                     FOREIGN KEY(store_id,product_id) REFERENCES products(store_id,id)
                 );
+                CREATE TABLE IF NOT EXISTS product_availability (
+                    store_id TEXT NOT NULL, product_id TEXT NOT NULL,
+                    active INTEGER NOT NULL CHECK(active IN (0,1)),
+                    PRIMARY KEY(store_id,product_id),
+                    FOREIGN KEY(store_id,product_id) REFERENCES products(store_id,id)
+                );
                 CREATE TABLE IF NOT EXISTS inventory (
                     store_id TEXT NOT NULL, product_id TEXT NOT NULL, payload TEXT NOT NULL,
                     measured_on TEXT NOT NULL, updated_at TEXT NOT NULL,
@@ -257,12 +263,14 @@ class Database:
                         ),
                     )
 
-    def products(self, store_id: str):
+    def products(self, store_id: str, include_inactive: bool = False):
         with self.connect() as db:
             return [
-                dict(row)
+                {**dict(row), "active": bool(row["active"])}
                 for row in db.execute(
-                    "SELECT * FROM products WHERE store_id=? ORDER BY id", (store_id,)
+                    "SELECT p.*,COALESCE(a.active,1) AS active FROM products p "
+                    "LEFT JOIN product_availability a ON a.store_id=p.store_id AND a.product_id=p.id "
+                    "WHERE p.store_id=? AND (? OR COALESCE(a.active,1)=1) ORDER BY p.id", (store_id, include_inactive)
                 )
             ]
 
