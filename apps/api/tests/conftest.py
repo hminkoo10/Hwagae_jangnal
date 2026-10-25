@@ -9,8 +9,7 @@ from app.model_runtime import ModelRuntime
 
 @pytest.fixture(autouse=True)
 def disable_ambient_model_processes(monkeypatch):
-    # Lifecycle tests use isolated repo roots and still exercise real processes.
-    # Default app instances should not load a developer's local checkpoints.
+    # Only isolated repo roots start real processes; never load local checkpoints.
     configuration = ModelRuntime._configuration
     project_root = Path(__file__).resolve().parents[3]
 

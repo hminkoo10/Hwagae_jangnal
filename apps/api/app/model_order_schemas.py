@@ -17,8 +17,7 @@ class PlanningItem(ProductSettings):
     @field_validator("stock", mode="before")
     @classmethod
     def require_explicit_confirmation(cls, value):
-        # Literal[True] alone also accepts integer 1. Require an actual JSON
-        # boolean so an unconfirmed inventory cannot pass through coercion.
+        # Literal[True] alone also accepts integer 1; require a real JSON boolean.
         if isinstance(value, dict) and value.get("incoming_confirmed") is not True:
             raise ValueError("입고 예정 유무를 명시적으로 확인하세요.")
         return value

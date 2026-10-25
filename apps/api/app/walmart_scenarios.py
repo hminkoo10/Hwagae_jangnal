@@ -62,8 +62,7 @@ def create_walmart_test_store(database, user_id, payload):
         )
         db.execute("INSERT INTO memberships VALUES (?,?,?)", (user_id, store_id, "owner"))
         db.execute("INSERT INTO store_locales VALUES (?,?,?)", (store_id, place["timezone"], "noaa_gfs"))
-        # The existing setting selects the TFT policy. The explicit binding picks
-        # the Walmart runtime; unbound stores retain their synthetic merchant TFT.
+        # The setting selects TFT; the binding below picks the Walmart runtime.
         db.execute("INSERT INTO store_forecast_settings VALUES (?,?,?)", (store_id, "merchant_tft", stamp))
         db.execute("INSERT INTO walmart_scenarios VALUES (?,?,?,?,?)", (store_id, payload.sample_id, cutoff.isoformat(), source["source_end"], encode(sample)))
         for product in sample["products"]:

@@ -29,6 +29,7 @@ from app.imports import MAX_BYTES, parse_file
 from app.setup_import import mount_setup_routes
 from app.ai_gateway import mount_ai_routes
 from app.platform_admin import account_available, can_create_store, is_operator, mount_platform_routes, store_available
+from app.staff import mount_staff_routes, store_permissions
 from app.locations import mount_location_routes
 from app.model_demo import (
     DEFAULT_SAMPLE_ID,
@@ -61,9 +62,7 @@ from app.walmart_scenarios import (
 )
 
 logger = logging.getLogger(__name__)
-# Stores forecast with the weather TFT; the weekday baseline remains for comparisons and tests.
 DEFAULT_FORECAST_PROVIDER = "merchant_tft"
-# The bundled merchant TFT (ml/merchant_tft) is trained on the Dimigo store's POS sales.
 MERCHANT_TFT_TRAINING_DATA = "dimigo_store"
 
 
@@ -131,8 +130,7 @@ def create_app(db_path=None, seed=True):
         ).split(",")
         if item.strip()
     ]
-    # Bundled Capacitor apps use these fixed local WebView origins. Every API
-    # request still requires the same bearer token; cookies stay disabled.
+    # Capacitor WebView origins; every request still needs the bearer token, cookies stay disabled.
     origins.extend(["capacitor://localhost", "https://localhost"])
     application.add_middleware(
         CORSMiddleware,
@@ -158,7 +156,7 @@ def create_app(db_path=None, seed=True):
             raise HTTPException(401, "로그인이 만료되었습니다. 다시 로그인하세요.")
         return {**dict(row), "token_hash": digest, "platform_role": "operator" if operator else "merchant"}
 
-    def access(store_id, user, owner=False):
+    def access(store_id, user, owner=False, permission=None):
         with database.connect() as db:
             row = db.execute(
                 "SELECT s.*,m.role FROM stores s JOIN memberships m ON m.store_id=s.id WHERE s.id=? AND m.user_id=?",
@@ -166,8 +164,13 @@ def create_app(db_path=None, seed=True):
             ).fetchone()
             if row and not store_available(db, store_id):
                 raise HTTPException(403, "이 매장의 계약이 중지됐거나 만료됐어요. 점주에게 문의하세요.")
+            allowed = store_permissions(db, store_id, user["id"], row["role"]) if row else None
         if not row or (owner and row["role"] != "owner"):
             raise HTTPException(403, "이 매장 또는 작업에 접근할 권한이 없습니다.")
+        if allowed is None:
+            raise HTTPException(403, "이 매장에서 사용이 중지된 계정이에요. 점주에게 문의하세요.")
+        if permission and permission not in allowed:
+            raise HTTPException(403, "점주가 허용하지 않은 작업이에요. 필요하면 점주에게 권한을 요청하세요.")
         return localized_store(dict(row))
 
     def localized_store(store):
@@ -369,11 +372,14 @@ def create_app(db_path=None, seed=True):
             ]
         with database.connect() as db:
             rows = [row for row in rows if store_available(db, row["id"])]
+            # Suspended staff no longer see the store.
+            rows = [{**row, "permissions": allowed} for row in rows if (allowed := store_permissions(db, row["id"], user["id"], row["role"])) is not None]
         return {"stores": [localized_store(row) for row in rows], "today": today().isoformat()}
 
     mount_setup_routes(application, database, access, authenticated)
     mount_ai_routes(application, database, access, authenticated, saved_record)
     mount_platform_routes(application, database, authenticated)
+    mount_staff_routes(application, database, access, authenticated)
     mount_location_routes(application, database, authenticated)
 
     @application.post("/stores", status_code=201, tags=["stores"])
@@ -456,7 +462,7 @@ def create_app(db_path=None, seed=True):
     def create_product(
         store_id: str, payload: ProductInput, user=Depends(authenticated)
     ):
-        access(store_id, user, owner=True)
+        access(store_id, user, permission="products")
         try:
             with database.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
@@ -499,7 +505,7 @@ def create_app(db_path=None, seed=True):
         payload: ProductUpdate,
         user=Depends(authenticated),
     ):
-        access(store_id, user, owner=True)
+        access(store_id, user, permission="products")
         find_product(store_id, product_id)
         with database.connect() as db:
             db.execute(
@@ -523,7 +529,7 @@ def create_app(db_path=None, seed=True):
 
     @application.patch("/stores/{store_id}/products/{product_id}/availability", tags=["products"])
     def product_availability(store_id: str, product_id: str, payload: ProductAvailability, user=Depends(authenticated)):
-        access(store_id, user, owner=True)
+        access(store_id, user, permission="products")
         find_product(store_id, product_id)
         with database.connect() as db:
             db.execute("INSERT INTO product_availability VALUES (?,?,?) ON CONFLICT(store_id,product_id) DO UPDATE SET active=excluded.active",
@@ -558,7 +564,7 @@ def create_app(db_path=None, seed=True):
     async def preview(
         store_id: str, file: UploadFile = File(...), user=Depends(authenticated)
     ):
-        store = access(store_id, user)
+        store = access(store_id, user, permission="sales")
         try:
             content = await file.read(MAX_BYTES + 1)
             rows, errors = parse_file(file.filename or "", content, latest_date=store_today(store))
@@ -605,7 +611,7 @@ def create_app(db_path=None, seed=True):
 
     @application.post("/stores/{store_id}/sales", status_code=201, tags=["sales"])
     def save_sales(store_id: str, payload: SalesBatch, user=Depends(authenticated)):
-        store = access(store_id, user)
+        store = access(store_id, user, permission="sales")
         if any(row.date > store_today(store) for row in payload.rows):
             raise HTTPException(422, "미래 날짜의 판매 기록은 저장할 수 없습니다.")
         if any(row.date < EARLIEST_SALES_DATE for row in payload.rows):
@@ -647,7 +653,7 @@ def create_app(db_path=None, seed=True):
     def save_inventory(
         store_id: str, product_id: str, payload: Inventory, user=Depends(authenticated)
     ):
-        store = access(store_id, user)
+        store = access(store_id, user, permission="inventory")
         find_product(store_id, product_id)
         cutoff = store_today(store)
         if any(batch.arrives_on <= cutoff for batch in payload.incoming):
@@ -765,8 +771,7 @@ def create_app(db_path=None, seed=True):
         stock = database.stock(store_id)
         points = {product["product_id"]: product for product in forecast["products"]}
         products = database.products(store_id)
-        # Use one catalog snapshot: another user may have added a product since
-        # the forecast revision check, leaving no corresponding forecast point.
+        # One catalog snapshot: a product added since the revision check has no forecast point.
         if {product["id"] for product in products} != set(points):
             raise HTTPException(
                 409, "상품 목록이 바뀌었습니다. 예측을 다시 생성하세요."
@@ -834,7 +839,7 @@ def create_app(db_path=None, seed=True):
 
     @application.post("/stores/{store_id}/orders", status_code=201, tags=["orders"])
     def save_order(store_id: str, payload: OrderRequest, user=Depends(authenticated)):
-        store = access(store_id, user)
+        store = access(store_id, user, permission="order_draft")
         record, recommendation = saved_record(
             "recommendations", payload.recommendation_id, store_id
         )
@@ -895,7 +900,7 @@ def create_app(db_path=None, seed=True):
 
     @application.post("/stores/{store_id}/orders/{order_id}/confirm", tags=["orders"])
     def confirm_order(store_id: str, order_id: str, user=Depends(authenticated)):
-        store = access(store_id, user, owner=True)
+        store = access(store_id, user, permission="order_confirm")
         record, payload = saved_record("orders", order_id, store_id)
         with database.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -923,7 +928,7 @@ def create_app(db_path=None, seed=True):
         format: str = Query(default="csv", pattern="^(csv|xlsx)$"),
         user=Depends(authenticated),
     ):
-        store = access(store_id, user, owner=True)
+        store = access(store_id, user, permission="order_confirm")
         record, payload = saved_record("orders", order_id, store_id)
         if record["status"] != "confirmed":
             raise HTTPException(409, "점주가 확정한 발주안만 내보낼 수 있습니다.")
@@ -931,8 +936,7 @@ def create_app(db_path=None, seed=True):
         def safe(value):
             if not isinstance(value, str):
                 return value
-            # Stored legacy values can contain XML-invalid characters. Clean
-            # them before checking for a newly exposed spreadsheet formula.
+            # Strip XML-invalid legacy characters before the formula check.
             value = re.sub(
                 r"[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]",
                 "",

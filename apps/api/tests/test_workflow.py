@@ -365,8 +365,7 @@ def test_export_cleans_legacy_xml_characters_before_formula_protection(
     client, filetype
 ):
     auth = headers(client)
-    # Existing database values must remain exportable, including values that
-    # become formula prefixes only after invalid XML characters are removed.
+    # Legacy values must stay exportable, even ones that become formulas after XML cleanup.
     with client.app.state.database.connect() as db:
         db.execute("UPDATE stores SET name=? WHERE id='gwangju'", ("\x00=1+1",))
         db.execute(

@@ -8,6 +8,7 @@ import "./design.css";
 import "./assistant.css";
 import "./usability.css";
 import "./forecast.css";
+import "./staff.css";
 import "./motion.css";
 
 const suit = localFont({

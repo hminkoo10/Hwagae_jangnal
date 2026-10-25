@@ -33,7 +33,13 @@ export function SalesPanel({
   sales,
   today,
   onSaved,
-}: Common & { products: Product[]; sales: SalesData; today: string }) {
+  readOnly = false,
+}: Common & {
+  products: Product[];
+  sales: SalesData;
+  today: string;
+  readOnly?: boolean;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -98,6 +104,13 @@ export function SalesPanel({
           {error}
         </div>
       )}
+      {readOnly && (
+        <p className="permission-note">
+          판매 기록 입력은 점주가 허용한 직원만 할 수 있어요. 저장된 기록은 볼 수
+          있어요.
+        </p>
+      )}
+      {!readOnly && (
       <div className="two-columns">
         <section className="panel">
           <div className="panel-heading">
@@ -214,6 +227,7 @@ export function SalesPanel({
           </form>
         </section>
       </div>
+      )}
       {preview && (
         <section className="panel motion-reveal">
           <div className="panel-heading">
@@ -590,7 +604,13 @@ export function ProductModal({
   product,
   onSaved,
   onClose,
-}: Common & { product?: Product; onClose: () => void }) {
+  ai = true,
+}: Common & {
+  product?: Product;
+  onClose: () => void;
+  /** AI 도우미는 점주 전용이라 상품 관리 권한이 있는 직원에게는 숨긴다. */
+  ai?: boolean;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const form = useRef<HTMLFormElement>(null);
@@ -654,7 +674,7 @@ export function ProductModal({
             가격과 도착 일수를 적으면 추천 발주량을 계산해요.
           </p>
         )}
-        {!product && (
+        {!product && ai && (
           <AiProductMemo
             token={token}
             storeId={storeId}

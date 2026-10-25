@@ -31,6 +31,8 @@ async function removeGenerated(target) {
 
 try {
   await cp(join(web, "src"), join(staging, "src"), { recursive: true });
+  // The app is for owners and staff; the operator console stays on the web at /admin.
+  await rm(join(staging, "src", "app", "admin"), { recursive: true, force: true });
   await cp(join(web, "tsconfig.json"), join(staging, "tsconfig.json"));
   await cp(join(web, "package.json"), join(staging, "package.json"));
   await cp(join(web, "public"), join(staging, "public"), { recursive: true }).catch((error) => {

@@ -1,123 +1,83 @@
-# Ubuntu CI/CD — Docker 미사용
+# 배포
 
-## 현재 상태
+Docker 없이 Ubuntu 서버 한 대에 배포합니다. `main`에 병합되면 GitHub Actions가 검사를 통과한 커밋을 서버에 올리고 서비스를 바꿉니다.
 
-GitHub Actions와 배포 스크립트·systemd·Nginx 예제를 준비했습니다.
-CI는 API 테스트·웹 타입·웹 빌드·배포 스크립트 문법을 검사합니다.
-CD는 DEPLOY_ENABLED=true일 때 검사를 통과한 main 또는 명시적으로 선택한 수동 배포에서 실행합니다.
-대상은 Ubuntu 22.04 ARM64 서버, 서비스 주소는 https://hwagae.milky.kr 입니다.
-관리 접속은 ubuntu, Actions 배포는 별도 hwagae 계정과 전용 키를 사용합니다.
-기존 navi·eom 서비스와 Minecraft는 별도이며 설정·런타임을 교체하지 않습니다.
-PR #2의 main 병합과 GitHub Actions 자동 배포까지 완료했습니다. DEPLOY_ENABLED=true입니다.
-검증 실행: https://github.com/hminkoo10/Hwagae_jangnal/actions/runs/40062180934
+## 서버 구성
 
-## 구성
+```text
+브라우저 → Cloudflare → Nginx ─ /api/ → FastAPI (127.0.0.1:8000)
+                              └ 나머지 → Next.js (127.0.0.1:3000)
+```
 
-브라우저 → Nginx → /api/는 FastAPI(8000), 나머지는 Next.js(3000).
-두 앱은 127.0.0.1에 바인딩하고 systemd가 관리합니다.
-코드는 /srv/hwagae/releases/커밋에 보관하며 current 링크로 선택합니다.
-DB는 코드 밖의 /srv/hwagae/shared/hwagae.sqlite3에 유지합니다.
+| 경로 | 내용 |
+| --- | --- |
+| `/srv/hwagae/releases/<커밋>` | 배포한 코드. `current` 링크로 사용할 버전을 고릅니다 |
+| `/srv/hwagae/shared/hwagae.sqlite3` | DB. 코드와 분리해 보존합니다 |
+| `/srv/hwagae/shared/ai-master.key` | 저장한 AI 키를 암호화하는 키. DB와 함께 백업합니다 |
+| `/srv/hwagae/shared/models/` | Walmart TFT 체크포인트(선택) |
+| `/etc/hwagae/hwagae.env` | 운영 환경 변수 |
 
-### 선택적 TFT 시연 실행 환경
+두 앱은 systemd 서비스(`ops/hwagae-api.service`, `ops/hwagae-web.service`)로 실행하고, Nginx 설정은 `ops/nginx.cloudflare.conf`에 있습니다. 배포 계정의 sudo는 두 서비스의 restart·stop으로 제한합니다.
 
-검증한 체크포인트를 `/srv/hwagae/shared/models/best-epoch=02-val_loss=3.9847.ckpt`에 배치하면 다음 배포부터 해당 release의 `.model-venv`에 Python 3.11 추론 환경을 설치합니다. 파일 해시는 `ml/metadata/manifest.json`과 일치해야 하며 파일은 Git에 넣지 않습니다.
-
-배포는 실제 체크포인트로 smoke test와 전체 ML unittest를 실행한 다음 코드를 활성화합니다. 테스트 생략도 실패입니다. Walmart 모델 파일이 없으면 해당 과거 시연만 비활성화합니다. 일반 매장의 합성 학습 TFT는 저장소의 작은 `ml/merchant_tft/model.ckpt`를 사용하며 배포 전에 별도 실제 추론 테스트를 통과해야 합니다. API의 Python 3.14 환경은 유지합니다.
-
-API가 별도 모델 자식 프로세스를 관리하므로 새 포트·systemd 서비스·sudo 권한을 추가하지 않습니다. 시작 시 백그라운드에서 샘플을 실행해 준비하고, 로그인 후 `/api/model-demo`에서 `disabled/starting/ready/unavailable`을 확인합니다. 모델 준비와 API `/health`는 별개입니다. 체크포인트나 환경을 수정한 뒤에는 API를 재시작합니다.
-
-로컬은 `uv venv --no-project --python 3.11 .model-venv`로 환경을 만든 뒤 `ml/README.md`의 고정 요구사항을 설치합니다. `TFT_CHECKPOINT_PATH`를 실제 파일로 지정한 API 프로세스에서 체험할 수 있습니다. `.model-venv`는 Git 제외 대상입니다.
-
-일반 매장의 실시간 예보 TFT는 같은 Python 실행 파일을 사용하되 별도 자식 프로세스로 모델을 읽습니다. 추가 포트·서비스·키가 필요하지 않습니다. 기본 모델 경로는 해당 release에 포함된 합성 TFT이며, 기존 Walmart 체크포인트 설정을 바꾸지 않습니다. 모델 선택은 매장별 설정에 저장합니다. 웹의 테스트 매장 만들기와 직접 검증 순서는 [테스트 안내](live-weather-test.md)를 참고하세요.
-
-## 대상 확인 후 1회 준비
-
-1. Ubuntu 버전·CPU·메모리·디스크, SSH 계정·포트, 기존 80·443·3000·8000 서비스 점검.
-2. GitHub 실행기에서 SSH 접속 가능한지 확인. 내부망 전용이면 runner 등 CD 방식을 조정.
-3. Node.js 24와 npm은 /opt/hwagae/node, uv는 /opt/hwagae/bin, Python 3.14는 hwagae 계정에서 준비.
-4. 전용 hwagae 계정과 /srv/hwagae/{incoming,releases,shared}, /etc/hwagae 준비.
-5. /etc/hwagae/hwagae.env를 만들고 읽기 권한을 제한. 비밀값은 Git·로그·채팅에 남기지 않음.
-6. ops의 service 파일 설치. Node 경로 /opt/hwagae/node/bin/node도 실제 위치 확인.
-7. 배포 계정의 sudo는 두 서비스 restart·stop으로 제한.
-8. 기존 사이트를 보존하며 Nginx·도메인·HTTPS 구성. nginx -t 성공 후 반영.
-9. 첫 배포 성공 후 두 서비스를 부팅 시 자동 시작하도록 활성화.
-
-기존 Nginx 설정·서비스를 교체하지 않습니다. 현재 서버는 ops/nginx.cloudflare.conf를 별도 사이트로 설치합니다.
-인증서는 /etc/hwagae/tls에 보관하며 Cloudflare Origin CA의 *.milky.kr 인증서를 사용합니다.
-Cloudflare 프록시를 유지해야 합니다. 원본 인증서는 일반 브라우저의 직접 접속용 인증서가 아닙니다.
-기존 서버의 cloudflare-ips.conf와 cloudflare-realip.conf에 있는 신뢰 CIDR만 사용합니다.
-API 응답은 no-store, 로그인 제한은 복원한 방문자 IP 기준입니다.
-
-환경 파일 예시:
+운영 환경 변수 예시:
 
 ```dotenv
 APP_ENV=production
 SEED_DEMO=true
-DEMO_PASSWORD=서버에서_16자_이상의_별도_비밀번호_설정
-CORS_ORIGINS=https://선택한도메인
-# 일반 TFT는 웹에서 매장별 모델 설정을 사용합니다.
-# 웹/API는 매장별 선택을 사용합니다. FORECAST_PROVIDER 환경변수로 바꾸지 않습니다.
+DEMO_PASSWORD=<16자 이상, 서버에서 따로 정함>
+CORS_ORIGINS=https://<도메인>
 ```
 
-production에서 기본 체험 비밀번호를 사용하면 시작이 실패합니다. 공개 빌드는 빠른 체험 로그인을 숨깁니다.
-초기 계정은 별도 비밀번호로 일반 로그인합니다. 환경변수는 최초 생성용이며 기존 계정 비밀번호를 자동 변경하지 않습니다.
-가상 체험 매장·계정이 생성되며, 실제 점포 운영의 계정 관리까지 구현한 상태는 아닙니다.
+운영 환경에서 기본 체험 비밀번호를 쓰면 API가 시작하지 않습니다.
 
-계정·명령 위치 확인 후 visudo로 적용할 제한 예시:
+## GitHub Actions
 
-```sudoers
-hwagae ALL=(root) NOPASSWD: /usr/bin/systemctl restart hwagae-api.service hwagae-web.service, /usr/bin/systemctl stop hwagae-api.service hwagae-web.service
-```
+`.github/workflows/ci.yml`이 API 테스트, 웹 타입 검사·빌드, ML 검사를 실행하고, `main`이면 배포합니다. `.github/workflows/mobile.yml`은 Android APK와 iOS 빌드를 만듭니다.
 
-## GitHub 설정
-
-저장소 또는 production environment의 Actions Secrets:
+저장소 Secrets:
 
 | 이름 | 값 |
 | --- | --- |
-| DEPLOY_HOST | 실제 서버 DNS 또는 IP |
-| DEPLOY_USER | 전용 SSH 배포 계정 |
-| DEPLOY_PORT | SSH 포트, 기본 22 |
-| DEPLOY_KEY | 전용 배포 개인키. Git·채팅에 넣지 않음 |
-| DEPLOY_KNOWN_HOSTS | 별도로 지문을 확인한 서버 호스트 키 |
+| `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER` | 서버 주소, SSH 포트, 배포 계정 |
+| `DEPLOY_KEY` | 배포 전용 SSH 개인 키 |
+| `DEPLOY_KNOWN_HOSTS` | 미리 확인한 서버 호스트 키 |
 
-repository variable DEPLOY_ENABLED=true는 **서버 준비와 첫 배포 확인 뒤** 활성화합니다.
-호스트키는 기존 PC의 신뢰 기록과 대조합니다. 검사를 끄거나 배포 중 자동 신뢰하지 않습니다.
-수동 배포는 Actions의 Run workflow에서 브랜치를 선택하고 deploy=true로 요청합니다.
-이 기능은 workflow 파일이 main에 존재한 뒤 사용할 수 있습니다. 단순 수동 검사는 deploy=false입니다.
+저장소 변수 `DEPLOY_ENABLED=true`일 때만 배포합니다.
 
 ## 배포 순서와 복구
 
-1. 동일 커밋의 API·웹 검사를 통과합니다.
-2. 검증된 Git 소스 아카이브를 SSH/SCP로 전달합니다.
-3. 새 release에서 uv sync --locked --no-dev, npm ci, 웹 빌드를 실행합니다.
-4. SQLite backup API로 WAL까지 반영한 DB 백업을 만듭니다.
-5. current 링크를 전환하고 두 서비스를 재시작합니다.
-6. API release SHA와 웹 HTTP 응답을 검사합니다.
-7. 실패하면 이전 코드로 복귀합니다. DB는 자동 덮어쓰지 않습니다.
+`ops/deploy.sh`가 다음 순서로 실행합니다.
 
-순차 재시작이므로 짧은 중단이 있으며 무중단 배포는 아닙니다.
-스키마는 생성 중심 v1입니다. 향후 파괴적 DB 변경은 별도 마이그레이션·복구 검증이 필요합니다.
-release·백업을 자동 삭제하지 않으므로 보관 정책은 운영 환경에서 정합니다.
-## 운영 확인 기록
+1. 검사를 통과한 커밋의 소스를 새 release 폴더에 풉니다.
+2. API 환경(`uv sync --locked`)과 모델 환경(`.model-venv`, Python 3.11)을 준비합니다.
+3. 일반 매장용 TFT의 추론 테스트를 실행합니다. Walmart 체크포인트가 있으면 smoke test와 전체 ML 테스트도 실행합니다. 하나라도 실패하거나 건너뛰면 배포를 멈춥니다.
+4. 웹을 빌드합니다.
+5. SQLite 백업 API로 DB를 백업합니다.
+6. `current` 링크를 바꾸고 두 서비스를 재시작한 뒤 `/api/health`의 release가 새 커밋인지 확인합니다.
+7. 실패하면 이전 release로 되돌립니다. DB는 덮어쓰지 않습니다.
 
-- 2026-10-24: 서버 접속과 기존 서비스 조사 완료. 3000·8000 포트 미사용 확인.
-- 앱 전용 계정·Node 24.22.1·uv 0.10.6·Python 3.14.3 준비.
-- 전용 배포 계정은 두 앱 서비스의 restart·stop만 sudo 허용.
-- 운영 초기 비밀번호는 서버에서 무작위 생성하며 저장소·Actions Secrets에 넣지 않음.
-- b3d37d9 첫 공개 배포 완료. HTTPS 웹·API 상태·운영 계정 로그인·점주/직원 매장 범위 확인.
-- 실시간 7일 날씨·10상품 7일 예측·재고 미입력 시 발주 보류 확인.
-- 두 systemd 서비스의 부팅 시 자동 시작과 Nginx 문법 검사 통과.
-- 기존 navi/eom HTTPS 200, Docker 컨테이너·Minecraft 리스닝 유지 확인.
-- PR #2 main 병합 후 API 테스트·웹 타입/빌드·Deploy Ubuntu 모두 성공.
-- 운영 release가 병합 커밋 3a1b8dde31e0335d4928c80cec97433a8bb98f98과 일치함을 확인.
-- 자동 배포 전후 stores/products/sales/inventory/orders/forecasts 건수 2/20/1680/0/0/1 유지.
-- backup-20261024T042505Z.sqlite3 생성, 읽기 전용 integrity_check=ok와 동일 테이블 건수 확인.
-- 이후 main push/PR 병합은 검사 통과 후 자동 배포. 앱 시작 실패 시 이전 코드로 복귀하며 DB는 보존.
-- 운영 로그인 정보는 배포 담당 PC의 .ssh/hwagae-login.txt에 별도로 보관합니다.
+재시작하는 동안 잠깐 접속이 끊길 수 있습니다. release와 백업은 자동으로 지우지 않습니다.
 
-출처: [GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax),
-[systemd](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html),
-[Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass).
-Cloudflare: [Origin CA](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/),
-[방문자 IP 헤더](https://developers.cloudflare.com/fundamentals/reference/http-headers/).
+## 서비스 운영자 계정
+
+공개 가입으로는 운영자가 될 수 없습니다. 서버에서 직접 만듭니다.
+
+```bash
+PYTHONPATH=apps/api .venv/bin/python -m app.bootstrap_owner \
+  --email '<운영자 이메일>' \
+  --credentials-output '<새 파일 경로>'
+```
+
+초기 비밀번호는 지정한 새 파일에만 기록됩니다. 전달한 뒤 서버의 파일을 지웁니다.
+
+## 모바일 앱
+
+앱은 웹을 정적으로 빌드해 포함하므로, 웹 화면을 바꾸면 앱도 새로 빌드해 설치해야 합니다. 앱에는 관리자 페이지가 들어가지 않습니다.
+
+```bash
+npm run mobile:sync      # 웹 정적 빌드 후 Android·iOS 프로젝트에 반영
+npm run mobile:android   # Android Studio 열기
+npm run mobile:ios       # Xcode 열기
+```
+
+GitHub Actions의 "Build mobile apps" 실행 결과에서 debug APK와 서명하지 않은 iOS 빌드를 받을 수 있습니다. 앱 아이콘과 시작 화면은 `apps/mobile/resources/mark.svg`에서 `node scripts/mobile-assets.mjs`로 다시 만듭니다.

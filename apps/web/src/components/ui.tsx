@@ -63,6 +63,12 @@ const paths: Record<string, ReactNode> = {
       <circle cx="8" cy="8" r="1" />
     </>
   ),
+  staff: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M3 20a6 6 0 0 1 12 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.4A6 6 0 0 1 21 20" />
+    </>
+  ),
   orders: (
     <>
       <path d="M7 6H4l-1-3M5 6l2 10h12l2-10H5" />
@@ -142,7 +148,6 @@ export function usePresence<T>(value: T, duration = EXIT_MS) {
 }
 
 /**
- * 숫자가 0(또는 직전 값)에서 목표 값까지 차오른다.
  * 서버 렌더에서는 처음부터 최종 값을 보여준다.
  * 화면 읽기 프로그램은 최종 값만 읽고, 자리는 최종 값 너비로 고정해 글자가 밀리지 않는다.
  */

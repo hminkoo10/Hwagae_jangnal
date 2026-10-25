@@ -191,7 +191,7 @@ class ModelRuntime:
             )
             command = [str(python), "-u", str(self._root / "ops" / "tft_worker.py")]
             if self._profile == "merchant":
-                # The experimental model loads its own fixed, hash-checked bundle.
+                # The merchant model loads its own fixed, hash-checked bundle.
                 environment.pop("TFT_CHECKPOINT_PATH", None)
                 command.append("--merchant")
             else:

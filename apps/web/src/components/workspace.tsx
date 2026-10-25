@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { flushSync } from "react-dom";
+import Link from "next/link";
+import { Capacitor } from "@capacitor/core";
 import {
   api,
   addCalendarDays,
@@ -25,6 +27,7 @@ import {
   type Product,
   type Recommendation,
   type SalesData,
+  type StaffPermission,
   type Stock,
   type Store,
   type User,
@@ -46,7 +49,7 @@ import { InitialData } from "./initial-data";
 import { AiExplanation } from "./ai-settings";
 import { AiAssistant, ASSISTANT_TASKS } from "./ai-assistant";
 import { AiSalesMemo } from "./ai-memo";
-import { OperatorDashboard } from "./operator-dashboard";
+import { StaffManagement } from "./staff-management";
 import { categoryOptions, filterProducts } from "@/lib/merchant-language";
 import { WeatherSource } from "./weather-source";
 import { OrderDetails } from "./order-details";
@@ -58,6 +61,7 @@ type Tab =
   | "inventory"
   | "products"
   | "orders"
+  | "staff"
   | "model-demo";
 const tabs: { id: Tab; label: string; description: string }[] = [
   {
@@ -91,6 +95,11 @@ const tabs: { id: Tab; label: string; description: string }[] = [
     description: "추천 수량을 보고 발주할 양을 정해요.",
   },
   {
+    id: "staff",
+    label: "직원 관리",
+    description: "직원을 초대하고 할 수 있는 일을 정해요.",
+  },
+  {
     id: "model-demo",
     label: "TFT 모델 체험",
     description: "공개 판매 자료로 배운 예측 모델을 직접 돌려봐요.",
@@ -107,12 +116,12 @@ const mobileOrder: Tab[] = [
   ...mobileTabs.map(([id]) => id),
   "sales",
   "products",
+  "staff",
   "model-demo",
 ];
 const desktopOrder = tabs.map((item) => item.id);
 
 type Direction = "forward" | "back";
-/** 메뉴에서 뒤쪽 화면으로 가면 forward(오른쪽에서 들어옴), 앞쪽이면 back. */
 function tabDirection(from: Tab, to: Tab): Direction | null {
   if (from === to) return null;
   const order = window.matchMedia("(max-width: 900px)").matches
@@ -130,10 +139,6 @@ function useCssEntrance() {
   return entrance;
 }
 
-/**
- * 메뉴·매장을 바꿀 때 본문만 방향에 맞게 밀며 바뀐다(View Transitions API).
- * 지원하지 않으면 바로 바꾸고, 새 화면은 .view-enter로 나타난다.
- */
 function transitionView(direction: Direction | null, update: () => void) {
   if (!direction || typeof document.startViewTransition !== "function") {
     update();
@@ -176,7 +181,6 @@ function transitionView(direction: Direction | null, update: () => void) {
   window.setTimeout(settle, 600);
 }
 
-/** 탭 본문. 전환 중에 붙었으면 브라우저가 이미 움직였으므로 .view-enter를 생략한다. */
 function ViewStage({
   updating,
   children,
@@ -199,7 +203,6 @@ function ViewStage({
   );
 }
 
-/** 선택된 메뉴 뒤 배경. 전환 중에는 이전 메뉴 위치에서 미끄러져 오고, 아니면 살짝 커지며 나타난다. */
 function NavPill() {
   const entrance = useCssEntrance();
   return (
@@ -218,6 +221,25 @@ type Bundle = {
   orders: Order[];
 };
 
+/** 서비스 운영자 화면은 웹의 /admin에만 있다. 앱에는 넣지 않고 주소도 알리지 않는다. */
+function OperatorElsewhere() {
+  if (Capacitor.isNativePlatform())
+    return (
+      <span>
+        서비스 운영자 계정은 앱에서 쓸 수 없어요. 웹 브라우저의 관리자
+        페이지에서 로그인해주세요.
+      </span>
+    );
+  return (
+    <span>
+      서비스 운영자 계정은 관리자 페이지에서 로그인해주세요.{" "}
+      <Link href="/admin" className="text-button">
+        관리자 페이지로 이동
+      </Link>
+    </span>
+  );
+}
+
 function LoginScreen({
   onLogin,
 }: {
@@ -231,9 +253,11 @@ function LoginScreen({
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [operatorAccount, setOperatorAccount] = useState(false);
   async function login(account = email, secret = password) {
     setBusy(true);
     setError("");
+    setOperatorAccount(false);
     try {
       const result = await api<{ token: string; user: User }>(
         "/auth/login",
@@ -243,6 +267,14 @@ function LoginScreen({
           body: JSON.stringify({ email: account, password: secret }),
         },
       );
+      // 이 화면은 점주·직원용이에요. 운영자 세션은 저장하지 않고 바로 닫아요.
+      if (result.user.platform_role === "operator") {
+        void api("/auth/logout", result.token, { method: "POST" }).catch(
+          () => {},
+        );
+        setOperatorAccount(true);
+        return;
+      }
       onLogin(result.token, result.user);
     } catch (error) {
       setError(error instanceof Error ? error.message : "로그인에 실패했어요.");
@@ -307,6 +339,11 @@ function LoginScreen({
             {error && (
               <div className="error-banner" role="alert">
                 {error}
+              </div>
+            )}
+            {operatorAccount && (
+              <div className="error-banner" role="alert">
+                <OperatorElsewhere />
               </div>
             )}
             <label>
@@ -415,7 +452,6 @@ export default function Workspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  // 알림이 사라질 때도 잠깐 남겨 아래로 내려가며 사라지게 한다.
   const [toast, toastLeaving] = usePresence(notice);
   const [search, setSearch] = useState("");
   const [productCategory, setProductCategory] = useState("all");
@@ -517,6 +553,11 @@ export default function Workspace() {
     window.addEventListener(NATIVE_BACK_EVENT, back);
     return () => window.removeEventListener(NATIVE_BACK_EVENT, back);
   }, [busy, tab, today, user]);
+
+  const ownsStore = stores.find((item) => item.id === storeId)?.role === "owner";
+  useEffect(() => {
+    if (tab === "staff" && !ownsStore) setTab("overview");
+  }, [tab, ownsStore]);
 
   const refreshStores = useCallback(
     async (preferred?: string) => {
@@ -707,18 +748,27 @@ export default function Workspace() {
       </main>
     );
   if (!user) return <LoginScreen onLogin={acceptLogin} />;
+  // 예전에 이 화면에서 로그인한 운영자 세션은 그대로 두고 관리자 페이지로 안내한다.
   if (user.platform_role === "operator")
     return (
-      <OperatorDashboard
-        token={token}
-        user={user}
-        onExpired={clearSession}
-        onLogout={() => {
-          void api("/auth/logout", token, { method: "POST" })
-            .catch(() => {})
-            .finally(clearSession);
-        }}
-      />
+      <main className="boot-screen">
+        <section className="connection-retry" role="alert">
+          <h1>서비스 운영자 계정이에요</h1>
+          <p>
+            <OperatorElsewhere />
+          </p>
+          <button
+            className="button secondary"
+            onClick={() => {
+              void api("/auth/logout", token, { method: "POST" })
+                .catch(() => {})
+                .finally(clearSession);
+            }}
+          >
+            다른 계정으로 로그인
+          </button>
+        </section>
+      </main>
     );
 
   const store = stores.find((item) => item.id === storeId);
@@ -745,6 +795,9 @@ export default function Workspace() {
     (recommendation.order_date ?? asOf) === orderDate &&
     !replay;
   const owner = store?.role === "owner";
+  // 화면은 권한에 맞춰 숨기거나 막고, 실제 허용 여부는 서버가 다시 검사한다.
+  const can = (permission: StaffPermission) =>
+    owner || !!store?.permissions?.includes(permission);
   const currentTab = tabs.find((item) => item.id === tab)!;
   const filtered = filterProducts(
     tab === "products" && showExcluded ? allData?.products ?? [] : data?.products ?? [],
@@ -828,7 +881,7 @@ export default function Workspace() {
       body: JSON.stringify({ recommendation_id: recommendation.id, lines }),
     });
     saved(
-      owner
+      can("order_confirm")
         ? "저장했어요. 아래에서 발주를 확정하면 파일로 내보낼 수 있어요."
         : "저장했어요. 점주가 발주를 확정하면 파일로 내보낼 수 있어요.",
     );
@@ -920,10 +973,10 @@ export default function Workspace() {
                 전체 보기
               </button>
             )}
-            {mode === "products" && owner && (
+            {mode === "products" && can("products") && (
               <label className="checkbox"><input type="checkbox" checked={showExcluded} onChange={event => setShowExcluded(event.target.checked)} />제외한 상품도 보기</label>
             )}
-            {mode === "products" && owner && (
+            {mode === "products" && can("products") && (
               <button
                 className="button primary small"
                 disabled={busy}
@@ -1044,7 +1097,7 @@ export default function Workspace() {
                       </td>
                       <td className="number">
                         {mode === "products" ? (
-                          owner ? (
+                          can("products") ? (
                             <span className="product-row-actions"><button
                               className="button table-button"
                               disabled={busy}
@@ -1061,7 +1114,7 @@ export default function Workspace() {
                           ) : (
                             <span className="muted">조회</span>
                           )
-                        ) : (
+                        ) : can("inventory") ? (
                           <button
                             className="button table-button"
                             disabled={busy || loading || replay}
@@ -1069,6 +1122,8 @@ export default function Workspace() {
                           >
                             {inventory ? "재고 수정" : "재고 입력"}
                           </button>
+                        ) : (
+                          <span className="muted">조회</span>
                         )}
                       </td>
                     </tr>
@@ -1096,7 +1151,7 @@ export default function Workspace() {
         <div className="workspace-label">매장 운영</div>
         <nav className="desktop-navigation" aria-label="주 메뉴">
           {tabs
-            .filter((item) => item.id !== "model-demo")
+            .filter((item) => item.id !== "model-demo" && (item.id !== "staff" || owner))
             .map((item) => (
               <button
                 key={item.id}
@@ -1119,9 +1174,10 @@ export default function Workspace() {
           {mobileTabs.map(([id, label]) =>
             <button key={id} type="button" className={`nav-item ${tab === id ? "active" : ""}`} aria-current={tab === id ? "page" : undefined}
               disabled={busy} onClick={() => navigate(id)}>{tab === id && <NavPill />}<Icon name={id} size={19} /><span>{label}</span></button>)}
-          <Select aria-label="더보기 메뉴" value={(["sales", "products"] as string[]).includes(tab) ? tab : ""}
+          <Select aria-label="더보기 메뉴" value={(["sales", "products", "staff"] as string[]).includes(tab) ? tab : ""}
             disabled={busy} onChange={event => navigate(event.target.value as Tab)}>
             <option value="" disabled>더보기</option><option value="sales">판매 기록</option><option value="products">상품</option>
+            {owner && <option value="staff">직원 관리</option>}
           </Select>
         </nav>
         <div className="sidebar-bottom">
@@ -1194,7 +1250,6 @@ export default function Workspace() {
                     const next = stores.find((item) => item.id === nextId);
                     const from = stores.findIndex((item) => item.id === storeId);
                     const to = stores.findIndex((item) => item.id === nextId);
-                    // 목록에서 아래쪽 매장으로 바꾸면 오른쪽에서, 위쪽이면 왼쪽에서 들어온다.
                     transitionView(
                       from === to ? null : to > from ? "forward" : "back",
                       () => {
@@ -1327,14 +1382,26 @@ export default function Workspace() {
                 )}
               </div>
             )}
-          {!modelDemo && store && !aiReady && (
+          {!modelDemo && store && owner && tab === "staff" && (
+            <ViewStage key={`${storeId}:staff`} updating={false}>
+              <StaffManagement
+                key={storeId}
+                token={token}
+                storeId={storeId}
+                storeName={store.name}
+                onNotice={setNotice}
+                onExpired={clearSession}
+              />
+            </ViewStage>
+          )}
+          {!modelDemo && store && !aiReady && tab !== "staff" && (
             <section className="panel ai-required" aria-live="polite">
               <Icon name="ai-settings" size={26} /><h2>AI 도우미가 아직 준비되지 않았어요</h2>
               <p>{aiStatus?.storeId === storeId ? aiStatus.error ?? "서비스 운영자가 AI를 연결하면 바로 사용할 수 있어요." : "매장 연결을 확인하고 있어요…"}</p>
               {aiStatus?.storeId === storeId && <button type="button" className="text-button" onClick={() => setAiReload(value => value + 1)}>다시 확인</button>}
             </section>
           )}
-          {!modelDemo && data && aiReady && (
+          {!modelDemo && data && aiReady && tab !== "staff" && (
             <ViewStage key={`${storeId}:${tab}`} updating={loading}>
               {!allData?.products.length && owner && (
                 <InitialData
@@ -1370,7 +1437,9 @@ export default function Workspace() {
                   onOrder={setOrderDetail}
                   disabled={busy || loading}
                   onInventory={(product) => {
-                    if (!busy) setInventoryProduct(product);
+                    if (busy) return;
+                    if (can("inventory")) setInventoryProduct(product);
+                    else setNotice("재고 입력은 점주가 허용한 직원만 할 수 있어요.");
                   }}
                 />
               )}
@@ -1651,6 +1720,7 @@ export default function Workspace() {
                   sales={data.sales}
                   today={today}
                   onSaved={saved}
+                  readOnly={!can("sales")}
                 />
                 </>
               )}
@@ -1666,6 +1736,12 @@ export default function Workspace() {
                       </p>
                     </div>
                   </div>
+                  {!can("inventory") && (
+                    <p className="permission-note">
+                      재고 입력은 점주가 허용한 직원만 할 수 있어요. 확인된
+                      수량은 볼 수 있어요.
+                    </p>
+                  )}
                   {productRows("inventory")}
                   <div className="page-bottom-action">
                     <span>재고 확인이 끝났나요?</span>
@@ -1861,12 +1937,17 @@ export default function Workspace() {
                           />
                         )}
                         <div className="panel-footer">
-                          <span>미계산 상품은 저장 대상에서 제외돼요.</span>
+                          <span>
+                            {can("order_draft")
+                              ? "미계산 상품은 저장 대상에서 제외돼요."
+                              : "발주안 저장은 점주가 허용한 직원만 할 수 있어요."}
+                          </span>
                           <button
                             className="button primary"
                             disabled={
                               busy ||
                               loading ||
+                              !can("order_draft") ||
                               !recommendationCurrent ||
                               !recommendation.calculated_count ||
                               invalidQuantity
@@ -1948,7 +2029,7 @@ export default function Workspace() {
                                         <p className="order-confirmation-note">{issue}</p>
                                       )}
                                       <div className="row-actions">
-                                        {owner && order.status === "draft" && (
+                                        {can("order_confirm") && order.status === "draft" && (
                                           <button
                                             className="button table-button"
                                             disabled={busy || loading || !today}
@@ -1961,7 +2042,7 @@ export default function Workspace() {
                                             {issue ? "새 발주안 만들기" : "발주 확정"}
                                           </button>
                                         )}
-                                        {owner &&
+                                        {can("order_confirm") &&
                                           order.status === "confirmed" &&
                                           (["csv", "xlsx"] as const).map(
                                             (format) => (
@@ -2049,6 +2130,7 @@ export default function Workspace() {
           token={token}
           storeId={storeId}
           product={productModal === "new" ? undefined : productModal}
+          ai={owner}
           onSaved={saved}
           onClose={() => setProductModal(null)}
         />

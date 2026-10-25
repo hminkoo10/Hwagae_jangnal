@@ -339,7 +339,7 @@ def create_packs(orders_path, sales_path, output, demo_date):
     (train_dir / "split.json").write_text(json.dumps({**split, "holdout": {"start": holdout_start.isoformat(), "note": "평가용 30%는 모델 제출 후 공개"}}, ensure_ascii=False, indent=2), encoding="utf-8")
     (train_dir / "README.txt").write_text(f"""디미고 매점 TFT 학습 자료 (앞 70% 기간)
 
-작업 지시: 저장소 docs/dimigo-model-handoff.md
+모델 설명: 저장소 docs/model.md
 
 sales_daily.csv
   product_id       상품 코드 (D001 = 1년 판매량 1위). 이름이 바뀐 상품은 하나로 합침
