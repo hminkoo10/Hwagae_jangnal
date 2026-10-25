@@ -30,9 +30,7 @@ CONFIG = {
 
 
 def build_model(reals=REALS, config=CONFIG):
-    # This is the actual PyTorch Forecasting TFT, with variable selection,
-    # LSTM encoder/decoder, gated residual networks and interpretable attention.
-    # No categorical encoder, embedding, group statistics or absolute time_idx.
+    # Identity-free: no categorical encoder, embedding, group statistics or absolute time_idx.
     calendar = [name for name in CALENDAR if name in reals]
     return TemporalFusionTransformer(
         **config,
