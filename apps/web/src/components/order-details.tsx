@@ -2,6 +2,7 @@
 import { type Order, units, won } from "@/lib/api";
 import { ResponsiveTable } from "./controls";
 import { Modal } from "./ui";
+import { AiOrderMessage, type AiAccess } from "./ai-assistant";
 
 export function OrderContents({ order }: { order: Order }) {
   return (
@@ -63,14 +64,17 @@ export function OrderDetails({
   order,
   onClose,
   onOpenOrders,
+  ai,
 }: {
   order: Order;
   onClose: () => void;
   onOpenOrders: () => void;
+  ai?: AiAccess;
 }) {
   return (
     <Modal title="발주 내용" onClose={onClose}>
       <OrderContents order={order} />
+      {ai && !order.stale && <AiOrderMessage key={order.id} {...ai} orderId={order.id} />}
       <button
         type="button"
         className="button primary order-details-action"

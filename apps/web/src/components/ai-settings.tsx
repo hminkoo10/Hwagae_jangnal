@@ -524,7 +524,7 @@ export function AiSettings({
         <div className="panel-heading">
           <div>
             <h2>AI 도우미</h2>
-            <p>발주 이유를 쉬운 말로 설명해줘요.</p>
+            <p>판매·재고 점검부터 메모 입력, 발주 설명까지 도와줘요.</p>
           </div>
           <button
             className="button primary"
