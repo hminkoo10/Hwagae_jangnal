@@ -77,27 +77,27 @@
 }
 
 /* 그래프 등장: 범위가 먼저 나타나고, 예상선이 그려진 뒤 점이 톡 튀어나온다. */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   .forecast-chart .forecast-band {
-    animation: forecast-band-in 480ms var(--ui-ease, ease-out) both;
+    animation: forecast-band-in 720ms var(--ui-ease, ease-out) both;
   }
   .forecast-chart .forecast-line {
     stroke-dasharray: 1;
-    animation: forecast-line-draw 720ms 120ms var(--ui-ease, ease-out) both;
+    animation: forecast-line-draw 1080ms 180ms var(--ui-ease, ease-out) both;
   }
   .forecast-chart .forecast-point {
     transform-box: fill-box;
     transform-origin: center;
-    animation: forecast-point-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1)
+    animation: forecast-point-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1)
       both;
-    animation-delay: calc(260ms + var(--i, 0) * 70ms);
+    animation-delay: calc(390ms + var(--i, 0) * 110ms);
   }
 }
 /* 7일 날씨: 날짜 순서대로 떠오른다. (motion-item은 motion.css) */
-@media (prefers-reduced-motion: no-preference) {
+@media all {
   :is(.weather-days, .rail-weather-week) > * {
-    animation: motion-item 300ms var(--ui-ease, ease-out) backwards;
-    animation-delay: calc(80ms + var(--forecast-day, 0) * 32ms);
+    animation: motion-item 450ms var(--ui-ease, ease-out) backwards;
+    animation-delay: calc(120ms + var(--forecast-day, 0) * 48ms);
   }
   :is(.weather-days, .rail-weather-week) > :nth-child(2) {
     --forecast-day: 1;

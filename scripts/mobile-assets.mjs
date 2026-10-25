@@ -12,7 +12,7 @@ const ios = path.join(root, "apps/mobile/ios/App/App/Assets.xcassets");
 const source = await readFile(path.join(resources, "mark.svg"), "utf8");
 const mark = source.match(/<svg[^>]*>([\s\S]*?)<\/svg>/)?.[1];
 if (!mark) throw new Error("Missing storefront SVG artwork");
-const blue = "#2478F5";
+const blue = "#487DEE";
 const canvas = "#F5F8FC";
 const svg = (width, height, content) => Buffer.from(
   `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${content}</svg>`,
