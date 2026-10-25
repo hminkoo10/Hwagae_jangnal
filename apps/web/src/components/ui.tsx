@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { shortDate, units, type ProductForecast } from "@/lib/api";
 import { forecastHelp } from "@/lib/merchant-language";
@@ -114,43 +122,160 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
   );
 }
 
+/** 움직임 줄이기를 켰거나 서버에서 그릴 때는 애니메이션을 건너뛴다. */
+export function prefersReducedMotion() {
+  return (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function" ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/** 닫는 애니메이션(motion.css)과 같은 길이 */
+export const EXIT_MS = 180;
+
+/**
+ * 값이 비워진 뒤에도 잠깐 마지막 값을 남겨 닫히는 애니메이션을 보여준다.
+ * 돌려주는 leaving이 true인 동안 요소에 닫힘 클래스를 붙이면 된다.
+ */
+export function usePresence<T>(value: T, duration = EXIT_MS) {
+  const [kept, setKept] = useState(value);
+  if (value && !Object.is(value, kept)) setKept(value);
+  const leaving = !value && !!kept;
+  useEffect(() => {
+    if (!leaving) return;
+    const timer = window.setTimeout(
+      () => setKept(value),
+      prefersReducedMotion() ? 0 : duration,
+    );
+    return () => window.clearTimeout(timer);
+  }, [leaving, value, duration]);
+  return [leaving ? kept : value, leaving] as const;
+}
+
+/**
+ * 숫자가 0(또는 직전 값)에서 목표 값까지 차오른다.
+ * 서버 렌더와 움직임 줄이기에서는 처음부터 최종 값을 보여준다.
+ * 화면 읽기 프로그램은 최종 값만 읽고, 자리는 최종 값 너비로 고정해 글자가 밀리지 않는다.
+ */
+export function CountUp({
+  value,
+  duration = 600,
+  svg = false,
+}: {
+  value: number;
+  duration?: number;
+  /** SVG <text> 안에서는 글자만 그린다. */
+  svg?: boolean;
+}) {
+  const [shown, setShown] = useState(value);
+  const current = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const from = current.current ?? 0;
+    current.current = from;
+    if (from === value || !Number.isFinite(value) || prefersReducedMotion()) {
+      current.current = value;
+      setShown(value);
+      return;
+    }
+    setShown(from);
+    const start = performance.now();
+    let frame = window.requestAnimationFrame(function tick(now) {
+      const progress = Math.min(1, (now - start) / duration);
+      const next = from + (value - from) * (1 - (1 - progress) ** 3);
+      current.current = next;
+      setShown(next);
+      if (progress < 1) frame = window.requestAnimationFrame(tick);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [value, duration]);
+  const format = (n: number) =>
+    Number.isFinite(n) ? Math.round(n).toLocaleString("ko-KR") : String(n);
+  if (svg) return <>{format(shown)}</>;
+  return (
+    <span className="count-up">
+      <span className="count-up-final">{format(value)}</span>
+      <span className="count-up-value" aria-hidden="true">
+        {format(shown)}
+      </span>
+    </span>
+  );
+}
+
 export function Modal({
   title,
   children,
   onClose,
+  closing,
+  anchor,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  /**
+   * 부모가 usePresence로 닫힘을 직접 관리할 때 넘긴다. 이때 닫기 버튼·바깥 누르기·Esc는
+   * onClose를 바로 부르고, 이 값이 true인 동안 닫히는 애니메이션을 보여준다.
+   * 넘기지 않으면 모달이 스스로 짧게 닫히는 애니메이션을 보여준 뒤 onClose를 부른다.
+   */
+  closing?: boolean;
+  /** 이 요소(예: 선택 버튼) 쪽에서 커지며 열린다. */
+  anchor?: RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const outsidePress = useRef(false);
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<number | undefined>(undefined);
+  const latestClose = useRef(onClose);
+  useEffect(() => {
+    latestClose.current = onClose;
+  });
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
   useEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement;
     dialog?.showModal();
+    // 처음 열릴 때 한 번만, 누른 버튼 위치를 확대 기준점으로 잡는다.
+    const from = anchor?.current;
+    if (dialog && from) {
+      // offset 값은 열리는 애니메이션의 scale 영향을 받지 않는다.
+      const rect = from.getBoundingClientRect();
+      dialog.style.transformOrigin = `${Math.round(rect.left + rect.width / 2 - dialog.offsetLeft)}px ${Math.round(rect.top + rect.height / 2 - dialog.offsetTop)}px`;
+    }
     return () => {
       dialog?.close();
       if (previous instanceof HTMLElement && previous.isConnected)
         previous.focus();
     };
   }, []);
+  function dismiss() {
+    if (closing !== undefined || prefersReducedMotion()) {
+      onClose();
+      return;
+    }
+    if (leaving) return;
+    setLeaving(true);
+    leaveTimer.current = window.setTimeout(() => {
+      // 부모가 닫지 않으면(예: 저장 중) 다시 보이게 되돌린다.
+      setLeaving(false);
+      latestClose.current();
+    }, EXIT_MS);
+  }
   if (typeof document === "undefined") return null;
   return createPortal(
     <dialog
       ref={ref}
-      className="modal"
+      className={`modal${anchor ? " modal-anchored" : ""}${closing || leaving ? " modal-closing" : ""}`}
       aria-label={title}
       onPointerDown={(event) => {
         outsidePress.current = event.target === event.currentTarget && outsideDialog(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
       }}
       onClick={(event) => {
-        if (outsidePress.current && event.target === event.currentTarget && outsideDialog(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY)) onClose();
+        if (outsidePress.current && event.target === event.currentTarget && outsideDialog(event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY)) dismiss();
         outsidePress.current = false;
       }}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        dismiss();
       }}
     >
       <div className="panel-heading">
@@ -159,7 +284,7 @@ export function Modal({
           type="button"
           className="icon-button"
           aria-label="닫기"
-          onClick={onClose}
+          onClick={dismiss}
         >
           <Icon name="close" />
         </button>

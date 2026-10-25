@@ -177,7 +177,12 @@ export function AiSalesMemo({
       >
         {assistant.busy ? "정리하는 중…" : "입력할 내용 정리"}
       </button>
-      {assistant.busy && <AiThinking label="메모를 표로 정리하고 있어요" />}
+      {assistant.busy && (
+        <AiThinking
+          label="메모를 표로 정리하고 있어요"
+          steps={["상품 이름을 맞춰보고 있어요", "날짜와 개수를 확인하고 있어요"]}
+        />
+      )}
       <AiError error={assistant.error || saveError} />
       {assistant.result && (
         <div className="assistant-preview">
@@ -213,7 +218,11 @@ export function AiSalesMemo({
                   </thead>
                   <tbody>
                     {rows.map((row, index) => (
-                      <tr key={index}>
+                      <tr
+                        key={index}
+                        className="assistant-row"
+                        style={stagger(index)}
+                      >
                         <td>
                           <DateField
                             aria-label={`${index + 1}번째 판매일`}
@@ -351,11 +360,16 @@ export function AiProductMemo({
       >
         {assistant.busy ? "읽는 중…" : "입력할 내용 정리"}
       </button>
-      {assistant.busy && <AiThinking label="상품 설명을 읽고 있어요" />}
+      {assistant.busy && (
+        <AiThinking
+          label="상품 설명을 읽고 있어요"
+          steps={["가격과 기간을 찾고 있어요", "입력할 내용을 정리하고 있어요"]}
+        />
+      )}
       <AiError error={assistant.error} />
       {assistant.result && (
         <div className="assistant-preview">
-          <dl className="assistant-fields">
+          <dl className={`assistant-fields${applied ? " is-applied" : ""}`}>
             {Object.entries(assistant.result.draft).map(([field, value], index) => (
               <div key={field} style={stagger(index)}>
                 <dt>{FIELD_NAMES[field]}</dt>

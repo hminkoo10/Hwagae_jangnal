@@ -2,11 +2,11 @@
 
 import { Select } from "./controls";
 
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { explainOrder } from "@/lib/ai-explanations";
 import { Modal } from "./ui";
-import { AiAnswer, AiThinking } from "./ai-answer";
+import { AiAnswer, AiOutput, AiThinking } from "./ai-answer";
 import { protocolForAddress, type AiProtocol } from "@/lib/ai-provider";
 import styles from "./operator-ai.module.css";
 
@@ -63,7 +63,7 @@ const message = (e: unknown) =>
 
 function Result({ result }: { result: Run }) {
   return (
-    <div className={styles.result} role="status">
+    <div className={`${styles.result} ai-test-result`} role="status">
       <strong>
         {result.fallback_used ? "다음 순서 연결이 답했어요" : "AI가 답했어요"}
       </strong>
@@ -543,7 +543,7 @@ export function AiSettings({
           <div>
             {settings && (
               <span
-                className={`${styles.status} ${ready ? styles.ready : styles.waiting}`}
+                className={`${styles.status} ${ready ? styles.ready : styles.waiting} ai-status${ready ? " is-ready" : ""}`}
               >
                 {ready
                   ? "모든 매장에서 쓰는 중"
@@ -609,7 +609,11 @@ export function AiSettings({
         {connections.length > 0 && (
           <ol className={styles.list}>
             {connections.map((c, i) => (
-              <li key={c.id}>
+              <li
+                key={c.id}
+                className="ai-connection"
+                style={{ "--ai-delay": `${Math.min(i, 7) * 60}ms` } as CSSProperties}
+              >
                 <div className={styles.cardHead}>
                   <div>
                     <span className={`pill ${c.enabled ? "mint" : "neutral"}`}>
@@ -844,8 +848,17 @@ export function AiExplanation({
           {error}
         </div>
       )}
-      {busy && <AiThinking label="재고와 입고를 보고 이유를 정리하고 있어요" />}
-      {result && <AiAnswer text={result.text} />}
+      {(busy || result) && (
+        <AiOutput>
+          {busy && (
+            <AiThinking
+              label="재고와 입고를 확인하고 있어요"
+              steps={["날씨와 예측을 확인하고 있어요", "발주 이유를 정리하고 있어요"]}
+            />
+          )}
+          {result && <AiAnswer text={result.text} />}
+        </AiOutput>
+      )}
     </section>
   );
 }

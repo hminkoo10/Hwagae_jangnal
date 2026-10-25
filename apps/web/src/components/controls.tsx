@@ -12,7 +12,7 @@ import {
   type SelectHTMLAttributes,
   type TableHTMLAttributes,
 } from "react";
-import { Modal, Icon } from "./ui";
+import { Modal, Icon, usePresence } from "./ui";
 import { searchKey } from "@/lib/merchant-language";
 
 type Change = { target: { value: string } };
@@ -80,6 +80,7 @@ export function Select({
         : (defaultValue ?? items[0]?.value ?? "")),
   );
   const [open, setOpen] = useState(false);
+  const [shown, closing] = usePresence(open);
   const [query, setQuery] = useState("");
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -133,8 +134,8 @@ export function Select({
           trigger.current?.focus();
         }}
       />
-      {open && (
-        <Modal title={label} onClose={close}>
+      {shown && (
+        <Modal title={label} onClose={close} closing={closing} anchor={trigger}>
           {items.length > 7 && (
             <input
               aria-label="항목 검색"
@@ -235,6 +236,7 @@ export function DateField({
   const selected = value ?? local;
   const [month, setMonth] = useState(() => parse(selected));
   const [open, setOpen] = useState(false);
+  const [shown, closing] = usePresence(open);
   const trigger = useRef<HTMLButtonElement>(null);
   const label = rest["aria-label"] ?? "날짜 선택";
   function choose(next: string) {
@@ -284,9 +286,11 @@ export function DateField({
           trigger.current?.focus();
         }}
       />
-      {open && (
+      {shown && (
         <Modal
           title={label}
+          closing={closing}
+          anchor={trigger}
           onClose={() => {
             setOpen(false);
             trigger.current?.focus();
