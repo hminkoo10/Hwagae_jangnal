@@ -63,6 +63,12 @@ const paths: Record<string, ReactNode> = {
       <circle cx="8" cy="8" r="1" />
     </>
   ),
+  staff: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M3 20a6 6 0 0 1 12 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.4A6 6 0 0 1 21 20" />
+    </>
+  ),
   orders: (
     <>
       <path d="M7 6H4l-1-3M5 6l2 10h12l2-10H5" />

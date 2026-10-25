@@ -26,9 +26,9 @@
 `POST /auth/login`에 `email`, `password`를 보내면 `token`, `user`, `expires_at`이 반환됩니다.
 이후 `Authorization: Bearer <token>`을 보냅니다. 세션은 12시간이고 서버에는 토큰 해시만 저장합니다.
 `GET /auth/me`, `POST /auth/logout`을 지원합니다. 브라우저는 sessionStorage에 보관합니다.
-점주·직원 모두 소속 매장만 조회·판매/재고 입력·초안 작성할 수 있습니다.
-매장·상품 생성과 상품 설정, 발주안 확정·내보내기는 점주만 가능합니다.
-가입·직원 초대는 미구현이며, 현재 권한은 수정 가능한 초기 정책입니다.
+점주·직원 모두 소속 매장만 조회할 수 있습니다. 점주는 매장의 모든 작업을 하고,
+직원은 점주가 허용한 작업(판매 입력·재고 입력·발주안 저장·발주 확정·상품 관리)만 합니다.
+`GET /stores`의 각 매장에 `permissions`가 포함됩니다. 직원 초대·권한 API: [직원 관리](staff-management.md).
 
 CORS는 설정된 웹 주소의 GET·POST·PUT·PATCH와 인증 헤더를 허용합니다.
 

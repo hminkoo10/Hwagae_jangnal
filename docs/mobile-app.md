@@ -9,7 +9,7 @@
 | 구성 | Capacitor 8 · 기존 웹 화면 · 기존 FastAPI 서버 |
 | Android | 설치 가능한 테스트용 debug APK |
 | iOS | 서명 없는 실기기용 IPA · Simulator용 앱 · Xcode 프로젝트 |
-| 계정과 자료 | 웹과 같은 계정·매장·판매·발주 기록 |
+| 계정과 자료 | 웹과 같은 계정·매장·판매·발주 기록. 점주·직원 전용이며 서비스 운영자 화면은 앱에 넣지 않음(웹 `/admin`만) |
 | 네트워크 | 로그인·자료 조회·예측·발주 저장에는 인터넷 필요 |
 | 최소 기기 환경 | Android 7 이상 + Android System WebView 111 이상 / iOS 16.4 이상 |
 

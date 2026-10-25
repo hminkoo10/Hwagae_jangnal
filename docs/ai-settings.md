@@ -1,6 +1,6 @@
 # AI 연결 설정 (서비스 운영자)
 
-서비스 운영자 화면의 **AI 연결**에서 한 번 설정하면 모든 매장의 매장 도우미·발주 이유·메모 정리가 같은 연결을 사용합니다. 점주와 직원은 설정·키·모델 목록·연결 테스트에 접근할 수 없고, 매장에서는 연결 준비 여부만 확인합니다. AI가 연결되지 않으면 매장 화면은 안내 화면으로 막힙니다. API: `GET/PUT /platform/ai/settings`, `POST /platform/ai/models`, `POST /platform/ai/test` (운영자 전용), `GET /stores/{id}/ai/status`. 예전 매장별 설정(`ai_settings`)은 읽지 않으며 운영자가 키를 새로 입력합니다.
+서비스 운영자 화면(웹 `/admin`)의 **AI 연결**에서 한 번 설정하면 모든 매장의 매장 도우미·발주 이유·메모 정리가 같은 연결을 사용합니다. 점주와 직원은 설정·키·모델 목록·연결 테스트에 접근할 수 없고, 매장에서는 연결 준비 여부만 확인합니다. AI가 연결되지 않으면 매장 화면은 안내 화면으로 막힙니다. API: `GET/PUT /platform/ai/settings`, `POST /platform/ai/models`, `POST /platform/ai/test` (운영자 전용), `GET /stores/{id}/ai/status`. 예전 매장별 설정(`ai_settings`)은 읽지 않으며 운영자가 키를 새로 입력합니다.
 
 1. **도우미 연결하기** → **받은 연결 정보를 입력해요**에서 이름·서비스 주소·연결 키(API 키)를 입력합니다. 기본 주소 예: `https://gateway.example/v1`.
 2. **연결할 서비스**에서 **OpenAI 호환 서비스**, **OpenAI Responses 서비스**, **Claude (Anthropic)** 중 하나를 선택합니다. Claude 공식 주소 `https://api.anthropic.com`은 자동 인식하고 `/v1`을 붙입니다. `/v1/messages` 같은 개별 요청 경로는 입력하지 않습니다. Gemini 등의 다른 자체 형식은 OpenAI 호환 형식으로 변환하는 게이트웨이가 필요합니다.

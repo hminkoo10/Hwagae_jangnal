@@ -182,6 +182,8 @@ class Database:
             db.execute("UPDATE store_forecast_settings SET provider='merchant_tft' WHERE provider='weekday'")
             if seed and not db.execute("SELECT 1 FROM users LIMIT 1").fetchone():
                 self._seed(db)
+            from app.staff import initialize_staff
+            initialize_staff(db)
 
     def _seed(self, db):
         password = os.getenv("DEMO_PASSWORD", "hwagae-demo")

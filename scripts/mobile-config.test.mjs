@@ -24,6 +24,8 @@ test("export bundles the real frontend and production API without demo login", a
   assert.ok(assets.length > 0, "compiled assets must be bundled");
   for (const [, path] of assets) await read("apps/mobile/www" + path);
   assert.doesNotMatch(html, /src="https?:/);
+  // Operators use the web /admin page only; the app bundle has no operator console.
+  await assert.rejects(read("apps/mobile/www/admin/index.html"), { code: "ENOENT" });
 });
 
 test("Android and iOS use the same app identifier and contain no signing credentials", async () => {
