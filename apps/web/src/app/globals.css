@@ -1807,7 +1807,6 @@ input[type="checkbox"] {
     font-size: 23px;
   }
 }
-/* Merchant workspace: compact cards, clear actions, and a daily utility rail. */
 .merchant-shell {
   --ink: #252b36;
   --muted: #747d8b;
@@ -3112,7 +3111,7 @@ input[type="checkbox"] {
   }
 }
 
-/* Shared phone/tablet layout: keep scrolling inside tables and charts. */
+/* min-width: 0 keeps scrolling inside tables and charts on phones and tablets. */
 .merchant-shell .workspace-main > *,
 .merchant-shell .page-heading > *,
 .merchant-shell .panel,
@@ -3430,7 +3429,6 @@ input[type="checkbox"] {
   }
 }
 
-/* Comfortable reading sizes and a normal merchant onboarding flow. */
 .merchant-shell { font-size: 15px; line-height: 1.6; --muted: #526074; }
 .merchant-shell .page-heading h1 { font-size: 28px; }
 .merchant-shell :is(th, .helper, .chart-footnote, .rail-note, .metric-label) { font-size: 14px; color: #526074; }

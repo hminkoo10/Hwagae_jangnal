@@ -1,18 +1,15 @@
-/* 화면 전환·등장 애니메이션. 가장 마지막에 불러온다.
+/* 가장 마지막에 불러온다.
    운영체제의 움직임 줄이기 설정과 상관없이 모든 움직임이 항상 재생된다.
    (웹과 앱이 똑같이 보이게 한다.) */
 :root {
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  /* 톡 튀어나오는 것에만 쓰는 살짝 넘치는 곡선 */
   --motion-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
-  /* 사라질 때는 짧고 빠르게 */
   --motion-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-fast: 270ms;
   --motion-base: 360ms;
   --motion-slow: 480ms;
 }
 
-/* 움직임과 상관없는 구조: 선택된 메뉴 배경, 숫자 자리 고정 */
 .merchant-shell .nav-item {
   position: relative;
   isolation: isolate;
@@ -138,7 +135,6 @@
     transform: translate3d(0, 8px, 0);
   }
 }
-/* 화면 전환: 이전 화면은 빨리 비키고, 새 화면은 부드럽게 들어온다. */
 @keyframes view-out-left {
   to {
     opacity: 0;
@@ -257,7 +253,6 @@
 }
 
 @media all {
-  /* 부드러운 색·크기 변화 */
   :is(.operator-shell, .merchant-shell, .modal, .login-page, .invite-page)
     .button {
     transition:
@@ -313,7 +308,6 @@
     animation: motion-ring 1050ms var(--motion-ease) 180ms backwards;
   }
 
-  /* 탭 화면 등장: 컨테이너가 살짝 떠오르고, 안의 카드가 차례로 나타난다. */
   .view-enter {
     animation: motion-rise var(--motion-slow) var(--motion-ease) backwards;
   }
@@ -397,11 +391,9 @@
     --motion-item: 3;
   }
 
-  /* 알림·안내 띠 */
   :is(.error-banner, .warning-banner, .success-banner, .info-banner) {
     animation: motion-banner var(--motion-base) var(--motion-ease) backwards;
   }
-  /* 빈 화면: 아이콘이 톡 튀어나오고 글이 차례로 떠오른다. */
   .empty-state,
   .merchant-empty {
     animation: motion-fade-up var(--motion-slow) var(--motion-ease) backwards;
@@ -418,7 +410,6 @@
       backwards;
   }
 
-  /* 자료를 다시 불러오는 동안: 흐려진 본문 위로 빛이 천천히 지나간다. */
   .content-updating {
     position: relative;
     overflow: clip;
@@ -440,7 +431,6 @@
     animation: motion-sweep 1.6s var(--motion-ease) 160ms infinite;
   }
 
-  /* 불러오는 중: 글자 위로 빛이 지나간다. */
   .loading-banner,
   .merchant-shell .loading-banner {
     background-image: linear-gradient(
@@ -456,7 +446,6 @@
       motion-shimmer 1.6s linear infinite;
   }
 
-  /* 모달: 살짝 커지며 떠오르고, 휴대폰에서는 아래에서 올라온다. */
   .modal[open] {
     animation: motion-dialog 420ms var(--motion-ease);
   }
@@ -466,7 +455,7 @@
   .modal[open] > :not(.panel-heading) {
     animation: motion-fade-up 390ms var(--motion-ease) 90ms backwards;
   }
-  /* 닫힐 때: 모달은 살짝 가라앉으며 흐려지고, 뒤 배경도 함께 걷힌다. (ui.tsx EXIT_MS) */
+  /* 닫히는 길이(--motion-fast)는 ui.tsx EXIT_MS와 같아야 한다. */
   .modal.modal-closing[open] {
     animation: motion-dialog-out var(--motion-fast) var(--motion-exit) forwards;
     pointer-events: none;
@@ -475,7 +464,6 @@
     animation: motion-fade-out var(--motion-fast) ease-in forwards;
   }
 
-  /* 토스트: 아래에서 살짝 튀어 오르고, 체크가 그려진다. 닫힐 때는 아래로 가라앉는다. */
   .toast {
     animation: motion-toast-in 630ms var(--motion-ease);
   }
@@ -497,7 +485,6 @@
     animation: motion-draw 570ms var(--motion-ease) 330ms backwards;
   }
 
-  /* 홈 안내: 다음 단계 번호가 몇 번 숨 쉬고 멈춘다. */
   .guide-step.next .guide-step-mark {
     animation: motion-pulse 1.8s ease-out 900ms 3;
   }
@@ -515,8 +502,7 @@
   }
 }
 
-/* 선택 창·달력은 누른 버튼 쪽에서 커지며 열리고, 그쪽으로 작아지며 닫힌다.
-   기준점(transform-origin)은 ui.tsx Modal이 버튼 위치로 정한다. */
+/* 기준점(transform-origin)은 ui.tsx Modal이 누른 버튼 위치로 정한다. */
 @media (min-width: 601px) {
   .modal.modal-anchored[open] {
     animation: motion-anchor-in 390ms var(--motion-spring);
@@ -526,7 +512,6 @@
   }
 }
 
-/* 마우스를 올리면 누를 수 있는 카드가 살짝 떠오른다. */
 @media (hover: hover) and (pointer: fine) {
   .merchant-shell
     :is(
@@ -541,7 +526,7 @@
   }
 }
 
-/* 누르는 순간 살짝 작아진다. hover 규칙보다 뒤에 둔다. */
+/* 누를 때 규칙은 hover 규칙보다 뒤에 둔다. */
 @media all {
   :is(.button, .icon-button):active:not(:disabled) {
     transform: scale(0.97);
@@ -575,7 +560,7 @@
   }
 }
 
-/* details 펼치기: 높이와 투명도를 함께 바꾼다. 지원하지 않는 브라우저는 내용만 떠오른다. */
+/* ::details-content를 지원하지 않는 브라우저는 내용만 떠오른다. */
 @media all {
   @supports selector(::details-content) {
     details {
@@ -603,10 +588,8 @@
   }
 }
 
-/* ── 메뉴 이동·매장 변경 화면 전환 (View Transitions API) ──
-   workspace.tsx가 전환하는 동안만 <html data-view-nav="forward|back">을 붙인다.
-   이름은 그동안만 붙여, 평소 레이아웃(쌓임 맥락 등)에는 영향이 없다.
-   본문만 움직이고, 왼쪽 메뉴·상단 계정 영역(root)은 그대로 둔다. */
+/* workspace.tsx가 화면 전환 동안만 <html data-view-nav="forward|back">을 붙인다.
+   이름은 그동안만 붙여, 평소 레이아웃(쌓임 맥락 등)에는 영향이 없다. */
 @media all {
   :root[data-view-nav] .merchant-shell .workspace-main {
     view-transition-name: workspace-view;
@@ -631,14 +614,12 @@
   ::view-transition {
     pointer-events: none;
   }
-  /* 메뉴·머리글은 새 모습으로 바로 바꾼다(교차 흐림 없음). */
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
     mix-blend-mode: normal;
   }
 
-  /* 본문: 상자는 제자리에 두고, 안의 화면만 좌우로 밀며 바꾼다. */
   ::view-transition-group(workspace-view) {
     animation: none;
     overflow-x: clip;
@@ -660,7 +641,7 @@
     animation: view-in-left 510ms var(--motion-ease) 60ms both;
   }
 
-  /* 선택 표시는 이전 메뉴에서 새 메뉴로 미끄러진다. 글자·아이콘(nav 그룹)은 그 위에 그대로 있다. */
+  /* 글자·아이콘(nav 그룹)은 미끄러지는 선택 표시 위에 그대로 있다. */
   ::view-transition-group(nav-pill-desktop),
   ::view-transition-group(nav-pill-mobile) {
     z-index: 1;
@@ -684,17 +665,15 @@
     animation: none;
   }
 
-  /* 화면 전환을 쓰지 않을 때: 선택 배경이 살짝 커지며 나타난다. */
+  /* 화면 전환을 쓰지 않을 때 */
   .merchant-shell .nav-pill-enter {
     animation: nav-pill-in 450ms var(--motion-spring) backwards;
   }
-  /* 선택한 메뉴 아이콘이 한 번 톡 튄다. */
   .merchant-shell .nav-item.active > svg {
     animation: nav-icon-pop 630ms var(--motion-ease);
   }
 }
 
-/* ── 목록·표: 처음 그려질 때 위에서부터 차례로 떠오른다 (앞 12줄까지 순서대로) ── */
 @media all {
   :is(.responsive-table, .operator-table) > tbody {
     --motion-lead: 90ms;
@@ -831,7 +810,6 @@
     --motion-i: 11;
   }
 
-  /* 운영자 화면: 메뉴를 바꾸면 제목·숫자·목록이 차례로 떠오른다. */
   .operator-main > :is(.operator-toolbar, .panel) {
     animation: motion-fade-up var(--motion-slow) var(--motion-ease) backwards;
   }
@@ -840,23 +818,19 @@
   }
 }
 
-/* ── 입력 요소 ── */
 @media all {
-  /* 선택 창이 열려 있는 동안 화살표가 뒤집힌다. */
   .control-trigger[aria-haspopup="listbox"] > svg {
     transition: transform var(--motion-base) var(--motion-ease);
   }
   .control-trigger[aria-haspopup="listbox"][aria-expanded="true"] > svg {
     transform: rotate(180deg);
   }
-  /* 고른 항목의 체크, 달력에서 고른 날이 톡 튄다. */
   .choice-list > [aria-selected="true"] > svg {
     animation: motion-pop 540ms var(--motion-spring) 180ms backwards;
   }
   .calendar-days > .selected {
     animation: motion-tap 380ms var(--motion-ease);
   }
-  /* 체크 상자는 누르면 들어가고, 체크되면 톡 튄다. */
   input[type="checkbox"] {
     transition: transform 110ms var(--motion-ease);
   }
@@ -867,8 +841,7 @@
     animation: motion-tap 350ms var(--motion-ease);
   }
 }
-/* 입력칸 초점 테두리가 바깥에서 부드럽게 조여 들어온다. 최종 모양은 기존과 같다.
-   고대비 모드에서는 투명 테두리가 보이게 바뀌므로 적용하지 않는다. */
+/* 고대비 모드에서는 투명 테두리가 보이게 바뀌므로 적용하지 않는다. */
 @media (forced-colors: none) {
   :where(.merchant-shell, .operator-shell, .modal, .login-page, .invite-page)
     :where(
@@ -895,7 +868,6 @@
   }
 }
 
-/* ── 주요 버튼: 마우스를 올리면 빛이 한 번 스친다. ── */
 @media (hover: hover) and (pointer: fine) {
   :is(.operator-shell, .merchant-shell, .modal, .login-page, .invite-page)
     .button.primary {
@@ -923,7 +895,6 @@
   }
 }
 
-/* 홈 '이렇게 쓰면 돼요' 안내. CSS 파일 분담상 여기에 둔다. */
 .merchant-guide {
   container-type: inline-size;
   padding: 14px 16px;
@@ -1035,7 +1006,6 @@
   }
 }
 
-/* 처음 자료 올리기 단계 표시 */
 .onboarding-steps .done {
   color: #3182f6;
 }
