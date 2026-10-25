@@ -32,7 +32,7 @@ CORS_ORIGINS=https://<도메인>
 
 ## GitHub Actions
 
-`.github/workflows/ci.yml`이 API 테스트, 웹 타입 검사·빌드, ML 검사를 실행하고, `main`이면 배포합니다. `.github/workflows/mobile.yml`은 Android APK와 iOS 빌드를 만듭니다.
+`.github/workflows/ci.yml`이 API 테스트, 웹 타입 검사·빌드, ML 검사를 실행하고, `main`이면 배포합니다. `.github/workflows/mobile.yml`은 두 앱의 Android APK와 iOS 빌드를 만듭니다.
 
 저장소 Secrets:
 
@@ -72,12 +72,23 @@ PYTHONPATH=apps/api .venv/bin/python -m app.bootstrap_owner \
 
 ## 모바일 앱
 
-앱은 웹을 정적으로 빌드해 포함하므로, 웹 화면을 바꾸면 앱도 새로 빌드해 설치해야 합니다. 앱에는 관리자 페이지가 들어가지 않습니다.
+앱은 두 개이며 한 기기에 함께 설치할 수 있습니다. 둘 다 웹을 정적으로 빌드해 포함하므로, 웹 화면을 바꾸면 앱도 새로 빌드해 설치해야 합니다.
+
+| 앱 | 대상 | 앱 ID | 프로젝트 |
+| --- | --- | --- | --- |
+| 화개장날 | 점주·직원 | `kr.milky.hwagae` | `apps/mobile` |
+| 화개장날 관리자 | 서비스 운영자 | `kr.milky.hwagae.admin` | `apps/mobile-admin` |
+
+화개장날 앱에는 관리자 페이지가 없고, 운영자가 로그인하면 관리자 앱이나 웹 관리자 페이지로 안내합니다. 화개장날 관리자 앱은 운영자 화면(계약·초대, AI 연결, 점주 관리)으로 바로 열리고 매장 화면은 들어가지 않으며, 점주·직원이 로그인하면 화개장날 앱으로 안내합니다. `scripts/build-mobile.mjs`가 `store`(기본)·`admin` 중 하나로 빌드하고, 웹에는 `NEXT_PUBLIC_HWAGAE_APP`으로 알려줍니다.
 
 ```bash
-npm run mobile:sync      # 웹 정적 빌드 후 Android·iOS 프로젝트에 반영
-npm run mobile:android   # Android Studio 열기
-npm run mobile:ios       # Xcode 열기
+npm run mobile:sync            # 화개장날: 웹 정적 빌드 후 Android·iOS 프로젝트에 반영
+npm run mobile:android         # 화개장날: Android Studio 열기
+npm run mobile:ios             # 화개장날: Xcode 열기
+npm run mobile:admin:sync      # 화개장날 관리자: 웹 정적 빌드 후 반영
+npm run mobile:admin:android   # 화개장날 관리자: Android Studio 열기
+npm run mobile:admin:ios       # 화개장날 관리자: Xcode 열기
+npm run mobile:check           # 두 앱을 모두 빌드(mobile:build, mobile:admin:build)한 뒤 검사
 ```
 
-GitHub Actions의 "Build mobile apps" 실행 결과에서 debug APK와 서명하지 않은 iOS 빌드를 받을 수 있습니다. 앱 아이콘과 시작 화면은 `apps/mobile/resources/mark.svg`에서 `node scripts/mobile-assets.mjs`로 다시 만듭니다.
+GitHub Actions의 "Build mobile apps" 실행 결과에서 앱마다 debug APK와 서명하지 않은 iOS 빌드를 받을 수 있습니다(`hwagae-*`, `hwagae-admin-*`). 두 앱의 아이콘과 시작 화면은 `apps/mobile/resources/mark.svg`에서 `node scripts/mobile-assets.mjs`로 다시 만들며, 관리자 앱은 짙은 남색 배경으로 구분합니다.

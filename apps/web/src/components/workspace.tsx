@@ -221,13 +221,13 @@ type Bundle = {
   orders: Order[];
 };
 
-/** 서비스 운영자 화면은 웹의 /admin에만 있다. 앱에는 넣지 않고 주소도 알리지 않는다. */
+/** 서비스 운영자 화면은 웹의 /admin과 운영자 앱에만 있다. 매장 앱에는 넣지 않고 주소도 알리지 않는다. */
 function OperatorElsewhere() {
   if (Capacitor.isNativePlatform())
     return (
       <span>
-        서비스 운영자 계정은 앱에서 쓸 수 없어요. 웹 브라우저의 관리자
-        페이지에서 로그인해주세요.
+        운영자는 &apos;화개장날 관리자&apos; 앱이나 웹 관리자 페이지에서
+        로그인해주세요.
       </span>
     );
   return (

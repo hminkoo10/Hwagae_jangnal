@@ -1,0 +1,24 @@
+{
+  "appId": "kr.milky.hwagae.admin",
+  "appName": "화개장날 관리자",
+  "webDir": "www",
+  "backgroundColor": "#f4f6f9",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "minWebViewVersion": 111
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "LIGHT",
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}
