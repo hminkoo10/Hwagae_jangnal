@@ -7,6 +7,9 @@ import { OperatorDashboard } from "./operator-dashboard";
 
 // 매장 화면과 같은 세션을 써서, 예전에 /에서 로그인한 운영자도 그대로 이어서 쓴다.
 const SESSION = "hwagae-session";
+// 운영자 앱(scripts/build-mobile.mjs admin)에는 매장 화면이 없어 '화개장날' 앱으로 안내한다.
+const OPERATOR_APP = process.env.NEXT_PUBLIC_HWAGAE_APP === "admin";
+const STORE_APP_NOTICE = "점주·직원 계정은 '화개장날' 앱에서 로그인해주세요.";
 
 export default function AdminApplication() {
   const [restoring, setRestoring] = useState(true);
@@ -75,11 +78,17 @@ export default function AdminApplication() {
       <main className="boot-screen">
         <section className="connection-retry" role="alert">
           <h1>점주·직원 계정이에요</h1>
-          <p>관리자 페이지는 서비스 운영자만 쓸 수 있어요.</p>
+          <p>
+            {OPERATOR_APP
+              ? STORE_APP_NOTICE
+              : "관리자 페이지는 서비스 운영자만 쓸 수 있어요."}
+          </p>
           <div className="split-actions">
-            <Link href="/" className="button primary">
-              매장 화면으로 이동
-            </Link>
+            {!OPERATOR_APP && (
+              <Link href="/" className="button primary">
+                매장 화면으로 이동
+              </Link>
+            )}
             <button className="button secondary" onClick={logout}>
               운영자 계정으로 로그인
             </button>
@@ -158,12 +167,16 @@ function AdminLogin({
         <form className="stack" onSubmit={submit}>
           {storeAccount && (
             <div className="error-banner" role="alert">
-              <span>
-                점주·직원 계정은 여기서 로그인할 수 없어요.{" "}
-                <Link href="/" className="text-button">
-                  매장 화면에서 로그인
-                </Link>
-              </span>
+              {OPERATOR_APP ? (
+                <span>{STORE_APP_NOTICE}</span>
+              ) : (
+                <span>
+                  점주·직원 계정은 여기서 로그인할 수 없어요.{" "}
+                  <Link href="/" className="text-button">
+                    매장 화면에서 로그인
+                  </Link>
+                </span>
+              )}
             </div>
           )}
           {error && (

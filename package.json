@@ -8,7 +8,8 @@
   },
   "workspaces": [
     "apps/web",
-    "apps/mobile"
+    "apps/mobile",
+    "apps/mobile-admin"
   ],
   "scripts": {
     "setup:env": "node scripts/setup-env.mjs",
@@ -22,6 +23,10 @@
     "mobile:sync": "npm run mobile:build && npm run sync --workspace @hwagae/mobile",
     "mobile:android": "npm run open:android --workspace @hwagae/mobile",
     "mobile:ios": "npm run open:ios --workspace @hwagae/mobile",
+    "mobile:admin:build": "node scripts/build-mobile.mjs admin",
+    "mobile:admin:sync": "npm run mobile:admin:build && npm run sync --workspace @hwagae/mobile-admin",
+    "mobile:admin:android": "npm run open:android --workspace @hwagae/mobile-admin",
+    "mobile:admin:ios": "npm run open:ios --workspace @hwagae/mobile-admin",
     "mobile:check": "node --test scripts/mobile-config.test.mjs apps/web/tests/*.test.mjs"
   }
 }

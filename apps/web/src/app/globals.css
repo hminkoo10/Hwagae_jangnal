@@ -33,7 +33,9 @@ body {
 }
 .native-app .app-shell,
 .native-app .login-page,
-.native-app .boot-screen {
+.native-app .boot-screen,
+.native-app .operator-shell,
+.native-app .invite-page {
   min-height: calc(
     100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
   );

@@ -3,7 +3,7 @@
 날씨를 반영한 딥러닝(TFT)으로 소상공인 매장의 7일 판매를 예측하고, 재고와 발주까지 안내하는 서비스입니다.
 
 - 웹: https://hwagae.milky.kr
-- 점주·직원용 웹과 Android·iOS 앱, 서비스 운영자용 관리자 페이지(`/admin`)
+- 점주·직원용 웹과 '화개장날' 앱(`npm run mobile:sync`), 서비스 운영자용 관리자 페이지(`/admin`)와 '화개장날 관리자' 앱(`npm run mobile:admin:sync`). 두 앱 모두 Android·iOS용이고 함께 설치할 수 있습니다.
 
 ## 주요 기능
 
@@ -20,6 +20,7 @@ apps/
   api/      FastAPI · SQLite (Python 3.14)
   web/      Next.js 16 · React 19 · TypeScript
   mobile/   Capacitor Android · iOS 앱 (웹을 정적 빌드해 포함)
+  mobile-admin/  운영자용 '화개장날 관리자' 앱
 ml/
   merchant_tft/  일반 매장용 TFT (추론 코드, 체크포인트, 학습 스크립트)
   ...            Walmart 자료로 학습한 TFT와 평가 코드

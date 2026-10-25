@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/mobile/**"
+      - "apps/mobile-admin/**"
       - "apps/web/**"
       - "scripts/mobile*"
       - "scripts/build-mobile.mjs"
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - "apps/mobile/**"
+      - "apps/mobile-admin/**"
       - "apps/web/**"
       - "scripts/mobile*"
       - "scripts/build-mobile.mjs"
@@ -37,11 +39,24 @@ env:
   NEXT_PUBLIC_DEMO_LOGIN_ENABLED: "false"
   NEXT_TELEMETRY_DISABLED: "1"
 
+# Two installable apps: store (owners and staff, apps/mobile) and admin
+# (service operators, apps/mobile-admin). Each job syncs both web bundles so
+# mobile:check covers both, then builds only its own native project.
 jobs:
   android:
-    name: Android debug APK
+    name: Android debug APK (${{ matrix.app }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: store
+            project: apps/mobile
+            artifact: hwagae
+          - app: admin
+            project: apps/mobile-admin
+            artifact: hwagae-admin
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,28 +71,43 @@ jobs:
           java-version: "21"
           cache: gradle
           cache-dependency-path: |
-            apps/mobile/android/**/*.gradle*
-            apps/mobile/android/gradle/wrapper/gradle-wrapper.properties
+            apps/mobile*/android/**/*.gradle*
+            apps/mobile*/android/gradle/wrapper/gradle-wrapper.properties
       - run: npm ci
       - run: npm run mobile:sync
+      - run: npm run mobile:admin:sync
       - run: npm run mobile:check
       - name: Build installable test APK
-        working-directory: apps/mobile/android
+        working-directory: ${{ matrix.project }}/android
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug --stacktrace
       - name: Save Android APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: hwagae-android-debug
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          name: ${{ matrix.artifact }}-android-debug
+          path: ${{ matrix.project }}/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
 
   ios:
-    name: iOS simulator and unsigned device builds
+    name: iOS simulator and unsigned device builds (${{ matrix.app }})
     runs-on: macos-26
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: store
+            project: apps/mobile
+            artifact: hwagae
+            bundle_id: kr.milky.hwagae
+            display_name: 화개장날
+          - app: admin
+            project: apps/mobile-admin
+            artifact: hwagae-admin
+            bundle_id: kr.milky.hwagae.admin
+            display_name: 화개장날 관리자
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -88,12 +118,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run mobile:sync
+      - run: npm run mobile:admin:sync
       - run: npm run mobile:check
       - name: Build without an Apple signing identity
         run: |
           xcodebuild -version
           xcodebuild \
-            -project apps/mobile/ios/App/App.xcodeproj \
+            -project "${{ matrix.project }}/ios/App/App.xcodeproj" \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
@@ -105,18 +136,18 @@ jobs:
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
             build/ios/Build/Products/Debug-iphonesimulator/App.app \
-            build/hwagae-ios-simulator.zip
+            "build/${{ matrix.artifact }}-ios-simulator.zip"
       - name: Save iOS simulator app
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: hwagae-ios-simulator
-          path: build/hwagae-ios-simulator.zip
+          name: ${{ matrix.artifact }}-ios-simulator
+          path: build/${{ matrix.artifact }}-ios-simulator.zip
           if-no-files-found: error
           retention-days: 7
       - name: Build unsigned iPhone and iPad app
         run: |
           xcodebuild \
-            -project apps/mobile/ios/App/App.xcodeproj \
+            -project "${{ matrix.project }}/ios/App/App.xcodeproj" \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
@@ -129,17 +160,23 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             build
       - name: Package unsigned device IPA for local signing
+        env:
+          BUNDLE_ID: ${{ matrix.bundle_id }}
+          DISPLAY_NAME: ${{ matrix.display_name }}
+          IPA: build/${{ matrix.artifact }}-ios-unsigned.ipa
         run: |
           app="build/ios-device/Build/Products/Release-iphoneos/App.app"
           xcrun lipo "$app/App" -verify_arch arm64
           python3 - <<'PY'
+          import os
           import plistlib
           from pathlib import Path
 
           app = Path("build/ios-device/Build/Products/Release-iphoneos/App.app")
           info = plistlib.loads((app / "Info.plist").read_bytes())
           assert info["CFBundleSupportedPlatforms"] == ["iPhoneOS"], "Device build required"
-          assert info["CFBundleIdentifier"] == "kr.milky.hwagae"
+          assert info["CFBundleIdentifier"] == os.environ["BUNDLE_ID"]
+          assert info["CFBundleDisplayName"] == os.environ["DISPLAY_NAME"]
           assert set(info["UIDeviceFamily"]) == {1, 2}, "Both iPhone and iPad must be supported"
           assert info["MinimumOSVersion"] == "16.4"
           assert (app / "public/index.html").is_file(), "Bundled frontend missing"
@@ -149,12 +186,12 @@ jobs:
           ditto "$app" build/ios-device-package/Payload/App.app
           ditto -c -k --norsrc --keepParent \
             build/ios-device-package/Payload \
-            build/hwagae-ios-unsigned.ipa
-          unzip -t build/hwagae-ios-unsigned.ipa
+            "$IPA"
+          unzip -t "$IPA"
       - name: Save unsigned iOS device IPA
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: hwagae-ios-unsigned
-          path: build/hwagae-ios-unsigned.ipa
+          name: ${{ matrix.artifact }}-ios-unsigned
+          path: build/${{ matrix.artifact }}-ios-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
