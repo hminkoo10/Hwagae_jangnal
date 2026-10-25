@@ -21,282 +21,282 @@
     {
       "product_id": "my-food",
       "date": "2026-08-30",
-      "units_sold": 57
+      "units_sold": 0
     },
     {
       "product_id": "my-food",
       "date": "2026-08-31",
-      "units_sold": 55
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-09-01",
-      "units_sold": 53
+      "units_sold": 12
     },
     {
       "product_id": "my-food",
       "date": "2026-09-02",
-      "units_sold": 51
+      "units_sold": 13
     },
     {
       "product_id": "my-food",
       "date": "2026-09-03",
-      "units_sold": 49
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-09-04",
-      "units_sold": 47
+      "units_sold": 8
     },
     {
       "product_id": "my-food",
       "date": "2026-09-05",
-      "units_sold": 45
+      "units_sold": 4
     },
     {
       "product_id": "my-food",
       "date": "2026-09-06",
-      "units_sold": 57
+      "units_sold": 0
     },
     {
       "product_id": "my-food",
       "date": "2026-09-07",
-      "units_sold": 55
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-09-08",
-      "units_sold": 53
+      "units_sold": 13
     },
     {
       "product_id": "my-food",
       "date": "2026-09-09",
-      "units_sold": 51
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-09-10",
-      "units_sold": 49
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-09-11",
-      "units_sold": 47
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-09-12",
-      "units_sold": 45
+      "units_sold": 2
     },
     {
       "product_id": "my-food",
       "date": "2026-09-13",
-      "units_sold": 57
+      "units_sold": 1
     },
     {
       "product_id": "my-food",
       "date": "2026-09-14",
-      "units_sold": 55
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-09-15",
-      "units_sold": 53
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-09-16",
-      "units_sold": 51
+      "units_sold": 12
     },
     {
       "product_id": "my-food",
       "date": "2026-09-17",
-      "units_sold": 49
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-09-18",
-      "units_sold": 47
+      "units_sold": 7
     },
     {
       "product_id": "my-food",
       "date": "2026-09-19",
-      "units_sold": 45
+      "units_sold": 3
     },
     {
       "product_id": "my-food",
       "date": "2026-09-20",
-      "units_sold": 57
+      "units_sold": 2
     },
     {
       "product_id": "my-food",
       "date": "2026-09-21",
-      "units_sold": 55
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-09-22",
-      "units_sold": 53
+      "units_sold": 12
     },
     {
       "product_id": "my-food",
       "date": "2026-09-23",
-      "units_sold": 51
+      "units_sold": 13
     },
     {
       "product_id": "my-food",
       "date": "2026-09-24",
-      "units_sold": 49
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-09-25",
-      "units_sold": 47
+      "units_sold": 8
     },
     {
       "product_id": "my-food",
       "date": "2026-09-26",
-      "units_sold": 45
+      "units_sold": 4
     },
     {
       "product_id": "my-food",
       "date": "2026-09-27",
-      "units_sold": 57
+      "units_sold": 0
     },
     {
       "product_id": "my-food",
       "date": "2026-09-28",
-      "units_sold": 55
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-09-29",
-      "units_sold": 53
+      "units_sold": 13
     },
     {
       "product_id": "my-food",
       "date": "2026-09-30",
-      "units_sold": 51
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-10-01",
-      "units_sold": 49
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-10-02",
-      "units_sold": 47
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-10-03",
-      "units_sold": 45
+      "units_sold": 2
     },
     {
       "product_id": "my-food",
       "date": "2026-10-04",
-      "units_sold": 57
+      "units_sold": 1
     },
     {
       "product_id": "my-food",
       "date": "2026-10-05",
-      "units_sold": 55
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-10-06",
-      "units_sold": 53
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-10-07",
-      "units_sold": 51
+      "units_sold": 12
     },
     {
       "product_id": "my-food",
       "date": "2026-10-08",
-      "units_sold": 49
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-10-09",
-      "units_sold": 47
+      "units_sold": 7
     },
     {
       "product_id": "my-food",
       "date": "2026-10-10",
-      "units_sold": 45
+      "units_sold": 3
     },
     {
       "product_id": "my-food",
       "date": "2026-10-11",
-      "units_sold": 57
+      "units_sold": 2
     },
     {
       "product_id": "my-food",
       "date": "2026-10-12",
-      "units_sold": 55
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-10-13",
-      "units_sold": 53
+      "units_sold": 12
     },
     {
       "product_id": "my-food",
       "date": "2026-10-14",
-      "units_sold": 51
+      "units_sold": 13
     },
     {
       "product_id": "my-food",
       "date": "2026-10-15",
-      "units_sold": 49
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-10-16",
-      "units_sold": 47
+      "units_sold": 8
     },
     {
       "product_id": "my-food",
       "date": "2026-10-17",
-      "units_sold": 45
+      "units_sold": 4
     },
     {
       "product_id": "my-food",
       "date": "2026-10-18",
-      "units_sold": 57
+      "units_sold": 0
     },
     {
       "product_id": "my-food",
       "date": "2026-10-19",
-      "units_sold": 55
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-10-20",
-      "units_sold": 53
+      "units_sold": 13
     },
     {
       "product_id": "my-food",
       "date": "2026-10-21",
-      "units_sold": 51
+      "units_sold": 11
     },
     {
       "product_id": "my-food",
       "date": "2026-10-22",
-      "units_sold": 49
+      "units_sold": 10
     },
     {
       "product_id": "my-food",
       "date": "2026-10-23",
-      "units_sold": 47
+      "units_sold": 9
     },
     {
       "product_id": "my-food",
       "date": "2026-10-24",
-      "units_sold": 45
+      "units_sold": 2
     }
   ],
   "weather": {
@@ -307,44 +307,44 @@
     "days": [
       {
         "date": "2026-10-25",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       },
       {
         "date": "2026-10-26",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       },
       {
         "date": "2026-10-27",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       },
       {
         "date": "2026-10-28",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       },
       {
         "date": "2026-10-29",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       },
       {
         "date": "2026-10-30",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       },
       {
         "date": "2026-10-31",
-        "temp_max": 24.0,
-        "temp_min": 14.0,
+        "temp_max": 18.0,
+        "temp_min": 9.0,
         "rain_mm": 0.0
       }
     ]
