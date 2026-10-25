@@ -1,30 +1,28 @@
 {
   "schema_version": "1",
-  "version": "merchant-synthetic-live-v1",
+  "version": "merchant-dimigo-store-v1",
   "model": {
-    "name": "실시간 예보 TFT · 실험",
-    "version": "merchant-synthetic-live-v1",
+    "name": "실시간 예보 TFT · 디미고 매점 학습",
+    "version": "merchant-dimigo-store-v1",
     "uses_weather": true,
-    "training_data": "synthetic",
-    "note": "합성 판매·가상 예보로 학습한 별도 실험용 TFT입니다. 현재 조회한 실제 7일 예보를 입력하지만 실매장 예측 성능은 검증하지 않았습니다. 합성 학습에는 기온 상승 시 판매 증가·강한 비에 판매 감소라는 가정이 들어 있습니다. Walmart TFT의 평가 지표는 이 모델에 적용되지 않습니다."
+    "training_data": "dimigo_store",
+    "note": "디미고사회적협동조합 매점의 실제 POS 판매(2025-10-01~2026-07-11, 판매일 223일)와 안산 와동 과거 재분석 날씨로 학습한 TFT입니다. 마지막 6주(2026-05-30~07-11)를 시간순 검증으로 epoch·설정을 골랐고 이후 30% 기간은 학습·선택에 쓰지 않았습니다. 학습 날씨는 관측값에 예보 오차 잡음을 더한 것이며 발급된 예보로 학습하지 않았습니다. 학사일정은 입력하지 않으므로 방학·휴무 시작은 예측하지 못합니다. 다른 매장의 정확도는 검증하지 않았고 Walmart TFT의 평가 지표는 이 모델에 적용되지 않습니다."
   },
   "architecture": {
     "hidden_size": 16,
     "hidden_continuous_size": 8,
     "attention_head_size": 1,
     "lstm_layers": 1,
-    "dropout": 0.05
+    "dropout": 0.1
   },
   "architecture_class": "pytorch_forecasting.TemporalFusionTransformer",
   "features": [
     "sales",
     "dow_sin",
     "dow_cos",
-    "year_sin",
-    "year_cos",
     "relative_day",
-    "temp_max",
-    "temp_min",
+    "temp_max_week_dev",
+    "temp_min_week_dev",
     "rain_mm"
   ],
   "quantiles": [
@@ -36,47 +34,306 @@
   ],
   "encoder_days": 56,
   "forecast_days": 7,
-  "checkpoint_sha256": "db88aec676bb4d70493579af138bf35a7ea87e142bf2912c1b60c24c9859c335",
-  "checkpoint_bytes": 200043,
+  "checkpoint_sha256": "be4510a0f44cd52ef9f8aa6cd3cf6bd87204b1e2666596884312fb081468b02b",
+  "checkpoint_bytes": 153291,
   "training": {
-    "data": "synthetic",
-    "seed": 20261024,
-    "validation_seed": 20261025,
-    "split": "independent generated windows; validation used only to select epoch; not a real-data temporal backtest",
-    "windows": 1536,
-    "validation_windows": 192,
-    "epochs": 32,
-    "best_epoch": 32,
-    "batch_size": 64,
-    "initial_validation_normalized_pinball": 0.6291458606719971,
-    "best_validation_normalized_pinball": 0.05742673575878143,
-    "elapsed_seconds": 109.98673849995248,
-    "threads": 2,
-    "device": "CPU",
+    "data": "dimigo_store",
+    "source": "디미고사회적협동조합 매점 POS 판매 (원본 비공개, 저장소에 포함하지 않음)",
+    "input_sha256": {
+      "sales_daily.csv": "1825cc0fa3e8b282f3b3f830f1cdf9d5cf49b8d194ec194d3d1be20c4ba2dee1",
+      "products.csv": "57186ebef4f1ca7ceff179d4c9cb6018ce4bd5bff544815bb3de641d4b6ca071",
+      "weather_daily.csv": "2350009f4a80953404202c32f96457c1ac2f476e8dc369709b0573181fb19274",
+      "split.json": "3a0f8a0435f6df843ebe66567d52075aea566f80a49dfc11af2ca417c2f8a2e0"
+    },
+    "raw_source_sha256": {
+      "디미고사회적협동조합_판매.xlsx": "b306a3ea2d003988c4308c265f6752c7f6c7b79012832ea069a9aeb1239225f7",
+      "디미고사회적협동조합_발주.xlsx": "f2194a0a50c4a469af5015cb859a43d508a2cc3579e20f23c7d4d5548f425703"
+    },
+    "period": {
+      "start": "2025-10-01",
+      "end": "2026-07-11",
+      "sales_days": 223,
+      "note": "70% of sales days; the later 30% (2026-07-12~2026-10-24) was not received or used"
+    },
+    "fit_targets": {
+      "start": "2025-11-26",
+      "end": "2026-05-29",
+      "windows": 48251
+    },
+    "validation_targets": {
+      "start": "2026-05-30",
+      "end": "2026-07-11",
+      "windows": 9416,
+      "use": "epoch and setting selection only; time-ordered, no shuffled dates"
+    },
+    "products": 449,
+    "products_with_windows": 340,
+    "seed": 20261025,
+    "validation_noise_seed": 20261026,
+    "epochs_max": 40,
+    "patience": 8,
+    "epochs_run": 20,
+    "best_epoch": 12,
+    "batch_size": 256,
+    "initial_validation_weighted_normalized_pinball": 0.7557210922241211,
+    "best_validation_weighted_normalized_pinball": 0.2694275975227356,
+    "elapsed_seconds": 2342.0650920550006,
+    "threads": 1,
+    "device": "NVIDIA A100-SXM4-80GB",
+    "evaluation_device": "CPU",
     "precision": "float32",
     "optimizer": "Adam",
-    "learning_rate": 0.003,
-    "assumptions": "synthetic sales increase 0.022 per degC relative to 20C and decrease 0.012 per rain mm; not evidence of a real causal response",
-    "forecast_noise": "temperature Gaussian sd1.5C, rain Gaussian sd2mm clipped at zero, generated independently per window"
+    "learning_rate": 0.002,
+    "loss_weights": {
+      "store_has_sales_0": 0.25,
+      "est_stock_open_0_and_units_0": 0.0,
+      "other": 1.0,
+      "note": "store_has_sales and est_stock_open are loss weights only, not model inputs"
+    },
+    "zero_rule": "days between a product's first and last sale without a sales row are real zeros; days outside that span are absent",
+    "weather": "Open-Meteo reanalysis for Ansan Wa-dong; decoder gets reanalysis + lead-dependent forecast-error noise",
+    "forecast_noise": "lead 1..7: temperature Gaussian sd 1.0+0.2*lead C; rain x lognormal(sd0.5) + Gaussian sd 0.5+0.3*lead mm, clipped at zero; fresh draw per epoch",
+    "not_used": "store/product IDs, category, academic calendar, prices, stock, store_has_sales, est_stock_open as features",
+    "feature_set": "week_dev_rain"
   },
-  "normalization": "history-only mean (minimum1); temperatures fixed physical scales; no fitted category/group/target encoders",
+  "normalization": "history-only 56-day mean (minimum1); weather fixed physical scales; no fitted category/group/target encoders",
   "packages": {
-    "torch": "2.11.0+cpu",
+    "torch": "2.11.0+cu130",
     "pytorch-forecasting": "1.5.0",
     "numpy": "2.1.3"
   },
-  "created_at": "2026-10-24T07:15:45.225061+00:00",
+  "created_at": "2026-10-25T04:39:40.429504+00:00",
   "source_sha256": {
-    "network.py": "cc3e5726f778dcb8176f5ed0afaf66e573153a0fb7df79b8b8596a230206fca1",
-    "train.py": "8c846bf9a21714fb0e10319cef4d885e47f4e4f35cf20133fa8b58576dba0804",
-    "predict.py": "0899c45f7dd724657f19ec1fcb931837712ef08fe78bfe9bb9afa7bd5936c984"
+    "network.py": "25b83198d67830a3eee401bbe07a0c5e57283ef7dad516142df6d8ac7ad14f0c",
+    "train.py": "397a9ab5ffd2981c85b4472dc65f42412341165171714f59bc8f2ed1ddde1000",
+    "predict.py": "f1483522b31cb566546f0d48fa44d6a8d9ce85f6b87f6bc15781f40d26a806a0"
   },
-  "synthetic_validation": {
-    "label": "synthetic validation only; no real merchant performance claim",
-    "rows": 1344,
-    "mae_units": 10.764013290405273,
-    "interval_coverage": 0.8363095238095238,
-    "interval_width_units": 45.66086959838867,
-    "normalized_pinball_5": 0.05742673575878143
+  "validation": {
+    "label": "70% period time-ordered validation; not the 30% holdout",
+    "metrics": {
+      "all_rows": {
+        "tft": {
+          "rows": 65912,
+          "mae_units": 1.1950464248657227,
+          "pinball_p10_p50_p90_units": 0.38635917110500206,
+          "interval_p10_p90_coverage": 0.8942529433183639,
+          "interval_p10_p90_width_units": 4.248497009277344,
+          "pinball_5_quantile_units": 0.4264642138193226
+        },
+        "api_weekday_baseline_same_56_days": {
+          "rows": 65912,
+          "mae_units": 1.2847584658332323,
+          "pinball_p10_p50_p90_units": 0.42718371970708424,
+          "interval_p10_p90_coverage": 0.8016597888093215,
+          "interval_p10_p90_width_units": 2.852469959946596
+        },
+        "api_weekday_baseline_up_to_84_days": {
+          "rows": 65912,
+          "mae_units": 1.2651262289112757,
+          "pinball_p10_p50_p90_units": 0.4165459501557633,
+          "interval_p10_p90_coverage": 0.8066968078650322,
+          "interval_p10_p90_width_units": 3.039390399320306
+        }
+      },
+      "excluding_estimated_stockout_zero": {
+        "tft": {
+          "rows": 64138,
+          "mae_units": 1.219936728477478,
+          "pinball_p10_p50_p90_units": 0.394164186075459,
+          "interval_p10_p90_coverage": 0.8919361377030778,
+          "interval_p10_p90_width_units": 4.32041597366333,
+          "pinball_5_quantile_units": 0.4351652311158623
+        },
+        "api_weekday_baseline_same_56_days": {
+          "rows": 64138,
+          "mae_units": 1.3149926720508902,
+          "pinball_p10_p50_p90_units": 0.4370430945773176,
+          "interval_p10_p90_coverage": 0.7964233371792073,
+          "interval_p10_p90_width_units": 2.9012613427297396
+        },
+        "api_weekday_baseline_up_to_84_days": {
+          "rows": 64138,
+          "mae_units": 1.2960335526520939,
+          "pinball_p10_p50_p90_units": 0.4264295737316411,
+          "interval_p10_p90_coverage": 0.8016776326046962,
+          "interval_p10_p90_width_units": 3.0952976394649037
+        }
+      },
+      "store_open_days": {
+        "tft": {
+          "rows": 62467,
+          "mae_units": 1.2603133916854858,
+          "pinball_p10_p50_p90_units": 0.4036299865313178,
+          "interval_p10_p90_coverage": 0.8890133990747114,
+          "interval_p10_p90_width_units": 4.364919662475586,
+          "pinball_5_quantile_units": 0.44554889138857456
+        },
+        "api_weekday_baseline_same_56_days": {
+          "rows": 62467,
+          "mae_units": 1.3448300702771063,
+          "pinball_p10_p50_p90_units": 0.4458260094663315,
+          "interval_p10_p90_coverage": 0.7910576784542238,
+          "interval_p10_p90_width_units": 2.918547393023516
+        },
+        "api_weekday_baseline_up_to_84_days": {
+          "rows": 62467,
+          "mae_units": 1.3291337826372325,
+          "pinball_p10_p50_p90_units": 0.43605012780081215,
+          "interval_p10_p90_coverage": 0.7960363071701858,
+          "interval_p10_p90_width_units": 3.131786383210336
+        }
+      }
+    }
+  },
+  "setting_selection": {
+    "chosen": "week_dev_rain_lr0.002",
+    "environment": "Colab Pro, NVIDIA A100-SXM4-80GB, 8 runs in parallel, same seed and code; metrics evaluated on CPU float32",
+    "rule": "lowest validation_weighted_normalized_pinball among settings that read temp_max, temp_min and rain_mm as the contract requires; rain_only (0.26908) and week_dev_rain (0.26943) differ by 0.13%, within run-to-run noise",
+    "weather_ablation": "no_weather scored better on this validation window (0.26608, MAE 1.180 vs 1.195); weather is not shown to improve accuracy here",
+    "absolute_temperature": "absolute temperatures scored worst (0.27434); one school year ties temperature to season and vacations",
+    "runs": [
+      {
+        "run": "absolute_weather_lr0.001",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day",
+          "temp_max",
+          "temp_min",
+          "rain_mm"
+        ],
+        "learning_rate": 0.001,
+        "best_epoch": 5,
+        "validation_weighted_normalized_pinball": 0.275522917509079,
+        "mae_units": 1.2265499830245972,
+        "pinball_5_quantile_units": 0.4402542905220204,
+        "interval_p10_p90_coverage": 0.8269207428085933,
+        "checkpoint_sha256": "342db4a7a9f36a28de13da9072d1a805736932c46b7191e5d2486e2266fc5617"
+      },
+      {
+        "run": "absolute_weather_lr0.002",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day",
+          "temp_max",
+          "temp_min",
+          "rain_mm"
+        ],
+        "learning_rate": 0.002,
+        "best_epoch": 5,
+        "validation_weighted_normalized_pinball": 0.2743423283100128,
+        "mae_units": 1.2371504306793213,
+        "pinball_5_quantile_units": 0.4379352489514567,
+        "interval_p10_p90_coverage": 0.7389397985192377,
+        "checkpoint_sha256": "32993195b25c4f1a5188e7b0588dfeb6c02bd0b5b15f8d392f985f50a43e871d"
+      },
+      {
+        "run": "no_weather_lr0.001",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day"
+        ],
+        "learning_rate": 0.001,
+        "best_epoch": 13,
+        "validation_weighted_normalized_pinball": 0.26662009954452515,
+        "mae_units": 1.1801555156707764,
+        "pinball_5_quantile_units": 0.42135519161324775,
+        "interval_p10_p90_coverage": 0.8721780555892705,
+        "checkpoint_sha256": "78722f30cfbb52800e112fe73b07329da6d2f244f2307a24890463ada2ecb57e"
+      },
+      {
+        "run": "no_weather_lr0.002",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day"
+        ],
+        "learning_rate": 0.002,
+        "best_epoch": 12,
+        "validation_weighted_normalized_pinball": 0.26608389616012573,
+        "mae_units": 1.1803439855575562,
+        "pinball_5_quantile_units": 0.42429430227500764,
+        "interval_p10_p90_coverage": 0.872360116518995,
+        "checkpoint_sha256": "b407a5d738eab6560402dccffe4d16118f82b30b6f93b46ec4b2a379ded94373"
+      },
+      {
+        "run": "rain_only_lr0.001",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day",
+          "rain_mm"
+        ],
+        "learning_rate": 0.001,
+        "best_epoch": 10,
+        "validation_weighted_normalized_pinball": 0.26907673478126526,
+        "mae_units": 1.1932283639907837,
+        "pinball_5_quantile_units": 0.42633401335716814,
+        "interval_p10_p90_coverage": 0.8321549945381721,
+        "checkpoint_sha256": "abacea7c021b495eadbb588b9d8bc63d830ae5f4d94381de05973dc67658c547"
+      },
+      {
+        "run": "rain_only_lr0.002",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day",
+          "rain_mm"
+        ],
+        "learning_rate": 0.002,
+        "best_epoch": 10,
+        "validation_weighted_normalized_pinball": 0.2691349685192108,
+        "mae_units": 1.1944485902786255,
+        "pinball_5_quantile_units": 0.426817083167601,
+        "interval_p10_p90_coverage": 0.8739076344216531,
+        "checkpoint_sha256": "93c9e213ffa4ca38bc3fbc9f112184e6d47c676a4074193c9ca9f8ccc9193e6d"
+      },
+      {
+        "run": "week_dev_rain_lr0.001",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day",
+          "temp_max_week_dev",
+          "temp_min_week_dev",
+          "rain_mm"
+        ],
+        "learning_rate": 0.001,
+        "best_epoch": 10,
+        "validation_weighted_normalized_pinball": 0.2696388363838196,
+        "mae_units": 1.198565125465393,
+        "pinball_5_quantile_units": 0.4279118913948267,
+        "interval_p10_p90_coverage": 0.8663976210705183,
+        "checkpoint_sha256": "dd6f8f39a655eedf9096390ac754e4d02fc46d3a02795ed5f60108ebc3325a7f"
+      },
+      {
+        "run": "week_dev_rain_lr0.002",
+        "features": [
+          "sales",
+          "dow_sin",
+          "dow_cos",
+          "relative_day",
+          "temp_max_week_dev",
+          "temp_min_week_dev",
+          "rain_mm"
+        ],
+        "learning_rate": 0.002,
+        "best_epoch": 12,
+        "validation_weighted_normalized_pinball": 0.2694275975227356,
+        "mae_units": 1.1950464248657227,
+        "pinball_5_quantile_units": 0.4264642138193226,
+        "interval_p10_p90_coverage": 0.8942529433183639,
+        "checkpoint_sha256": "be4510a0f44cd52ef9f8aa6cd3cf6bd87204b1e2666596884312fb081468b02b"
+      }
+    ]
   }
 }

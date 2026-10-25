@@ -64,6 +64,8 @@ from app.walmart_scenarios import (
 logger = logging.getLogger(__name__)
 # Stores forecast with the weather TFT; the weekday baseline remains for comparisons and tests.
 DEFAULT_FORECAST_PROVIDER = "merchant_tft"
+# The bundled merchant TFT (ml/merchant_tft) is trained on the Dimigo store's POS sales.
+MERCHANT_TFT_TRAINING_DATA = "dimigo_store"
 
 
 class HealthResponse(BaseModel):
@@ -228,7 +230,7 @@ def create_app(db_path=None, seed=True):
                 source = manifest["model"]
                 if (
                     source["uses_weather"] is True
-                    and source["training_data"] == "synthetic"
+                    and source["training_data"] == MERCHANT_TFT_TRAINING_DATA
                     and all(
                         isinstance(source[key], str) and source[key]
                         for key in ("name", "version", "note")
@@ -257,7 +259,7 @@ def create_app(db_path=None, seed=True):
             history = db.execute("SELECT MIN(date),MAX(date) FROM sales WHERE store_id=?", (store["id"],)).fetchone()
         return {
             "provider": provider,
-            "model_kind": "walmart" if binding else "synthetic",
+            "model_kind": "walmart" if binding else MERCHANT_TFT_TRAINING_DATA,
             # A week of slack past the bare minimum so products first sold a few days late still have full history.
             "history_available_from": (date.fromisoformat(history[0]) + timedelta(days=(55 if provider == "merchant_tft" else 27) + 7)).isoformat() if history[0] else None,
             "history_available_to": history[1],
@@ -719,7 +721,7 @@ def create_app(db_path=None, seed=True):
                     model = result.get("model", {})
                     if (
                         model.get("uses_weather") is not True
-                        or model.get("training_data") != ("walmart" if binding else "synthetic")
+                        or model.get("training_data") != ("walmart" if binding else MERCHANT_TFT_TRAINING_DATA)
                         or not isinstance(model.get("note"), str)
                         or not model["note"]
                     ):

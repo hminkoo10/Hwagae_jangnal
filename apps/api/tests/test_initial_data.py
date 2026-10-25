@@ -107,7 +107,7 @@ def test_regular_data_uses_general_tft_without_walmart_id_mapping(session):
     output = io.BytesIO(); book.save(output); book.close()
     assert post(client, path, auth["owner"], output.getvalue(), save=True).status_code == 201
     settings = client.get(path + "/forecast-settings", headers=auth["owner"]).json()
-    assert settings["model_kind"] == "synthetic"
+    assert settings["model_kind"] == "dimigo_store"
 
 
 def test_recheck_empty_store_inside_transaction(session):

@@ -107,7 +107,7 @@ export type Forecast = {
 };
 export type MerchantForecastSettings = {
   provider: "weekday" | "merchant_tft";
-  model_kind?: "walmart" | "synthetic";
+  model_kind?: "walmart" | "dimigo_store";
   history_available_from?: string | null;
   history_available_to?: string | null;
   runtime: { status: string; message: string };
