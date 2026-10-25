@@ -122,6 +122,7 @@ export function MerchantManagementTable({
   onManage,
   onInvite,
   onConnect,
+  onDelete,
 }: {
   rows: MerchantRow[];
   busy: boolean;
@@ -129,6 +130,7 @@ export function MerchantManagementTable({
   onManage: (contract: Contract) => void;
   onInvite: (contract: Contract) => void;
   onConnect: (merchant: ExistingMerchant) => void;
+  onDelete: (row: MerchantRow) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const prefix = useId();
@@ -263,6 +265,15 @@ export function MerchantManagementTable({
                             계약 연결
                           </button>
                         )}
+                        <button
+                          className="text-button merchant-delete"
+                          type="button"
+                          disabled={busy}
+                          aria-label={`${row.name} 점주 삭제`}
+                          onClick={() => onDelete(row)}
+                        >
+                          점주 삭제
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, ApiError, addCalendarDays, type User } from "@/lib/api";
-import { CountUp, Modal } from "./ui";
+import { CountUp, Icon, Modal } from "./ui";
 import { DateField, Select } from "./controls";
 import { AiSettings } from "./ai-settings";
 import styles from "./operator-ai.module.css";
@@ -11,6 +11,7 @@ import {
   merchantStatuses,
   type Contract,
   type ExistingMerchant,
+  type MerchantRow,
 } from "./operator-merchant-table";
 
 type Overview = {
@@ -47,7 +48,14 @@ export function OperatorDashboard({
   } | null>(null);
   const [editing, setEditing] = useState<Contract | null>(null);
   const [invite, setInvite] = useState<Invite | null>(null);
+  const [deleting, setDeleting] = useState<MerchantRow | null>(null);
   const [notice, setNotice] = useState("");
+  const [toast, setToast] = useState("");
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
   const [view, setView] = useState<"merchants" | "ai">("merchants");
   const [aiReady, setAiReady] = useState<boolean | null>(null);
   const [aiReload, setAiReload] = useState(0);
@@ -295,6 +303,7 @@ export function OperatorDashboard({
                     today={data.today}
                     onManage={setEditing}
                     onConnect={(m) => setCreating({ email: m.email, name: m.name })}
+                    onDelete={setDeleting}
                     onInvite={(c) => {
                       void action(async () => {
                         setInvite(
@@ -361,6 +370,47 @@ export function OperatorDashboard({
             });
           }}
         />
+      )}
+      {deleting && (
+        <DeleteMerchant
+          key={deleting.id}
+          row={deleting}
+          busy={busy}
+          onClose={() => {
+            if (!busy) setDeleting(null);
+          }}
+          onDelete={async () => {
+            await action(async () => {
+              const result = await api<{ deleted_stores: number }>(
+                deleting.contract
+                  ? `/admin/contracts/${deleting.contract.id}/delete`
+                  : `/admin/merchants/${deleting.existing!.id}/delete`,
+                token,
+                { method: "POST" },
+              );
+              setDeleting(null);
+              setToast(
+                result.deleted_stores
+                  ? `점주와 매장 ${result.deleted_stores}곳을 삭제했어요.`
+                  : "점주를 삭제했어요.",
+              );
+            });
+          }}
+        />
+      )}
+      {toast && (
+        <div key={toast} className="toast" role="status">
+          <Icon name="check" />
+          {toast}
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="알림 닫기"
+            onClick={() => setToast("")}
+          >
+            <Icon name="close" size={16} />
+          </button>
+        </div>
       )}
       {invite && (
         <Modal title="점주 초대 링크" onClose={() => setInvite(null)}>
@@ -581,6 +631,78 @@ function EditContract({
         </p>
         <button className="button primary" disabled={busy}>
           {busy ? "저장 중…" : "변경 저장"}
+        </button>
+      </form>
+    </Modal>
+  );
+}
+function DeleteMerchant({
+  row,
+  busy,
+  onClose,
+  onDelete,
+}: {
+  row: MerchantRow;
+  busy: boolean;
+  onClose: () => void;
+  onDelete: () => Promise<void>;
+}) {
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState("");
+  const confirmed =
+    typed.trim().toLocaleLowerCase() === row.email.toLocaleLowerCase();
+  const joined = !!row.existing || !!row.contract?.user_id;
+  return (
+    <Modal title={`${row.name} · 점주 삭제`} onClose={onClose}>
+      <form
+        className="stack"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!confirmed) return;
+          try {
+            await onDelete();
+          } catch (e) {
+            setError(message(e));
+          }
+        }}
+      >
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
+        <p>삭제하면 되돌릴 수 없어요. 아래 자료가 모두 지워져요.</p>
+        <ul className="helper merchant-delete-list">
+          {row.stores.length > 0 && (
+            <li>
+              매장 {row.stores.length}곳(
+              {row.stores.map((s) => s.name).join(", ")})과 그 매장의
+              상품·판매·재고·예측·발주 기록
+            </li>
+          )}
+          {row.stores.length > 0 && (
+            <li>이 매장들의 직원 소속과 직원 초대. 직원 계정은 남아요.</li>
+          )}
+          {row.contract && <li>계약과 초대 링크</li>}
+          {joined && (
+            <li>
+              점주 로그인 정보, 이름·이메일, 시연 발주 기록. 같은 이메일로 다시
+              계약할 수 있어요.
+            </li>
+          )}
+        </ul>
+        <label>
+          확인을 위해 {row.email} 이메일을 입력하세요.
+          <input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={busy}
+          />
+        </label>
+        <button className="button danger" disabled={busy || !confirmed}>
+          {busy ? "삭제 중…" : "점주 삭제"}
         </button>
       </form>
     </Modal>

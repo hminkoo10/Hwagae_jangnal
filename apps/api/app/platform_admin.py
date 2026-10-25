@@ -135,6 +135,36 @@ def issue_invite(db, contract_id):
     return {"token": token, "expires_at": expiry}
 
 
+def delete_merchant(db, user_id):
+    """Delete the merchant's stores with every row they own and retire the account. Returns the store count."""
+    from app.staff import drop_idle_sessions
+    owned = [r[0] for r in db.execute("SELECT store_id FROM memberships WHERE user_id=? AND role='owner'", (user_id,)).fetchall()]
+    # A store another owner still runs only loses this owner's membership.
+    stores = [s for s in owned if not db.execute("SELECT 1 FROM memberships WHERE store_id=? AND role='owner' AND user_id<>?", (s, user_id)).fetchone()]
+    members = {r[0] for s in stores for r in db.execute("SELECT user_id FROM memberships WHERE store_id=? AND user_id<>?", (s, user_id)).fetchall()}
+    names = [r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name<>'stores'").fetchall()]
+    tables = [t for t in names if any(c["name"] == "store_id" for c in db.execute(f'PRAGMA table_info("{t}")').fetchall())]
+    # Checked at commit instead of per statement, so store tables can go in any order.
+    db.execute("PRAGMA defer_foreign_keys=ON")
+    for store_id in stores:
+        for table in tables:
+            db.execute(f'DELETE FROM "{table}" WHERE store_id=?', (store_id,))
+        db.execute("DELETE FROM stores WHERE id=?", (store_id,))
+    db.execute("DELETE FROM memberships WHERE user_id=?", (user_id,))
+    db.execute("DELETE FROM staff_invites WHERE invited_by=? AND used_at IS NULL", (user_id,))
+    db.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
+    for table in ("model_demo_orders", "model_demo_recommendations", "model_demo_runs", "model_demo_workspaces"):
+        db.execute(f"DELETE FROM {table} WHERE user_id=?", (user_id,))
+    db.execute("DELETE FROM merchant_invites WHERE contract_id IN (SELECT id FROM merchant_contracts WHERE user_id=?)", (user_id,))
+    db.execute("DELETE FROM merchant_contracts WHERE user_id=?", (user_id,))
+    # Audit rows and orders in other stores still point at the account, so it is anonymised rather than removed.
+    db.execute("UPDATE users SET email=?,name='삭제된 점주',salt=?,password_hash=? WHERE id=?", (f"deleted-{user_id}@deleted.invalid", secrets.token_hex(16), secrets.token_hex(32), user_id))
+    db.execute("INSERT INTO account_controls VALUES (?,0) ON CONFLICT(user_id) DO UPDATE SET enabled=0", (user_id,))
+    for member in members:
+        drop_idle_sessions(db, member)
+    return len(stores)
+
+
 def invitation(db, token):
     row = db.execute("SELECT c.*,i.expires_at FROM merchant_invites i JOIN merchant_contracts c ON c.id=i.contract_id WHERE i.token_hash=? AND i.used_at IS NULL AND i.expires_at>?", (hashlib.sha256(token.encode()).hexdigest(), now_iso())).fetchone()
     if not row or row["user_id"] or row["status"] != "active" or row["ends_on"] < today().isoformat():
@@ -211,6 +241,36 @@ def mount_platform_routes(application, database, authenticated):
             invite = issue_invite(db, contract_id)
             audit(db, user["id"], "invite.reissue", contract_id)
         return invite
+
+    def retire(db, actor_id, user_id):
+        if is_operator(db, user_id):
+            raise HTTPException(400, "운영자 계정은 삭제할 수 없어요.")
+        if not db.execute("SELECT 1 FROM memberships WHERE user_id=? AND role='owner' UNION SELECT 1 FROM merchant_contracts WHERE user_id=?", (user_id, user_id)).fetchone():
+            raise HTTPException(404, "점주를 찾을 수 없어요.")
+        deleted = delete_merchant(db, user_id)
+        audit(db, actor_id, "merchant.delete", user_id)
+        return {"ok": True, "deleted_stores": deleted}
+
+    @router.post("/admin/merchants/{user_id}/delete")
+    def delete_account(user_id: str, user=Depends(operator)):
+        with database.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            return retire(db, user["id"], user_id)
+
+    @router.post("/admin/contracts/{contract_id}/delete")
+    def delete_contract(contract_id: str, user=Depends(operator)):
+        with database.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT user_id FROM merchant_contracts WHERE id=?", (contract_id,)).fetchone()
+            if not row:
+                raise HTTPException(404, "계약을 찾을 수 없어요.")
+            if row["user_id"]:
+                return retire(db, user["id"], row["user_id"])
+            # Nobody joined yet: only the contract and its links go.
+            db.execute("DELETE FROM merchant_invites WHERE contract_id=?", (contract_id,))
+            db.execute("DELETE FROM merchant_contracts WHERE id=?", (contract_id,))
+            audit(db, user["id"], "contract.delete", contract_id)
+        return {"ok": True, "deleted_stores": 0}
 
     @router.post("/auth/invitations/inspect")
     def inspect(payload: InviteInput):
