@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { AiAnswer, AiThinking } from "./ai-answer";
 
 export type AiRun = {
   text: string;
@@ -13,6 +14,15 @@ export type AiAccess = {
   storeId: string;
   onExpired?: () => void;
 };
+
+const AI_UNAVAILABLE = "AI가 지금 답하지 못했어요. 잠시 후 다시 시도해주세요.";
+
+// Store checks (4xx) explain what to fix; connection trouble stays a plain retry.
+function aiErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500)
+    return error.message;
+  return AI_UNAVAILABLE;
+}
 
 export function useAiRequest<T extends AiRun>({
   token,
@@ -45,11 +55,7 @@ export function useAiRequest<T extends AiRun>({
       return next;
     } catch (e) {
       if (!controller.signal.aborted) {
-        setError(
-          e instanceof Error
-            ? e.message
-            : "내용을 정리하지 못했어요. 다시 시도해주세요.",
-        );
+        setError(aiErrorMessage(e));
         if (e instanceof ApiError && e.status === 401) onExpired?.();
       }
       return null;
@@ -73,46 +79,53 @@ export function useAiRequest<T extends AiRun>({
 
 export function AiError({ error }: { error: string }) {
   return error ? (
-    <p className="error-banner" role="alert">
-      {error}
+    <p className="assistant-error" role="alert">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <circle cx="10" cy="10" r="8" />
+        <path d="M10 6v4.6M10 13.6v.1" />
+      </svg>
+      <span>{error}</span>
     </p>
   ) : null;
 }
 
-export function AiAnswer({
-  result,
-  copy = false,
-}: {
-  result: AiRun;
-  copy?: boolean;
-}) {
+function SparkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M11 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z" />
+      <path d="M18.5 14.5c.25 1.7 1.1 2.6 2.8 2.8-1.7.25-2.55 1.1-2.8 2.8-.25-1.7-1.1-2.55-2.8-2.8 1.7-.25 2.55-1.1 2.8-2.8z" />
+    </svg>
+  );
+}
+
+function dayLabel(value: string) {
+  const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(value);
+  return match ? `${Number(match[1])}월 ${Number(match[2])}일` : value;
+}
+
+// Supplier text is copied as-is, so it keeps its own line breaks.
+function AiMessage({ text }: { text: string }) {
   const [notice, setNotice] = useState("");
   return (
-    <div className="assistant-answer" role="status">
-      <p className="assistant-text">{result.text}</p>
-      <div className="assistant-answer-foot">
-        <small>
-          {result.connection.name}
-          {result.fallback_used ? " · 다음 순위로 연결했어요" : ""}
-        </small>
-        {copy && (
-          <button
-            type="button"
-            className="text-button"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(result.text);
-                setNotice("복사했어요.");
-              } catch {
-                setNotice("내용을 길게 누르거나 드래그해서 복사해주세요.");
-              }
-            }}
-          >
-            문구 복사
-          </button>
-        )}
+    <div className="assistant-message">
+      <p className="assistant-message-text">{text}</p>
+      <div className="assistant-message-foot">
+        <small role="status">{notice}</small>
+        <button
+          type="button"
+          className="button secondary assistant-copy"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(text);
+              setNotice("복사했어요.");
+            } catch {
+              setNotice("내용을 길게 누르거나 드래그해서 복사해주세요.");
+            }
+          }}
+        >
+          문구 복사
+        </button>
       </div>
-      {notice && <small role="status">{notice}</small>}
     </div>
   );
 }
@@ -155,52 +168,69 @@ export function AiAssistant({
   asOf,
   forecastId,
   disabled,
-  onSetup,
   ...access
 }: AiAccess & {
   tab: keyof typeof ASSISTANT_TASKS;
   asOf: string;
   forecastId?: string;
   disabled?: boolean;
-  onSetup: () => void;
+  /** Not used: the service operator manages the AI connection for every store. */
+  onSetup?: () => void;
 }) {
   const [question, setQuestion] = useState("");
+  const [asked, setAsked] = useState(false);
   const assistant = useAiRequest<AiRun>(access);
   const info = ASSISTANT_TASKS[tab];
-  const ask = (query?: string) =>
-    assistant.run("help", {
+  const inputId = useId();
+  const ask = (query?: string) => {
+    setAsked(Boolean(query));
+    return assistant.run("help", {
       task: query ? "question" : info.task,
       as_of: asOf,
       forecast_id: forecastId ?? null,
       ...(query ? { question: query } : {}),
     });
+  };
+  const canAsk = !assistant.busy && !disabled && question.trim().length > 0;
   return (
     <section
-      className="panel assistant-panel"
+      className="panel assistant-panel assistant-chat"
       aria-busy={assistant.busy}
       aria-label={info.title}
     >
-      <div className="panel-heading">
-        <div>
+      <div className="assistant-head">
+        <div className="assistant-head-copy">
+          <span className="assistant-eyebrow">
+            <SparkIcon />
+            AI 도우미
+          </span>
           <h3>{info.title}</h3>
           <p>{info.description}</p>
         </div>
         <button
           type="button"
-          className="button secondary"
+          className="button assistant-run"
           disabled={disabled || assistant.busy}
           onClick={() => void ask()}
         >
-          {assistant.busy ? "기록을 살펴보는 중…" : info.action}
+          {info.action}
         </button>
       </div>
+      {assistant.busy && (
+        <AiThinking
+          label={asked ? "답변을 정리하고 있어요" : "매장 기록을 살펴보고 있어요"}
+        />
+      )}
       <AiError error={assistant.error} />
-      {assistant.result && <AiAnswer result={assistant.result} />}
-      <details className="assistant-question">
-        <summary>매장에 물어보기</summary>
-        <label>
-          궁금한 점
+      {assistant.result && <AiAnswer text={assistant.result.text} />}
+      <div className="assistant-ask">
+        <label htmlFor={inputId} className="assistant-ask-label">
+          매장에 물어보기
+        </label>
+        <div className="assistant-ask-box">
           <textarea
+            id={inputId}
+            className="assistant-ask-input"
             value={question}
             maxLength={1200}
             rows={2}
@@ -208,30 +238,23 @@ export function AiAssistant({
             disabled={assistant.busy || disabled}
             onChange={(e) => setQuestion(e.target.value)}
           />
-        </label>
-        <button
-          type="button"
-          className="button secondary"
-          disabled={assistant.busy || disabled || !question.trim()}
-          onClick={() => void ask(question.trim())}
-        >
-          물어보기
-        </button>
-      </details>
-      <div className="assistant-foot">
-        <small>
-          선택한 기준일 {asOf}의 기록으로 답해요. 필요한 내용은 한 번 더
-          확인해주세요.
-        </small>
-        <button
-          type="button"
-          className="text-button"
-          disabled={assistant.busy}
-          onClick={onSetup}
-        >
-          도우미 연결 관리
-        </button>
+          <button
+            type="button"
+            className="button primary assistant-send"
+            disabled={!canAsk}
+            onClick={() => void ask(question.trim())}
+          >
+            물어보기
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 15.5v-11M5.5 9 10 4.5 14.5 9" />
+            </svg>
+          </button>
+        </div>
       </div>
+      <p className="assistant-foot">
+        <time dateTime={asOf}>{dayLabel(asOf)}</time> 기록으로 답해요. 중요한
+        내용은 한 번 더 확인해주세요.
+      </p>
     </section>
   );
 }
@@ -243,22 +266,23 @@ export function AiOrderMessage({
   const assistant = useAiRequest<AiRun>(access);
   return (
     <section className="assistant-order" aria-busy={assistant.busy}>
-      <div className="panel-heading">
-        <div>
+      <div className="assistant-head">
+        <div className="assistant-head-copy">
           <h3>공급사에 전달할 문구</h3>
           <p>저장한 수량으로 만들어요. 복사한 뒤 확인하고 전달해주세요.</p>
         </div>
         <button
           type="button"
-          className="button secondary"
+          className="button assistant-run"
           disabled={assistant.busy}
           onClick={() => void assistant.run(`order-message/${orderId}`)}
         >
-          {assistant.busy ? "문구 만드는 중…" : "전달 문구 만들기"}
+          전달 문구 만들기
         </button>
       </div>
+      {assistant.busy && <AiThinking label="전달 문구를 만들고 있어요" />}
       <AiError error={assistant.error} />
-      {assistant.result && <AiAnswer result={assistant.result} copy />}
+      {assistant.result && <AiMessage text={assistant.result.text} />}
     </section>
   );
 }

@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 from pydantic import ValidationError
 from fastapi import Depends, File, Form, HTTPException, UploadFile
 
-from app.database import encode, now_iso, store_today
+from app.database import EARLIEST_SALES_DATE, encode, now_iso, store_today
 from app.imports import MAX_BYTES, MAX_ROWS
 from app.schemas import ProductInput, Sale, Inventory
 from app.walmart_scenarios import scenario_history
@@ -56,6 +56,8 @@ def read_workbook(filename, content, cutoff):
             raise ValueError("판매 기록이 없거나 같은 날짜·상품이 중복되었습니다.")
         if any(s["product_id"] not in ids or s["date"] > cutoff.isoformat() for s in sales):
             raise ValueError("판매 기록의 미등록 상품 또는 미래 날짜를 확인하세요.")
+        if any(s["date"] < EARLIEST_SALES_DATE.isoformat() for s in sales):
+            raise ValueError("2000년 이전 날짜의 판매 기록은 가져올 수 없습니다.")
         stock = {pid: {"batches": [], "incoming": [], "incoming_confirmed": True} for pid in ids}
         measured = set()
         for row in records("재고", STOCK_COLUMNS):

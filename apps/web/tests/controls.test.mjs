@@ -27,6 +27,7 @@ try {
     "merchant-summary",
     "merchant-metrics",
     "order-details",
+    "ai-answer",
     "ai-assistant",
   ]) {
     const source = await readFile(
@@ -49,6 +50,7 @@ try {
       .replace('from "./ui"', 'from "./ui.mjs"')
       .replace('from "./controls"', 'from "./controls.mjs"')
       .replace('from "./ai-assistant"', 'from "./ai-assistant.mjs"')
+      .replace('from "./ai-answer"', 'from "./ai-answer.mjs"')
       .replace('from "@/lib/merchant-summary"', 'from "./merchant-summary.mjs"')
       .replace(
         'from "@/lib/merchant-language"',

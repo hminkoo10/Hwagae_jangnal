@@ -20,3 +20,9 @@ def disable_ambient_model_processes(monkeypatch):
         return configuration(runtime)
 
     monkeypatch.setattr(ModelRuntime, "_configuration", unit_configuration)
+
+
+@pytest.fixture(autouse=True)
+def weekday_forecasts_without_model(monkeypatch):
+    # Unit tests have no TFT process; stores without a saved choice use the baseline here.
+    monkeypatch.setattr("app.main.DEFAULT_FORECAST_PROVIDER", "weekday")

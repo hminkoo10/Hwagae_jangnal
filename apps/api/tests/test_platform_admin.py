@@ -38,7 +38,8 @@ def test_operator_separation_and_no_public_role_escalation(service):
     assert create(client,merchant).status_code==403
     assert client.get('/auth/me',headers=operator).json()['platform_role']=='operator'
     assert client.get('/stores',headers=operator).json()['stores']==[]
-    assert client.get('/stores/gwangju/ai/settings',headers=operator).status_code==403
+    assert client.get('/platform/ai/settings',headers=operator).status_code==200
+    assert client.get('/platform/ai/settings',headers=merchant).status_code==403
     assert create(client,operator,email='operator@example.com').status_code==400
 
 def test_unlinked_merchant_store_summary_matches_after_contract_connection(service):
