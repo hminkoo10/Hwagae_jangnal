@@ -54,11 +54,11 @@ class MerchantRuntime:
             raise ModelUnavailable("실험 모델을 준비하지 못했습니다.")
         result = {
             "model": {
-                "name": "실시간 예보 TFT · 실험",
-                "version": "synthetic-test-v1",
+                "name": "실시간 예보 TFT · 디미고 매점 학습",
+                "version": "dimigo-test-v1",
                 "uses_weather": True,
-                "training_data": "synthetic",
-                "note": "합성 학습 · 실매장 성능 미검증",
+                "training_data": "dimigo_store",
+                "note": "디미고 매점 학습 · 다른 매장 성능 미검증",
             },
             "products": [
                 {
@@ -243,7 +243,7 @@ def test_selected_runtime_receives_own_ids_live_snapshot_and_orders_end_to_end(d
     assert response.status_code == 200, response.text
     result = response.json()
     assert (
-        result["model"]["training_data"] == "synthetic"
+        result["model"]["training_data"] == "dimigo_store"
         and result["model"]["uses_weather"] is True
     )
     context = runtime.calls[0]
