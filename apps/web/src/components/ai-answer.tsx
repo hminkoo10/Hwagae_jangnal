@@ -89,7 +89,6 @@ function parse(text: string) {
     .map(readLine)
     .filter((line): line is Line => line !== null);
   if (!lines.length) return { headline: "", blocks: [] as Block[] };
-  // An answer that opens with a list item has no conclusion line to lift out.
   const first = lines[0].marker ? null : lines[0];
   const rest = first ? lines.slice(1) : lines;
   const opening = first ? sentences(first.text.replace(LABEL, "")) : [];
@@ -121,9 +120,8 @@ function parse(text: string) {
   return { headline, blocks };
 }
 
-// A word is a run of text between spaces; a highlighted amount such as
-// "10월 27일(화)" stays whole so its marker is never split. Spaces stay plain
-// text, so the answer still reads and copies as one sentence.
+// A highlighted amount such as "10월 27일(화)" stays one word so its marker is
+// never split. Spaces stay plain text so the answer copies as one sentence.
 type Piece = { text: string; em: boolean };
 type Token = string | Piece[];
 type Words = { tokens: Token[]; start: number };
@@ -284,7 +282,6 @@ export function AiThinking({
   );
 }
 
-/** Grows and shrinks smoothly as thinking, errors and answers swap inside. */
 export function AiOutput({ children }: { children: ReactNode }) {
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);

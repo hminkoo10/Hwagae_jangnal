@@ -1,4 +1,4 @@
-// 화개장날 로고. apps/mobile/resources/mark.svg와 같은 그림에 파란 배경을 깐다.
+// apps/mobile/resources/mark.svg와 같은 그림에 파란 배경을 깐다.
 export function BrandLogo() {
   return (
     <svg viewBox="0 0 108 108" aria-hidden="true">
