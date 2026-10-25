@@ -135,6 +135,13 @@ def issue_invite(db, contract_id):
     return {"token": token, "expires_at": expiry}
 
 
+def retire_account(db, user_id, name):
+    """Audit rows and orders still point at the account, so it is anonymised and disabled rather than removed."""
+    db.execute("UPDATE users SET email=?,name=?,salt=?,password_hash=? WHERE id=?", (f"deleted-{user_id}@deleted.invalid", name, secrets.token_hex(16), secrets.token_hex(32), user_id))
+    db.execute("INSERT INTO account_controls VALUES (?,0) ON CONFLICT(user_id) DO UPDATE SET enabled=0", (user_id,))
+    db.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
+
+
 def delete_merchant(db, user_id):
     """Delete the merchant's stores with every row they own and retire the account. Returns the store count."""
     from app.staff import drop_idle_sessions
@@ -157,9 +164,7 @@ def delete_merchant(db, user_id):
         db.execute(f"DELETE FROM {table} WHERE user_id=?", (user_id,))
     db.execute("DELETE FROM merchant_invites WHERE contract_id IN (SELECT id FROM merchant_contracts WHERE user_id=?)", (user_id,))
     db.execute("DELETE FROM merchant_contracts WHERE user_id=?", (user_id,))
-    # Audit rows and orders in other stores still point at the account, so it is anonymised rather than removed.
-    db.execute("UPDATE users SET email=?,name='삭제된 점주',salt=?,password_hash=? WHERE id=?", (f"deleted-{user_id}@deleted.invalid", secrets.token_hex(16), secrets.token_hex(32), user_id))
-    db.execute("INSERT INTO account_controls VALUES (?,0) ON CONFLICT(user_id) DO UPDATE SET enabled=0", (user_id,))
+    retire_account(db, user_id, "삭제된 점주")
     for member in members:
         drop_idle_sessions(db, member)
     return len(stores)

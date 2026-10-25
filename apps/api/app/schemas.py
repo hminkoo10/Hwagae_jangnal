@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Count = Annotated[int, Field(strict=True, ge=0, le=1_000_000)]
 
 
-MAX_PRODUCTS = 200
+MAX_PRODUCTS = 400
 
 
 class Payload(BaseModel):

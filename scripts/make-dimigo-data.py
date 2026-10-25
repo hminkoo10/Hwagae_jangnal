@@ -389,12 +389,19 @@ split.json         원본 해시와 기간
               [[pid, names[pid], categories[pid], sum(sold[pid].values()), order_units[pid], round(profile[pid]["coverage"], 3), profile[pid]["price"], profile[pid]["cost"] or "", "사용" if profile[pid]["reliable"] else ""] for pid in sorted(names)])
 
     window = daterange(holdout_start, demo_end)
-    # 재고를 추정할 수 있고 이 기간에 팔린 상품 전부. 판매 행은 상품의 첫·마지막 판매일 사이만 둔다.
-    chosen = sorted((pid for pid in stock if any(sold[pid].get(d, 0) > 0 for d in window)), key=lambda pid: -sum(sold[pid][d] for d in window))
+    # 이 기간에 팔린 상품 전부. 판매 행은 상품의 첫·마지막 판매일 사이만 둔다.
+    prices = {pid: profile[pid]["price"] or mode_price(price_rows[pid], last_day) for pid in names}
+    chosen = sorted((pid for pid in names if prices[pid] and any(sold[pid].get(d, 0) > 0 for d in window)),
+                    key=lambda pid: -sum(sold[pid][d] for d in window))
     span = {pid: (min(d for d in sold[pid] if sold[pid][d] > 0), max(d for d in sold[pid] if sold[pid][d] > 0)) for pid in chosen}
     sales_rows = sum(span[pid][0] <= d <= span[pid][1] for pid in chosen for d in window)
-    if len(chosen) > 200 or sales_rows > 30_000:
-        raise ValueError("시연 자료가 업로드 한도(상품 200개, 30,000행)를 넘습니다.")
+    if len(chosen) > 400 or sales_rows > 30_000:
+        raise ValueError("시연 자료가 업로드 한도(상품 400개, 30,000행)를 넘습니다.")
+    # 발주 기록으로 알 수 없으면 원가는 판매가의 70%, 재고는 최근 1주 평균 판매의 3일치로 가정한다.
+    costs = {pid: profile[pid]["cost"] if profile[pid]["cost"] and COST_RATIO[0] <= profile[pid]["cost"] / prices[pid] <= COST_RATIO[1]
+             else round(prices[pid] * 0.7 / 10) * 10 for pid in chosen}
+    assumed_cost = sum(costs[pid] != profile[pid]["cost"] for pid in chosen)
+    assumed_stock = [pid for pid in chosen if pid not in stock]
 
     book = Workbook()
     guide = book.active
@@ -404,9 +411,9 @@ split.json         원본 해시와 기간
     guide.append(["지역", "한국디지털미디어고등학교 (경기 안산시 단원구) / Asia/Seoul"])
     guide.append(["마감 기준일", demo_date.isoformat()])
     guide.append(["자료 출처", f"디미고사회적협동조합 POS 판매현황 {first_day}~{last_day} 중 뒤쪽 30% 기간 {holdout_start}~{demo_end}. 요일을 유지하도록 날짜를 {shift.days}일 뒤로 옮겼습니다. 모델은 이 기간을 학습하지 않았습니다."])
-    guide.append(["상품", f"이 기간에 팔렸고 발주 기록이 판매와 맞아 재고를 추정할 수 있는 상품 전부({len(chosen)}개). 판매는 상품의 첫·마지막 판매일 사이만 담았습니다."])
-    guide.append(["재고", "실사 재고가 아닙니다. 구매현황(발주) 누적에서 판매 누적을 빼고 선입선출·종류별 유통기한 가정으로 추정했습니다."])
-    guide.append(["가정값", f"원가는 발주 단가(합계÷수량). 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)은 시연 가정입니다. 거래처는 가상 유통사 10곳이며, 같은 제조사 상품은 같은 거래처로 묶었습니다."])
+    guide.append(["상품", f"이 기간에 팔린 상품 전부({len(chosen)}개). 판매는 상품의 첫·마지막 판매일 사이만 담았습니다."])
+    guide.append(["재고", f"실사 재고가 아닙니다. 발주 기록이 판매와 맞는 {len(chosen) - len(assumed_stock)}개는 구매현황 누적에서 판매 누적을 빼고 선입선출·종류별 유통기한으로 추정했고, 나머지 {len(assumed_stock)}개는 최근 1주 평균 판매의 3일치로 가정했습니다."])
+    guide.append(["가정값", f"원가는 발주 단가(합계÷수량)이며, 발주 기록으로 알 수 없는 {assumed_cost}개는 판매가의 70%로 가정했습니다. 납기 {LEAD_DAYS}일·발주 주기 {REVIEW_DAYS}일·유통기한(종류별)은 시연 가정입니다. 거래처는 가상 유통사 10곳이며, 같은 제조사 상품은 같은 거래처로 묶었습니다."])
     guide.append(["날씨", f"date는 업로드한 날짜, sold_on은 실제로 판매한 날짜({shift.days}일 전)입니다. 기온(°C)·강수(mm)는 실제 판매일의 안산 와동 과거 재분석(Open-Meteo)이고, units_sold_total은 그날 이 {len(chosen)}개 상품 판매 합계입니다. 앱은 매장 위치의 날씨를 date 기준으로 따로 조회하므로 앱의 과거 날씨와 다를 수 있습니다. 업로드에는 쓰지 않는 참고 시트입니다."])
     products_sheet = book.create_sheet("상품")
     products_sheet.append(["id", "name", "category", "supplier", "price", "cost", "lead_days", "shelf_days", "review_days"])
@@ -417,10 +424,14 @@ split.json         원본 해시와 기간
     suppliers = assign_distributors({pid: maker_group(mapped_orders[pid], categories[pid]) for pid in chosen})
     for pid in chosen:
         shelf = SHELF_DAYS[categories[pid]]
-        products_sheet.append([pid, names[pid], categories[pid], suppliers[pid], profile[pid]["price"], profile[pid]["cost"], LEAD_DAYS, shelf, REVIEW_DAYS])
+        products_sheet.append([pid, names[pid], categories[pid], suppliers[pid], prices[pid], costs[pid], LEAD_DAYS, shelf, REVIEW_DAYS])
         batches = Counter()
-        for received, quantity in stock[pid][1][demo_end] or [(demo_end, 0)]:
-            batches[received + timedelta(days=shelf) + shift] += quantity
+        if pid in stock:
+            for received, quantity in stock[pid][1][demo_end] or [(demo_end, 0)]:
+                batches[received + timedelta(days=shelf) + shift] += quantity
+        else:
+            recent = [sold[pid].get(demo_end - timedelta(days=i), 0) for i in range(7)]
+            batches[demo_date + timedelta(days=shelf)] = -(-sum(recent) * 3 // 7)
         for expires_on, quantity in sorted(batches.items()):
             stocks.append([pid, demo_date.isoformat(), quantity, expires_on.isoformat(), None])
         for day in window:
