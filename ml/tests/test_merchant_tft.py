@@ -37,7 +37,7 @@ class MerchantTftTests(unittest.TestCase):
         self.assertTrue(all(parameter.device.type == "cpu" for parameter in model.parameters()))
         self.assertEqual(sample, original)
         self.assertEqual(result["model"], manifest["model"])
-        self.assertEqual(result["model"]["training_data"], "synthetic")
+        self.assertEqual(result["model"]["training_data"], "dimigo_store")
         self.assertTrue(result["model"]["uses_weather"])
         self.assertEqual(result, inference.predict(sample))
         expected = json.loads((ROOT / "expected-api.json").read_text(encoding="utf-8"))
@@ -47,19 +47,22 @@ class MerchantTftTests(unittest.TestCase):
         self.assertEqual(manifest["checkpoint_sha256"], hashlib.sha256((ROOT / "model.ckpt").read_bytes()).hexdigest())
         self.assertLess(manifest["checkpoint_bytes"], 5_000_000)
 
-    def test_future_forecast_changes_predictions_in_the_trained_synthetic_direction(self):
-        warm, cold, wet = context(), context(), context()
-        for day in warm["weather"]["days"]:
-            day.update(temp_max=34, temp_min=24, rain_mm=0)
-        for day in cold["weather"]["days"]:
-            day.update(temp_max=8, temp_min=0, rain_mm=0)
-        for day in wet["weather"]["days"]:
-            day.update(temp_max=34, temp_min=24, rain_mm=35)
-        def total(sample):
-            return sum(point["p50"] for point in inference.predict(sample)["products"][0]["points"])
-        warm_total, cold_total, wet_total = map(total, (warm, cold, wet))
-        self.assertGreater(warm_total, cold_total * 1.1)
-        self.assertGreater(warm_total, wet_total * 1.1)
+    def test_future_forecast_rain_and_within_week_temperature_enter_the_decoder(self):
+        # Temperatures enter only relative to the same 7-day forecast mean, so a uniform
+        # shift is invisible by design. No direction is asserted: the real-data response
+        # is learned, not a causal effect.
+        def p50(update):
+            sample = context()
+            for index, day in enumerate(sample["weather"]["days"]):
+                update(index, day)
+            return [point["p50"] for point in inference.predict(sample)["products"][0]["points"]]
+        base = p50(lambda index, day: None)
+        np.testing.assert_allclose(p50(lambda index, day: day.update(temp_max=34, temp_min=24)), base, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(p50(lambda index, day: day.update(temp_max=5, temp_min=-3)), base, rtol=1e-6, atol=1e-6)
+        rainy = p50(lambda index, day: day.update(rain_mm=30 if index == 1 else 0))
+        cold_day = p50(lambda index, day: day.update(temp_max=10 if index == 1 else 18, temp_min=2 if index == 1 else 9))
+        self.assertGreater(np.abs(np.subtract(rainy, base)).max(), 0.5)
+        self.assertGreater(np.abs(np.subtract(cold_day, base)).max(), 0.5)
 
     def test_arbitrary_ids_do_not_change_predictions_and_volume_scales(self):
         sample = context()
